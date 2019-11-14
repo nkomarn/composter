@@ -7,6 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 public class InboundHandler extends ChannelInboundHandlerAdapter {
 
@@ -22,6 +23,15 @@ public class InboundHandler extends ChannelInboundHandlerAdapter {
 
         System.out.println(((ByteBuf) message).toString(CharsetUtil.UTF_8));
 
+        /*ByteBuf d = Unpooled.buffer();
+        d.writeByte(0xFF);
+        d.writeByte(0);
+        d.writeByte(26);
+        d.writeByte(0);
+        d.writeBytes("§6Connected to Composter!".getBytes(CharsetUtil.UTF_16LE));
+        context.write(d);
+        context.flush();*/
+
         // Handshake
         if (packet == 0x02) {
             System.out.println("Handshaking");
@@ -35,16 +45,30 @@ public class InboundHandler extends ChannelInboundHandlerAdapter {
             context.flush();
         } else if (packet == 0x01) {
             System.out.println("Logging in");
-        }
 
-        ByteBuf d = Unpooled.buffer();
-        d.writeByte(0xFF);
-        d.writeByte(0);
-        d.writeByte(26);
-        d.writeByte(0);
-        d.writeBytes("§6Connected to Composter!".getBytes(CharsetUtil.UTF_16LE));
-        context.write(d);
-        context.flush();
+            // Send info to client
+            ByteBuf data = Unpooled.buffer();
+            data.writeByte(0x01);
+            data.writeByte(0);
+            data.writeByte(1298);
+            data.writeByte(0);
+            data.writeBytes(" ".getBytes(CharsetUtil.UTF_16LE));
+            data.writeByte(0);
+            data.writeByte(97176810);
+            data.writeByte(0);
+            data.writeByte(0); // survival
+            data.writeByte(0);
+            data.writeByte(-1); // nether
+            data.writeByte(0);
+            data.writeByte(1); // difficulty
+            data.writeByte(0);
+            data.writeByte(128); // build height
+            data.writeByte(0);
+            data.writeByte(8);//max players
+
+            context.write(data);
+            context.flush();
+        }
     }
 
     @Override
