@@ -1,7 +1,7 @@
 ![Composter](https://i.imgur.com/uZATZq4.png)
 # Composter
 ## A multithreaded cleanroom implementation of the Minecraft Beta 1.7.3 server.
-[![CodeFactor](https://www.codefactor.io/repository/github/nkomarn/composter/badge)](https://www.codefactor.io/repository/github/nkomarn/composter) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/nkomarn/Harbor/blob/master/LICENSE) [![Discord](https://discordapp.com/api/guilds/285623631042707457/widget.png)][discord-invite]
+![CI](https://github.com/nkomarn/composter/workflows/Java%20CI/badge.svg) [![CodeFactor](https://www.codefactor.io/repository/github/nkomarn/composter/badge)](https://www.codefactor.io/repository/github/nkomarn/composter) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/nkomarn/Harbor/blob/master/LICENSE)
 
 Composter is still **extremely early in development.** While I will probably end up making a majority of this project, I definitely will need help along the way. This is an ambitious project, and I do realize that, but it is definitely an achievable one. I am starting this project for a few reasons:
 1. I want to learn about creating server software from scratch
@@ -31,4 +31,4 @@ This project is licensed under the MIT license. I hope to not only create someth
 
 ---
 
-This project will not be possible without the support of many others. I appreciate any and all contributions made to this project. Together, we can create something great 💛
+This project will not be possible without the support of many others. I appreciate any and all contributions made to this project. Together, we can create something great! :)
