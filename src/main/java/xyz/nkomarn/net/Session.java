@@ -8,5 +8,5 @@ public class Session {
         PLAY
     }
 
-
+    // TODO represents a player session
 }
