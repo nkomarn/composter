@@ -1,6 +1,7 @@
-![Composter](https://i.imgur.com/VJrjfTF.png)
+![Composter](https://i.imgur.com/uZATZq4.png)
 # Composter
 ## A multithreaded cleanroom implementation of the Minecraft Beta 1.7.3 server.
+[![CodeFactor](https://www.codefactor.io/repository/github/nkomarn/composter/badge)](https://www.codefactor.io/repository/github/nkomarn/composter) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/nkomarn/Harbor/blob/master/LICENSE) [![Discord](https://discordapp.com/api/guilds/285623631042707457/widget.png)][discord-invite]
 
 Composter is still **extremely early in development.** While I will probably end up making a majority of this project, I definitely will need help along the way. This is an ambitious project, and I do realize that, but it is definitely an achievable one. I am starting this project for a few reasons:
 1. I want to learn about creating server software from scratch
