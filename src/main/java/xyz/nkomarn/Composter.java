@@ -1,13 +1,12 @@
 package xyz.nkomarn;
 
 import xyz.nkomarn.net.Bootstrap;
-
 import java.util.logging.Logger;
 
 public final class Composter {
 
     private static final Logger logger
-        = Logger.getLogger(Composter.class.getName());
+        = Logger.getLogger("Composter");
 
     public Composter() {
         // TODO server config file

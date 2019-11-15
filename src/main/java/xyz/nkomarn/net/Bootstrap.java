@@ -26,7 +26,7 @@ public class Bootstrap {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override // TODO move this into a dedicated class (maybe?)
                     protected void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(new PacketDecoder());
+                        channel.pipeline().addLast(new ChannelHandler());
                     }
                 })
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
