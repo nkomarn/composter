@@ -20,7 +20,7 @@ public class ChannelHandler extends ChannelInboundHandlerAdapter {
         // Destroy session
         Channel channel = context.channel();
         SessionManager.closeSession(channel);
-        System.out.println(String.format("New closed (%s total). Channel: %s.",
+        System.out.println(String.format("Session closed (%s total). Channel: %s.",
             String.valueOf(SessionManager.sessionCount()), channel.toString()));
     }
 

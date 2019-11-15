@@ -4,27 +4,26 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.protocol.scaffold.PacketLookup;
-import xyz.nkomarn.protocol.scaffold.PacketScaffold;
+import xyz.nkomarn.protocol.PacketManager;
 
-import java.io.IOException;
 import java.util.List;
 
 //TODO change from void to something else?
-public class PacketDecoder extends ReplayingDecoder<Void> {
+public class Decoder extends ReplayingDecoder<Void> {
 
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf buffer, List<Object> list) throws Exception {
-        int packetID = buffer.readUnsignedByte();
+        int opCode = buffer.readUnsignedByte();
+        System.out.println("Packet received: " + opCode);
 
-        System.out.println("Received packet: " + packetID);
+        Packet packet = PacketManager.lookup(opCode);
 
-        PacketScaffold<?> scaffold = PacketLookup.find(packetID);
+        /*PacketScaffold<?> scaffold = PacketLookup.find(packetID);
         if (scaffold == null) {
             //throw new IOException(String.format("Invalid packet ID: %s.", packetID));
         }
 
-        System.out.println(scaffold);
+        System.out.println(scaffold);*/
         // TODO packet handling stuff here
 
     }

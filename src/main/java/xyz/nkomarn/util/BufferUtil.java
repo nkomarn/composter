@@ -12,4 +12,16 @@ public class BufferUtil {
         return new String(bytes, CharsetUtil.UTF_8);
     }
 
+    public static void writeString(ByteBuf buf, String str) {
+        int len = str.length();
+        if (len >= 65536) {
+            throw new IllegalArgumentException("String too long.");
+        }
+
+        buf.writeShort(len);
+        for (int i = 0; i < len; i++) {
+            buf.writeChar(str.charAt(i));
+        }
+    }
+
 }
