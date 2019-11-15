@@ -8,30 +8,18 @@ public final class Composter {
     private static final Logger logger
         = Logger.getLogger("Composter");
 
-    public Composter() {
-        // TODO server config file
-
-        logger.info("Starting Composter.");
-        // TODO pipeline stuff & netty init
-    }
-
-    public void bind() {
-        // TODO bind netty
-    }
-
     public static Logger getLogger() {
         return logger;
     }
 
-    public static void main(String[] args) {
-        Composter composter = new Composter();
+    public Composter() throws InterruptedException {
+        logger.info("Starting Composter.");
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.start(25565); // TODO server config file
+        // TODO pipeline stuff & netty init
+    }
 
-        // TODO move this into main composter class
-        try {
-            Bootstrap bootstrap = new Bootstrap();
-            bootstrap.start(25565);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public static void main(String[] args) throws InterruptedException{
+        Composter composter = new Composter();
     }
 }
