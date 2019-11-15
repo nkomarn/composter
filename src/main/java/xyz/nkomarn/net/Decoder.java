@@ -19,8 +19,9 @@ public class Decoder extends ReplayingDecoder<Void> {
 
         Packet packet = PacketHandler.getPacket(opcode);
         if (packet == null) {
-            throw new IOException("Invalid packet: " + opcode);
+            //throw new IOException("Invalid packet: " + opcode);
         }
-        packet.decode(buffer);
+
+        //packet.decode(buffer);
     }
 }

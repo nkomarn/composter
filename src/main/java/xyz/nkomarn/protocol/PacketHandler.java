@@ -26,6 +26,7 @@ public class PacketHandler {
     }
 
     public static Packet getPacket(final int opcode) {
+        if (packets[opcode] == null) return null;
         return packets[opcode];
     }
 }

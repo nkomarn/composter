@@ -9,12 +9,12 @@ public class PacketKeepAlive extends Packet {
     public PacketKeepAlive() { }
 
     @Override
-    public ByteBuf encode(Object message) throws IOException {
+    public ByteBuf encode(Object message) {
         return null;
     }
 
     @Override
-    public Object decode(ByteBuf buffer) throws IOException {
+    public Object decode(ByteBuf buffer) {
         return null;
     }
 }

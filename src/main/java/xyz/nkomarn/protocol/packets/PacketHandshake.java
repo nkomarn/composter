@@ -13,7 +13,7 @@ public class PacketHandshake extends Packet<PacketHandshake> {
         this.message = message;
     }
 
-    private String getMessage() {
+    public String getMessage() {
         return this.message;
     }
 
