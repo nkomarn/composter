@@ -1,3 +1,8 @@
 package xyz.nkomarn.protocol;
 
-public abstract class Packet { }
+import io.netty.buffer.ByteBuf;
+
+public abstract class Packet<T> {
+    public abstract ByteBuf encode(T message);
+    public abstract T decode(ByteBuf buffer);
+}

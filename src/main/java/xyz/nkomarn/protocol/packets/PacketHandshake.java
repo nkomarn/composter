@@ -1,21 +1,32 @@
 package xyz.nkomarn.protocol.packets;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.BufferUtil;
 
-public class PacketHandshake extends Packet {
+public class PacketHandshake extends Packet<PacketHandshake> {
 
-    private String username;
+    private String message;
 
-    public PacketHandshake() {}
-
-    public PacketHandshake(final String username) {
-        this.username = username;
+    private PacketHandshake(final String message) {
+        this.message = message;
     }
 
-    public void decode(final ByteBuf buffer) {
-        this.username = BufferUtil.readUtf8String(buffer);
+    private String getMessage() {
+        return this.message;
     }
 
+    @Override
+    public ByteBuf encode(PacketHandshake message) {
+        ByteBuf buffer = Unpooled.buffer();
+        BufferUtil.writeString(buffer, message.getMessage());
+        return buffer;
+    }
+
+    @Override
+    public PacketHandshake decode(ByteBuf buffer) {
+        String message = BufferUtil.readString(buffer);
+        return new PacketHandshake(message);
+    }
 }

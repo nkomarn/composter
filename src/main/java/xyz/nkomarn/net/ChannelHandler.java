@@ -11,7 +11,6 @@ public class ChannelHandler extends ChannelInboundHandlerAdapter {
 
         // Create new session
         final Session session = new Session(channel);
-
         System.out.println(String.format("New session (%s total). Channel: %s.",
             String.valueOf(SessionManager.sessionCount()), channel.toString()));
     }
@@ -24,4 +23,8 @@ public class ChannelHandler extends ChannelInboundHandlerAdapter {
             String.valueOf(SessionManager.sessionCount()), channel.toString()));
     }
 
+    public void channelRead(ChannelHandlerContext context, Object message) {
+        final Session session = SessionManager.getSession(context.channel());
+        // TODO handler stuff
+    }
 }

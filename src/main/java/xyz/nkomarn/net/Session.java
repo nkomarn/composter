@@ -40,7 +40,5 @@ public class Session {
         channel.write(packet);
     }
 
-    public void queuePacket(Packet packet)  {
-        packetQueue.add(packet);
-    }
+
 }
