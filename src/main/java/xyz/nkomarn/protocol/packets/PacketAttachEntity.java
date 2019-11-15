@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketAttachEntity {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketAttachEntity extends Packet {
     //TODO 0x27
 }

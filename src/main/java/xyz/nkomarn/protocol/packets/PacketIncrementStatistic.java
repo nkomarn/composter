@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketIncrementStatistic {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketIncrementStatistic extends Packet {
     //TODO 0xC8
 }

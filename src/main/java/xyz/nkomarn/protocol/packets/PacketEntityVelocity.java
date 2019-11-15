@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityVelocity {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityVelocity extends Packet {
     //TODO 0x1C
 }

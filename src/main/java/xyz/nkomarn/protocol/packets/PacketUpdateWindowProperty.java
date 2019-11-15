@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketUpdateWindowProperty {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketUpdateWindowProperty extends Packet {
     //TODO 0x69
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketCreateInventoryAction {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketCreateInventoryAction extends Packet {
     //TODO 0x6B
 }

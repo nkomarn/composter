@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketThunderbolt {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketThunderbolt extends Packet {
     //TODO 0x47
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketHoldingChange {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketHoldingChange extends Packet {
     //TODO 0x10
 }

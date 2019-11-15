@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketTransaction {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketTransaction extends Packet {
     //TODO 0x6A
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityPainting {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityPainting extends Packet {
     //TODO 0x19
 }

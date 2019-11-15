@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketServerListPing {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketServerListPing extends Packet {
     //TODO 0xFE
 }

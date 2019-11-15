@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketBlockAction {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketBlockAction extends Packet {
     //TODO 0x36
 }

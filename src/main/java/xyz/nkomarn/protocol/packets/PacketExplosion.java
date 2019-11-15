@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketExplosion {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketExplosion extends Packet {
     //TODO 0x3C
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketPreChunk {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketPreChunk extends Packet {
     //TODO 0x32
 }

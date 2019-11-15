@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketTimeUpdate {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketTimeUpdate extends Packet {
     //TODO 0x04
 }

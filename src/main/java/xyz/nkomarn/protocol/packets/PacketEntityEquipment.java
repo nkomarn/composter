@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityEquipment {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityEquipment extends Packet {
     //TODO 0x05
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketItemData {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketItemData extends Packet {
     //TODO 0x83
 }

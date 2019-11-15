@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityMetadata {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityMetadata extends Packet {
     //TODO 0x28
 }

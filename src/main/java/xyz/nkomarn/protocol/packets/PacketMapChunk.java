@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketMapChunk {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketMapChunk extends Packet {
     //TODO 0x33
 }

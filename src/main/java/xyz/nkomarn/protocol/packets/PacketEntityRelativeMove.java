@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityRelativeMove {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityRelativeMove extends Packet {
     //TODO 0x1F
 }

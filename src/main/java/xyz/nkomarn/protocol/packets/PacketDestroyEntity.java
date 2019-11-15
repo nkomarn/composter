@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketDestroyEntity {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketDestroyEntity extends Packet {
     //TODO 0x1D
 }

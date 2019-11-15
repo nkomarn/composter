@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketPlayerDigging {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketPlayerDigging extends Packet {
     //TODO 0x0E
 }

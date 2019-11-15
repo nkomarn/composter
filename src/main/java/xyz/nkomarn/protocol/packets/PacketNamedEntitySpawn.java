@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketNamedEntitySpawn {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketNamedEntitySpawn extends Packet {
     //TODO 0x14
 }

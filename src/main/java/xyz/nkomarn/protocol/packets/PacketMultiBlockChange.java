@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketMultiBlockChange{
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketMultiBlockChange extends Packet {
     //TODO 0x34
 }
