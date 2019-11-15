@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketRemoveEntityEffect {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketRemoveEntityEffect extends Packet {
     //TODO 0x2A
 }

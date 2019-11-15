@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityLook {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityLook extends Packet {
     //TODO 0x20
 }

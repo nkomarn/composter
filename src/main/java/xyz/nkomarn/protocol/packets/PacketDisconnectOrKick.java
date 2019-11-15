@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketDisconnectOrKick {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketDisconnectOrKick extends Packet {
     //TODO 0xFF
 }

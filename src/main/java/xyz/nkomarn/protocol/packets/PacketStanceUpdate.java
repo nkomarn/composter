@@ -1,6 +1,8 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketStanceUpdate {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketStanceUpdate extends Packet {
     /**
      * TODO 0x1B
      * Wiki has no data on this packet

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketSoundParticleEffect {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketSoundParticleEffect extends Packet {
     //TODO 0x3D
 }

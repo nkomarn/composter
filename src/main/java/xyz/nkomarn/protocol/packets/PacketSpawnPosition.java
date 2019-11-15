@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketSpawnPosition {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketSpawnPosition extends Packet {
     //TODO 0x06
 }

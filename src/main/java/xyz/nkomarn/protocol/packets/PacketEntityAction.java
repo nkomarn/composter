@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityAction {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityAction extends Packet {
     //TODO 0x13
 }

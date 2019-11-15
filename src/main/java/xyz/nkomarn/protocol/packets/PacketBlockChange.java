@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketBlockChange {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketBlockChange extends Packet {
     //TODO 0x35
 }

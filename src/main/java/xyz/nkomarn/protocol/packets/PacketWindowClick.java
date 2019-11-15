@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketWindowClick{
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketWindowClick extends Packet {
     //TODO 0x66
 }

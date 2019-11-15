@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketNewInvalidState {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketNewInvalidState extends Packet {
     //TODO 0x46
 }

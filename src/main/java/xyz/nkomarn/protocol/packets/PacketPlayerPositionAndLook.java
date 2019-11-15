@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketPlayerPositionAndLook {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketPlayerPositionAndLook extends Packet {
     //TODO 0x0D
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketPlayer {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketPlayer extends Packet {
     //TODO 0x0A
 }

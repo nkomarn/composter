@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketKeepAlive {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketKeepAlive extends Packet {
     //TODO 0x00
 }

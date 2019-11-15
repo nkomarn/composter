@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketChatMessage {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketChatMessage extends Packet {
     //TODO 0x03
 }

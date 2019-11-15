@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEnchantItem {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEnchantItem extends Packet {
     //TODO 0x6C
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityTeleport {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityTeleport extends Packet {
     //TODO 0x22
 }

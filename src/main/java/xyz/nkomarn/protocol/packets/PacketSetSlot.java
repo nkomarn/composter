@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketSetSlot {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketSetSlot extends Packet {
     //TODO 0x67
 }

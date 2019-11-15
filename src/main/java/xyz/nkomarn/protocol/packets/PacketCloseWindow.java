@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketCloseWindow {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketCloseWindow extends Packet {
     //TODO 0x65
 }

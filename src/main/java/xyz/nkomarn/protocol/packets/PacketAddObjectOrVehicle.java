@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketAddObjectOrVehicle {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketAddObjectOrVehicle extends Packet {
     //TODO 0x17
 }

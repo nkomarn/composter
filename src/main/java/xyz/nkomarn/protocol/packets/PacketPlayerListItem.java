@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketPlayerListItem {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketPlayerListItem extends Packet {
     //TODO 0xC9
 }

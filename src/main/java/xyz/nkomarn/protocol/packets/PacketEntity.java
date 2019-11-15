@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntity {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntity extends Packet {
     //TODO 0x1E
 }

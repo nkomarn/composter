@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketExperienceOrb {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketExperienceOrb extends Packet {
     //TODO 0x1A
 }

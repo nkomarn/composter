@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketEntityLookAndRelativeMove {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketEntityLookAndRelativeMove extends Packet{
     //TODO 0x21
 }

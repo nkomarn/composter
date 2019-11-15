@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol.packets;
 
-public class PacketUseBed {
+import xyz.nkomarn.protocol.Packet;
+
+public class PacketUseBed extends Packet {
     //TODO 0x11
 }
