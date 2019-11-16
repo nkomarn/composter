@@ -24,7 +24,7 @@ Have a look at the [project tracker](https://github.com/nkomarn/Composter/projec
 ### 📚 Resources 
 * [wiki.vg](https://wiki.vg/index.php?title=Protocol&oldid=689) - Reverse engineered Beta protocol (mostly)
 * [NBT Protocol](https://web.archive.org/web/20110204151459/http://www.minecraft.net/docs/NBT.txt) - An old archived document outlining the NBT format
-* [Reactor Netty docs](https://projectreactor.io/docs/netty/release/reference/index.html#tcp-server) - Great documentation outlining a lot of the features of Reactor
+* ~~[Reactor Netty docs](https://projectreactor.io/docs/netty/release/reference/index.html#tcp-server) - Great documentation outlining a lot of the features of Reactor~~
 * 🌎 *Lots and lots of Googling...*
 
 ### 📰 Licensing stuff

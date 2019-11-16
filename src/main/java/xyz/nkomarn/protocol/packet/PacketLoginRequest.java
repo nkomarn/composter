@@ -11,7 +11,7 @@ public class PacketLoginRequest extends Packet {
     @Override
     public void handle(Session session, ByteBuf buffer) {
         State state = session.getState();
-        
+
         if (state.equals(State.LOGIN)) {
             int protocol = buffer.readInt();
 

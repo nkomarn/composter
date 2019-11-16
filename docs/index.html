@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Composter - Multithreaded Minecraft</title>
+        <link rel="icon" href="img/composter.png">
+        <meta name="theme-color" content="#FFB954">
+
+        <style>
+            @import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');
+
+            body {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center; 
+                align-items: center;
+                overflow: hidden;
+                background-color: #f6f6f6;
+                animation: fadeIn 3s;
+            }
+            .image {
+                margin: 0 auto;
+                display: block;
+                padding-bottom: 25px;
+                width: 160px;
+            }
+            h1 {
+                padding-bottom: 10px;
+                font-family: 'Open Sans', sans-serif;
+                font-size: 48px;
+                margin: 0 auto;
+                text-align: center;
+                color: #2F2F2F;
+            }
+            h3 {
+                padding-bottom: 25px;
+                font-family: 'Open Sans', sans-serif;
+                font-size: 18px;
+                margin: 0 auto;
+                text-align: center;
+                font-weight: 600;
+                max-width: 400px;
+                color: #4C4C4C;
+            }
+            .link {
+                background-color: #FFB954;
+                font-family: 'Open Sans', sans-serif;
+                font-weight: 600;
+                color: white;
+                text-decoration: none;
+                padding: 5px 15px 5px 15px;
+                border-radius: 5px;
+                text-align: center;
+                margin: 0 auto;
+                display: block;
+                width: 200px;
+                box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.1);
+                transition: 0.3s;
+            }
+            .link:hover {
+                box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.2);
+            }
+
+            @keyframes fadeIn {
+                0% {
+                    opacity: 0;
+                    transform: translateY(5px);
+                }
+                100% {
+                    opacity: 1;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <img class="image" src="img/composter.png">
+            <h1>Composter</h1>
+            <h3>A multithreaded cleanroom implementation of the Minecraft Beta 1.7.3 server.</h3>
+            <a class="link" href="https://github.com/nkomarn/Composter">Check out the project</a>
+        </div>
+    </body>
+</html>
