@@ -15,7 +15,7 @@ public class Decoder extends ReplayingDecoder<Void> {
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf buffer, List<Object> list) throws IOException {
         int opcode = buffer.readUnsignedByte();
-        //System.out.println("Packet received: " + opcode);
+        //System.out.println("Packet received: " + String.format("0x%01X", opcode));
 
         Packet packet = PacketHandler.getPacket(opcode);
         if (packet == null) {

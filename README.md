@@ -11,7 +11,7 @@ Composter is still **extremely early in development.** While I will probably end
 5. I enjoy pain **(╯°□°）╯︵ ┻━┻**
 
 ### 📋 Bucket list
-* Use [Reactor Netty](https://github.com/reactor/reactor-netty) instead of just raw Netty. This will hopefully bring some performance improvements
+* ~~Use [Reactor Netty](https://github.com/reactor/reactor-netty) instead of just raw Netty. This will hopefully bring some performance improvements~~
 * Close to the same generation that Beta has. I know this is a pretty unreasonable goal, but hey, why not.
 * Use a different compression algorithm for chunks. I am looking at either [zstd](https://facebook.github.io/zstd/) or [lz4](https://github.com/lz4/lz4).
 * Async whatever the hell I can async.
@@ -23,6 +23,7 @@ Have a look at the [project tracker](https://github.com/nkomarn/Composter/projec
 
 ### 📚 Resources 
 * [wiki.vg](https://wiki.vg/index.php?title=Protocol&oldid=689) - Reverse engineered Beta protocol (mostly)
+* [NBT Protocol](https://web.archive.org/web/20110204151459/http://www.minecraft.net/docs/NBT.txt) - An old archived document outlining the NBT format
 * [Reactor Netty docs](https://projectreactor.io/docs/netty/release/reference/index.html#tcp-server) - Great documentation outlining a lot of the features of Reactor
 * 🌎 *Lots and lots of Googling...*
 
