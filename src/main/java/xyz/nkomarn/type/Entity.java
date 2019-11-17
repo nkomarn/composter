@@ -1,4 +1,4 @@
-package xyz.nkomarn.object;
+package xyz.nkomarn.type;
 
 public abstract class Entity {
     //protected final World world;

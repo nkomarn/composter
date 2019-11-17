@@ -1,4 +1,4 @@
-package xyz.nkomarn.object;
+package xyz.nkomarn.type;
 
 public class Location {
 

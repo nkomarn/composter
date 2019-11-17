@@ -1,8 +1,8 @@
 package xyz.nkomarn.world.generator;
 
-import xyz.nkomarn.object.Block;
-import xyz.nkomarn.object.Chunk;
-import xyz.nkomarn.object.Material;
+import xyz.nkomarn.type.Block;
+import xyz.nkomarn.type.Chunk;
+import xyz.nkomarn.type.Material;
 
 public class FlatGenerator implements WorldGenerator {
 
@@ -15,9 +15,9 @@ public class FlatGenerator implements WorldGenerator {
             for (int xx = 0; xx < 16; xx++) {
                 for (int zz = 0; zz < 16; zz++) {
                     if (y < 9) {
-                        chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //dirt
+                        //chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //dirt
                     } else {
-                        chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //grass
+                        //chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //grass
                     }
                 }
             }

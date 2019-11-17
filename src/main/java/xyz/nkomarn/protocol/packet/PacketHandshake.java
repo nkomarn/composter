@@ -2,7 +2,6 @@ package xyz.nkomarn.protocol.packet;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.util.CharsetUtil;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
 import xyz.nkomarn.protocol.Packet;
@@ -16,7 +15,7 @@ public class PacketHandshake extends Packet {
         if (state.equals(State.HANDSHAKE)) {
             session.setState(State.LOGIN);
             ByteBuf buf = Unpooled.buffer();
-            buf.writeInt(0x02);
+            buf.writeByte(0x02);
             ByteBufUtil.writeString(buf, "-");
             session.send(buf);
         } else {
