@@ -1,25 +1,33 @@
 package xyz.nkomarn.object;
 
+/**
+ * Represents a chunk
+ */
 public class Chunk {
 
     private final int x, z;
-    private final int[][][] blocks =
-        new int[16][16][128]; // TODO better block storage
+    private final Block[][][] blocks =
+        new Block[16][16][128]; // TODO better block storage
 
     public Chunk(final int x, final int z) {
         this.x = x;
         this.z = z;
     }
 
-    public void setBlock(final int x, final int y, final int z, int block) {
+    // TODO possibly remove
+    public void setBlock(final int x, final int y, final int z, Block block) {
         blocks[x][y][z] = block;
     }
 
-    public int getBlockAt(final int x, final int y, final int z) {
-        return blocks[x][y][z]; // TODO return block object later
+    public void setBlock(Block block) {
+        blocks[block.getX()][block.getY()][block.getZ()] = block;
     }
 
-    public int[][][] getBlocks() {
+    public Block getBlockAt(final int x, final int y, final int z) {
+        return blocks[x][y][z];
+    }
+
+    public Block[][][] getBlocks() {
         return this.blocks;
     }
 

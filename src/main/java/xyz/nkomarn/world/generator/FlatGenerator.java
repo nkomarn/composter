@@ -1,9 +1,11 @@
 package xyz.nkomarn.world.generator;
 
+import xyz.nkomarn.object.Block;
 import xyz.nkomarn.object.Chunk;
+import xyz.nkomarn.object.Material;
 
 public class FlatGenerator implements WorldGenerator {
-    
+
     @Override
     public Chunk generate(final int x, final int z) {
         Chunk chunk = new Chunk(x, z);
@@ -13,9 +15,9 @@ public class FlatGenerator implements WorldGenerator {
             for (int xx = 0; xx < 16; xx++) {
                 for (int zz = 0; zz < 16; zz++) {
                     if (y < 9) {
-                        chunk.setBlock(xx, y, zz, 3); //dirt
+                        chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //dirt
                     } else {
-                        chunk.setBlock(xx, y, zz, 2); //grass
+                        chunk.setBlock(new Block(chunk, xx, y, zz, Material.DIRT)); //grass
                     }
                 }
             }

@@ -37,15 +37,15 @@ public class PacketLoginRequest extends Packet {
             session.send(buf);
 
             // TODO quick chunk send
-            ByteBuf preChunk = Unpooled.buffer();
+            /*ByteBuf preChunk = Unpooled.buffer();
             preChunk.writeInt(0x32);
             preChunk.writeInt(0);
             preChunk.writeInt(0);
             preChunk.writeBoolean(true);
-            session.send(preChunk);
+            session.send(preChunk);*/
 
-            WorldGenerator generator = new FlatGenerator();
-            Chunk chunk = generator.generate(0, 0);
+            //WorldGenerator generator = new FlatGenerator();
+            //Chunk chunk = generator.generate(0, 0);
 
 
 
