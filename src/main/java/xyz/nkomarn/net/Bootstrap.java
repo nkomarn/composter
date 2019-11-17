@@ -9,6 +9,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.protocol.Packet;
 
 public class Bootstrap {
 
@@ -26,14 +27,16 @@ public class Bootstrap {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override // TODO move this into a dedicated class (maybe?)
                     protected void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(new Decoder());
+                        channel.pipeline().addLast(new PacketDecoder());
                         channel.pipeline().addLast(new ChannelHandler());
                     }
                 })
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
 
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
-            if (channelFuture.isSuccess()) Composter.getLogger().info("Composter is up and running.");
+            if (channelFuture.isSuccess()) {
+                Composter.getLogger().info("Composter is ready for connections.");
+            }
             channelFuture.channel().closeFuture().sync();
         } finally {
             Composter.getLogger().info("Stopping Composter.");

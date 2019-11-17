@@ -1,6 +1,4 @@
-package xyz.nkomarn.model;
-
-import sun.security.acl.WorldGroupImpl;
+package xyz.nkomarn.object;
 
 public abstract class Entity {
     //protected final World world;

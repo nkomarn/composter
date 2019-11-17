@@ -1,0 +1,10 @@
+network:
+  host: 0.0.0.0
+  port: 25565
+
+messages:
+  protocol_kick: "Unsupported protocol version '%s'."
+
+motd:
+  enabled: true
+  message: "Composter - Beta 1.7.3"

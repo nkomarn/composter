@@ -12,8 +12,8 @@ public class ChannelHandler extends ChannelInboundHandlerAdapter {
 
     Logger logger = Composter.getLogger();
 
+    // Ran when the client connects
     public void channelActive(ChannelHandlerContext context) {
-        // Ran when the client connects
         Channel channel = context.channel();
 
         // Create new session
@@ -22,8 +22,8 @@ public class ChannelHandler extends ChannelInboundHandlerAdapter {
             String.valueOf(SessionManager.sessionCount()), channel.toString()));
     }
 
+    // Destroy session
     public void channelInactive(ChannelHandlerContext context) {
-        // Destroy session
         Channel channel = context.channel();
         SessionManager.closeSession(channel);
         logger.log(Level.INFO, String.format("Session closed (%s total). Channel: %s.",

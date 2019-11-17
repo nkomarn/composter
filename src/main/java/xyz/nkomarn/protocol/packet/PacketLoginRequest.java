@@ -4,8 +4,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
+import xyz.nkomarn.object.Chunk;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
+import xyz.nkomarn.world.generator.FlatGenerator;
+import xyz.nkomarn.world.generator.WorldGenerator;
 
 public class PacketLoginRequest extends Packet {
     @Override
@@ -32,6 +35,20 @@ public class PacketLoginRequest extends Packet {
             buf.writeByte(128);
             buf.writeByte(8);
             session.send(buf);
+
+            // TODO quick chunk send
+            ByteBuf preChunk = Unpooled.buffer();
+            preChunk.writeInt(0x32);
+            preChunk.writeInt(0);
+            preChunk.writeInt(0);
+            preChunk.writeBoolean(true);
+            session.send(preChunk);
+
+            WorldGenerator generator = new FlatGenerator();
+            Chunk chunk = generator.generate(0, 0);
+
+
+
         } else {
             session.disconnect("Not ready for login.");
         }
