@@ -33,7 +33,7 @@ public class ChunkIO {
         Map<String, Tag> levelTags = ((CompoundTag) compoundTag.getValue().get("Level")).getValue();
 
         byte[] tileData = ((ByteArrayTag) levelTags.get("Blocks")).getValue();
-        //chunk.setBlocks(tileData); //fixme
+        chunk.setBlocks(tileData);
 
         byte[] skyLightData = ((ByteArrayTag) levelTags.get("SkyLight")).getValue();
         byte[] blockLightData = ((ByteArrayTag) levelTags.get("BlockLight")).getValue();
@@ -65,6 +65,10 @@ public class ChunkIO {
         }
         nbtInputStream.close();
         return chunk;
+    }
+
+    public void write(final int x, final int z, final Chunk chunk) throws IOException {
+        // TODO
     }
 
 }

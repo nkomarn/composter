@@ -9,13 +9,13 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import xyz.nkomarn.Composter;
-import xyz.nkomarn.protocol.Packet;
 
 public class Bootstrap {
 
     /*
         Starts the Netty server
      */
+    // TODO separate executor (if not already)
     public void start(int port) throws InterruptedException {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -30,8 +30,8 @@ public class Bootstrap {
                         channel.pipeline().addLast(new PacketDecoder());
                         channel.pipeline().addLast(new ChannelHandler());
                     }
-                })
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
+                });
+                //.childOption(ChannelOption.SO_KEEPALIVE, true);
 
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
             if (channelFuture.isSuccess()) {
