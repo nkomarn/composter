@@ -5,21 +5,22 @@ import xyz.nkomarn.type.Chunk;
 public class FlatGenerator implements WorldGenerator {
 
     @Override
-    public Chunk generate(final int x, final int z) {
-        Chunk chunk = new Chunk(x, z);
-        int y = 0;
+    public Chunk generate(final int xx, final int zz) {
+        Chunk chunk = new Chunk(xx, zz);
 
-        while (y < 10) {
-            for (int xx = 0; xx < 16; xx++) {
-                for (int zz = 0; zz < 16; zz++) {
-                    if (y < 9) {
-                        chunk.setBlock(xx, y, zz, (byte) 3); //dirt
-                    } else {
-                        chunk.setBlock(xx, y, zz, (byte) 2); //grass
-                    }
+        for (int x = 0; x < 16; x++) {
+            for (int y = 0; y < 128; y++) {
+                for (int z = 0; z < 16; z++) {
+                    if (y < 5) chunk.setBlock(x, y, z, 7); // BEDROCK
+                    else chunk.setBlock(x, y, z, 0);
+
+                    chunk.setMetaData(x, y, z, 0);
+                    chunk.setSkyLight(x, y, z, 13);
+                    chunk.setBlockLight(x, y, z, 13);
+
+                    System.out.println(String.format("Generated block %s, %s, %s", x, y, z));
                 }
             }
-            y++;
         }
         return chunk;
     }

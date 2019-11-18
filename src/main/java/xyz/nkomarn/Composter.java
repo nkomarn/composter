@@ -27,7 +27,7 @@ public final class Composter {
             public void run() {
                 getWorld().getPlayers().forEach(p -> p.tick()); // tick each player
             }
-        }, 0, 100, TimeUnit.MILLISECONDS); // 10 tps for testing
+        }, 0, 2, TimeUnit.MINUTES); // 0.5 tpm for testing
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port);

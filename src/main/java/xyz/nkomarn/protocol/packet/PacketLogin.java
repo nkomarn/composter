@@ -35,7 +35,7 @@ public class PacketLogin extends Packet {
             session.setState(State.PLAY);
             session.attachPlayer("TechToolbox");
 
-            // Send spawn position!
+            // Send spawn position! TODO send world spawn pos
             ByteBuf spawnPosition = Unpooled.buffer();
             spawnPosition.writeInt(0x06);
             spawnPosition.writeInt(5);

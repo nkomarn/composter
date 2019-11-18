@@ -13,14 +13,15 @@ public class Chunk {
 
     private final int x, z;
     private final byte[] blocks, metadata, skyLight, blockLight;
+    private final int arraySize = 16 * 16 * 128;
 
     public Chunk(final int x, final int z) {
         this.x = x;
         this.z = z;
-        this.blocks = new byte[32768];
-        this.metadata = new byte[32768];
-        this.skyLight = new byte[32768];
-        this.blockLight = new byte[32768];
+        this.blocks = new byte[arraySize];
+        this.metadata = new byte[arraySize];
+        this.skyLight = new byte[arraySize];
+        this.blockLight = new byte[arraySize];
     }
 
     public int getX() {
@@ -35,12 +36,14 @@ public class Chunk {
         return blocks[getIndex(x, y, z)];
     }
 
-    public void setBlock(final int x, final int y, final int z, final byte block) {
-        this.blocks[getIndex(x, z, y)] = block;
+    public void setBlock(final int x, final int y, final int z, final int type) {
+        if (type < 0 || type >= 94)
+            throw new IllegalArgumentException("Illegal block ID.");
+        this.blocks[getIndex(x, z, y)] = (byte) type;
     }
 
     public void setBlocks(final byte[] blocks) {
-        if (blocks.length != 32768) throw new IllegalArgumentException();
+        if (blocks.length != arraySize) throw new IllegalArgumentException();
         System.arraycopy(blocks, 0, this.blocks, 0, blocks.length);
     }
 
@@ -71,12 +74,14 @@ public class Chunk {
     public void setBlockLight(int x, int z, int y, int blockLight) {
         if (blockLight < 0 || blockLight >= 16)
             throw new IllegalArgumentException();
+
         this.blockLight[getIndex(x, z, y)] = (byte) blockLight;
     }
 
     private int getIndex(final int x, final int y, final int z) {
         if (x < 0 || z < 0 || y < 0 || x >= 16 || z >= 16 || y >= 128)
             throw new IndexOutOfBoundsException();
+
         return (x * 16 + z) * 128 + y;
     }
 
@@ -100,7 +105,7 @@ public class Chunk {
 
     // Serialize all the blocks in the chunk so we can send them to the client
     public byte[] serializeTileData() {
-        byte[] dest = new byte[((16 * 16 * 128 * 5) / 2)];
+        byte[] dest = new byte[((arraySize * 5) / 2)];
 
         System.arraycopy(blocks, 0, dest, 0, blocks.length);
 
@@ -139,7 +144,7 @@ public class Chunk {
 
         // Compress chunk data TODO compress on separate thread
         byte[] data = serializeTileData();
-        byte[] compressedData = new byte[(32768 * 5) / 2]; // 16 * 16 * 128
+        byte[] compressedData = new byte[(arraySize * 5) / 2]; // 16 * 16 * 128
 
         Deflater deflater = new Deflater(Deflater.BEST_SPEED);
         deflater.setInput(data);
@@ -156,6 +161,7 @@ public class Chunk {
 
         chunk.writeInt(compressed);
         chunk.writeBytes(compressedData, 0, compressed);
+
         return chunk;
     }
 }
