@@ -6,6 +6,11 @@ import xyz.nkomarn.net.Bootstrap;
 import xyz.nkomarn.world.World;
 import xyz.nkomarn.world.generator.FlatGenerator;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public final class Composter {
 
     private static final World world = new World(new FlatGenerator());
@@ -15,6 +20,14 @@ public final class Composter {
 
     public Composter(final int port) throws InterruptedException {
         logger.info("Starting Composter.");
+
+        ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
+        tickLoop.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                getWorld().getPlayers().forEach(p -> p.tick()); // tick each player
+            }
+        }, 0, 100, TimeUnit.MILLISECONDS); // 10 tps for testing
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port);
@@ -31,4 +44,6 @@ public final class Composter {
     public static World getWorld() {
         return world;
     }
+
+
 }

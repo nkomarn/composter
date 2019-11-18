@@ -4,7 +4,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Packet;
+import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.ByteBufUtil;
 
 import java.util.ArrayDeque;
@@ -14,6 +16,7 @@ public class Session {
 
     private final Channel channel;
     private State state;
+    private Player player;
 
     // Packet queue TODO
     private Queue<Packet> packetQueue = new ArrayDeque<>();
@@ -37,7 +40,13 @@ public class Session {
         return this.channel;
     }
 
-    // TODO getter/setter for player object
+    public void attachPlayer(final String username) {
+        player = new Player(this, username);
+    }
+
+    public Player getPlayer() {
+        return this.player;
+    }
 
     // Sends packet to client
     public void send(ByteBuf buffer) {

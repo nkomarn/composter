@@ -2,15 +2,18 @@ package xyz.nkomarn.world;
 
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
+import xyz.nkomarn.type.Player;
 import xyz.nkomarn.world.generator.WorldGenerator;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class World {
 
     private final Location spawn = new Location(0, 128, 0); // TODO implement for player spawning at some point
 
+    private ArrayList<Player> players = new ArrayList<>();
     private final HashMap<Chunk.Key, Chunk> chunks = new HashMap<>();
     // TODO entities list
 
@@ -38,6 +41,14 @@ public class World {
             chunks.put(key, chunk);
         }
         return chunk;
+    }
+
+    public void addPlayer(final Player player) {
+        this.players.add(player);
+    }
+
+    public ArrayList<Player> getPlayers() {
+        return this.players;
     }
 
     // TODO save chunks, etc

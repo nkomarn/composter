@@ -1,24 +1,13 @@
 package xyz.nkomarn.protocol.packet;
 
-import com.sun.media.jfxmedia.logging.Logger;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.apache.commons.io.IOUtils;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
-import xyz.nkomarn.type.Block;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
-import xyz.nkomarn.world.generator.FlatGenerator;
-import xyz.nkomarn.world.generator.WorldGenerator;
-import xyz.nkomarn.world.region.RegionFile;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.util.zip.Deflater;
 
 public class PacketLogin extends Packet {
@@ -44,50 +33,7 @@ public class PacketLogin extends Packet {
             session.send(buf);
 
             session.setState(State.PLAY);
-
-            // pre chunk shit
-            ByteBuf prechunk = Unpooled.buffer();
-            prechunk.writeInt(0x32);
-            prechunk.writeInt(0);
-            prechunk.writeInt(0);
-            prechunk.writeInt(1);
-            //session.send(prechunk);
-
-
-
-            // Send some dumb hardcoded data
-            ByteBuf chunkData = Unpooled.buffer();
-            chunkData.writeInt(0x33);
-            chunkData.writeInt(0);
-            chunkData.writeShort(0);
-            chunkData.writeInt(0);
-            chunkData.writeByte(15);
-            chunkData.writeByte(127);
-            chunkData.writeByte(15);
-
-            Chunk chunk = Composter.getWorld().getChunkAt(0, 0);
-            System.out.println("Block at 0, 10, 2 is " + chunk.getType(0, 10, 2));
-            byte[] data = chunk.serializeTileData();
-            byte[] compressedData = new byte[(16 * 16 * 128 * 5) / 2];
-
-            Deflater deflater = new Deflater(Deflater.BEST_SPEED);
-            deflater.setInput(data);
-            deflater.finish();
-
-            int compressed = deflater.deflate(compressedData);
-            try {
-                if (compressed == 0) {
-                    Composter.getLogger().error("Not all bytes compressed.");
-                }
-            } finally {
-                deflater.end();
-            }
-
-            System.out.println(compressed);
-            chunkData.writeInt(compressed);
-            chunkData.writeBytes(compressedData, 0, compressed);
-            session.send(chunkData);
-
+            session.attachPlayer("TechToolbox");
 
             // Send spawn position!
             ByteBuf spawnPosition = Unpooled.buffer();

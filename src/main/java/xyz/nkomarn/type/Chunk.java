@@ -1,5 +1,11 @@
 package xyz.nkomarn.type;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import xyz.nkomarn.Composter;
+
+import java.util.zip.Deflater;
+
 /**
  * Represents a chunk
  */
@@ -119,5 +125,37 @@ public class Chunk {
         }
 
         return dest;
+    }
+
+    public ByteBuf getAsBuffer() {
+        ByteBuf chunk = Unpooled.buffer();
+        chunk.writeInt(0x33);
+        chunk.writeInt(x * 16);
+        chunk.writeInt(0);
+        chunk.writeInt(z * 16);
+        chunk.writeInt(15);
+        chunk.writeInt(127);
+        chunk.writeInt(15);
+
+        // Compress chunk data TODO compress on separate thread
+        byte[] data = serializeTileData();
+        byte[] compressedData = new byte[(32768 * 5) / 2]; // 16 * 16 * 128
+
+        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
+        deflater.setInput(data);
+        deflater.finish();
+
+        int compressed = deflater.deflate(compressedData);
+        try {
+            if (compressed == 0) { // TODO throw IOException
+                Composter.getLogger().error("Not all chunk bytes were compressed.");
+            }
+        } finally {
+            deflater.end();
+        }
+
+        chunk.writeInt(compressed);
+        chunk.writeBytes(compressedData, 0, compressed);
+        return chunk;
     }
 }
