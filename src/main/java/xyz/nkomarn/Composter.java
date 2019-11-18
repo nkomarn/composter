@@ -3,6 +3,7 @@ package xyz.nkomarn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.nkomarn.net.Bootstrap;
+import xyz.nkomarn.net.SessionManager;
 import xyz.nkomarn.world.World;
 import xyz.nkomarn.world.generator.FlatGenerator;
 
@@ -27,7 +28,7 @@ public final class Composter {
             public void run() {
                 getWorld().getPlayers().forEach(p -> p.tick()); // tick each player
             }
-        }, 0, 2, TimeUnit.MINUTES); // 0.5 tpm for testing
+        }, 0, 50, TimeUnit.MILLISECONDS); // 20 tps
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port);

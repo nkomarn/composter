@@ -27,6 +27,8 @@ public final class Player extends Entity {
 
     // Tick
     public void tick() {
+        // Keepalive
+        session.send(Unpooled.EMPTY_BUFFER);
         if (session.getState() != State.PLAY) return;
         sendChunks();
     }
@@ -38,13 +40,15 @@ public final class Player extends Entity {
         int centralX = ((int) location.getX()) / 16;
         int centralZ = ((int) location.getZ()) / 16;
 
-        int renderDistance = 10; // TODO configurable in composter.yml
+        int renderDistance = 1; // TODO configurable in composter.yml
 
         for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
             for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
                 Chunk.Key key = new Chunk.Key(x, z);
                 if (!loadedChunks.contains(key)) {
                     loadedChunks.add(key);
+
+                    System.out.println(String.format("Allocating space for chunk (%s, %s).", x, z));
 
                     // Send a 0x32
                     ByteBuf loadChunk = Unpooled.buffer();
@@ -62,7 +66,7 @@ public final class Player extends Entity {
         }
 
         for (Chunk.Key key : previousChunks) {
-            // Send a 0x32
+            // Send a 0x32 to unload the chunk
             ByteBuf loadChunk = Unpooled.buffer();
             loadChunk.writeInt(0x32);
             loadChunk.writeInt(key.getX());

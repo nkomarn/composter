@@ -19,7 +19,7 @@ public class PacketHandshake extends Packet {
             ByteBufUtil.writeString(buf, "-");
             session.send(buf);
         } else {
-            session.disconnect("Already shook hands.");
+            //session.disconnect("Already shook hands.");
         }
     }
 }

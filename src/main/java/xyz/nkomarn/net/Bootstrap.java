@@ -30,8 +30,8 @@ public class Bootstrap {
                         channel.pipeline().addLast(new PacketDecoder());
                         channel.pipeline().addLast(new ChannelHandler());
                     }
-                });
-                //.childOption(ChannelOption.SO_KEEPALIVE, true);
+                })
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
 
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
             if (channelFuture.isSuccess()) {

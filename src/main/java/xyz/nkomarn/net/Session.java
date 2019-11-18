@@ -18,9 +18,6 @@ public class Session {
     private State state;
     private Player player;
 
-    // Packet queue TODO
-    private Queue<Packet> packetQueue = new ArrayDeque<>();
-
     public Session(final Channel channel) {
         this.channel = channel;
         this.state = State.HANDSHAKE; // default state
@@ -49,9 +46,16 @@ public class Session {
     }
 
     // Sends packet to client
-    public void send(ByteBuf buffer) {
+    public void send(final ByteBuf buffer) {
         if (!channel.isActive()) return;
         channel.writeAndFlush(buffer);
+    }
+
+    public void sendMessage(final String message) {
+        ByteBuf chatMessage = Unpooled.buffer();
+        chatMessage.writeByte(0x03);
+        ByteBufUtil.writeString(chatMessage, message);
+        this.send(chatMessage);
     }
 
     public void disconnect(final String message) {

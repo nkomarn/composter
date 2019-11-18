@@ -45,17 +45,22 @@ public class PacketLogin extends Packet {
 
             // Player look + pos packet
             ByteBuf look = Unpooled.buffer();
-            look.writeDouble(0.5D);
+            look.writeByte(0x0D);
+            look.writeDouble(5D);
             look.writeDouble(67.240000009536743D);
-            look.writeDouble(10.5D);
+            look.writeDouble(10D);
             look.writeDouble(0.5D);
-            look.writeDouble(0.0D);
-            look.writeDouble(0.0D);
+            look.writeFloat(0.0F);
+            look.writeFloat(0.0F);
             look.writeBoolean(false);
             session.send(look);
 
+            // Chat message :D
+            session.sendMessage("§6Hey, welcome to Composter :)");
+            session.sendMessage("§cComposter is still early in development.");
+
         } else {
-            session.disconnect("Already logged in.");
+            //session.disconnect("Already logged in.");
         }
     }
 }

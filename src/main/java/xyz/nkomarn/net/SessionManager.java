@@ -2,6 +2,7 @@ package xyz.nkomarn.net;
 
 import io.netty.channel.Channel;
 import java.util.HashMap;
+import java.util.Map;
 
 public class SessionManager {
 
