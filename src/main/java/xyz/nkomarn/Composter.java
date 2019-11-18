@@ -14,6 +14,9 @@ import java.util.concurrent.TimeUnit;
 
 public final class Composter {
 
+    // TODO configurable chunk threading in config
+    public static ExecutorService chunkPool = Executors.newFixedThreadPool(3);
+
     private static final World world = new World(new FlatGenerator());
 
     private static final Logger logger =
@@ -27,6 +30,13 @@ public final class Composter {
             @Override
             public void run() {
                 getWorld().getPlayers().forEach(p -> p.tick()); // tick each player
+
+                int currentTick = 0;
+                double[] recentTps = new double[3];
+
+                if ( ++currentTick % 20 == 0 ) {
+                   // TODO TPS Calculation (not that it matters)
+                }
             }
         }, 0, 50, TimeUnit.MILLISECONDS); // 20 tps
 

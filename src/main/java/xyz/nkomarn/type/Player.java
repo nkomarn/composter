@@ -35,47 +35,49 @@ public final class Player extends Entity {
 
     // Send chunks
     private void sendChunks() {
-        Set<Chunk.Key> previousChunks = new HashSet<Chunk.Key>(loadedChunks); // Take a "snapshot"
+        Composter.chunkPool.submit(() -> {
+            final Set<Chunk.Key> previousChunks = new HashSet<Chunk.Key>(loadedChunks); // Take a "snapshot"
 
-        int centralX = ((int) location.getX()) / 16;
-        int centralZ = ((int) location.getZ()) / 16;
+            final int centralX = ((int) location.getX()) / 16;
+            final int centralZ = ((int) location.getZ()) / 16;
 
-        int renderDistance = 1; // TODO configurable in composter.yml
+            final int renderDistance = 1; // TODO configurable in composter.yml
 
-        for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
-            for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
-                Chunk.Key key = new Chunk.Key(x, z);
-                if (!loadedChunks.contains(key)) {
-                    loadedChunks.add(key);
+            for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
+                for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
+                    Chunk.Key key = new Chunk.Key(x, z);
+                    if (!loadedChunks.contains(key)) {
+                        loadedChunks.add(key);
 
-                    System.out.println(String.format("Allocating space for chunk (%s, %s).", x, z));
+                        System.out.println(String.format("Allocating space for chunk (%s, %s).", x, z));
 
-                    // Send a 0x32
-                    ByteBuf loadChunk = Unpooled.buffer();
-                    loadChunk.writeInt(0x32);
-                    loadChunk.writeInt(x);
-                    loadChunk.writeInt(z);
-                    loadChunk.writeBoolean(true);
-                    session.send(loadChunk);
+                        // Send a 0x32
+                        ByteBuf loadChunk = Unpooled.buffer();
+                        loadChunk.writeInt(0x32);
+                        loadChunk.writeInt(x);
+                        loadChunk.writeInt(z);
+                        loadChunk.writeBoolean(true);
+                        session.send(loadChunk);
 
-                    // Send compressed chunk (0x33)
-                    session.send(world.getChunkAt(x, z).getAsBuffer());
+                        // Send compressed chunk (0x33)
+                        session.send(world.getChunkAt(x, z).getAsBuffer());
+                    }
+                    previousChunks.remove(key);
                 }
-                previousChunks.remove(key);
             }
-        }
 
-        for (Chunk.Key key : previousChunks) {
-            // Send a 0x32 to unload the chunk
-            ByteBuf loadChunk = Unpooled.buffer();
-            loadChunk.writeInt(0x32);
-            loadChunk.writeInt(key.getX());
-            loadChunk.writeInt(key.getZ());
-            loadChunk.writeBoolean(false);
-            session.send(loadChunk);
-            loadedChunks.remove(key);
-        }
-        previousChunks.clear();
+            for (Chunk.Key key : previousChunks) {
+                // Send a 0x32 to unload the chunk
+                ByteBuf loadChunk = Unpooled.buffer();
+                loadChunk.writeInt(0x32);
+                loadChunk.writeInt(key.getX());
+                loadChunk.writeInt(key.getZ());
+                loadChunk.writeBoolean(false);
+                session.send(loadChunk);
+                loadedChunks.remove(key);
+            }
+            previousChunks.clear();
+        });
     }
 
 }
