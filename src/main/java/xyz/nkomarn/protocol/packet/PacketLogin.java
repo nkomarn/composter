@@ -5,10 +5,10 @@ import io.netty.buffer.Unpooled;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
-import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.protocol.Packet;
+import xyz.nkomarn.type.Location;
+import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.ByteBufUtil;
-import java.util.zip.Deflater;
 
 public class PacketLogin extends Packet {
     @Override
@@ -17,12 +17,12 @@ public class PacketLogin extends Packet {
 
         if (state.equals(State.LOGIN)) {
             int protocol = buffer.readInt();
+            final String username = ByteBufUtil.readString(buffer);
 
-            // Protocol check
-            if (protocol != 14) {
+            /*if (protocol != 14) {
                 session.disconnect("Unsupported protocol version '" + protocol + "'.");
                 return;
-            }
+            }*/
 
             ByteBuf buf = Unpooled.buffer();
             buf.writeInt(0x01);
@@ -30,37 +30,24 @@ public class PacketLogin extends Packet {
             ByteBufUtil.writeString(buf, "");
             buf.writeLong(971768181197178410L); // bullshit seed
             buf.writeByte(0);
-            session.send(buf);
+            session.write(buf);
 
+            Player player = new Player(session, username);
+            session.setPlayer(player);
             session.setState(State.PLAY);
-            session.attachPlayer("TechToolbox");
+            Composter.getWorld().addPlayer(player);
 
-            // Send spawn position! TODO send world spawn pos
-            ByteBuf spawnPosition = Unpooled.buffer();
-            spawnPosition.writeInt(0x06);
-            spawnPosition.writeInt(5);
-            spawnPosition.writeInt(10);
-            spawnPosition.writeInt(5);
-            session.send(spawnPosition);
-
-            // Player look + pos packet
-            ByteBuf look = Unpooled.buffer();
-            look.writeByte(0x0D);
-            look.writeDouble(5D);
-            look.writeDouble(67.240000009536743D);
-            look.writeDouble(10D);
-            look.writeDouble(0.5D);
-            look.writeFloat(0.0F);
-            look.writeFloat(0.0F);
-            look.writeBoolean(false);
-            session.send(look);
-
-            // Chat message :D
-            session.sendMessage("§6Hey, welcome to Composter :)");
-            session.sendMessage("§cComposter is still early in development.");
-
-        } else {
-            //session.disconnect("Already logged in.");
+            /*final Location location = player.getLocation();
+            ByteBuf playerPosition = Unpooled.buffer();
+            playerPosition.writeInt(0x0D);
+            playerPosition.writeDouble(location.getX());
+            playerPosition.writeDouble(67.24D); // TODO move this var somewhere else
+            playerPosition.writeDouble(location.getY());
+            playerPosition.writeDouble(location.getZ());
+            playerPosition.writeFloat(location.getYaw());
+            playerPosition.writeFloat(location.getPitch());
+            playerPosition.writeBoolean(true);
+            session.write(playerPosition);*/
         }
     }
 }

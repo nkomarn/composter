@@ -13,6 +13,4 @@ public abstract class Entity {
         this.world = world;
         // TODO add entity to world entities
     }
-
-    public void pulse() { }
 }

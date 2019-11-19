@@ -42,7 +42,7 @@ public class Chunk {
     }
 
     public void setBlock(final int x, final int y, final int z, final int type) {
-        if (type < 0 || type >= 94)
+        if (type < 0 || type >= 97)
             throw new IllegalArgumentException("Illegal block ID.");
         this.blocks[getIndex(x, y, z)] = (byte) type;
     }
@@ -90,7 +90,7 @@ public class Chunk {
     private int getIndex(final int x, final int y, final int z) {
         /*if (x < 0 || z < 0 || y < 0 || x >= 16 || z >= 16 || y >= 128)
             throw new IndexOutOfBoundsException();*/
-        return (x * 16 + z) * 128 + y;
+        return (Math.min(16, x) * 16 + Math.min(16, z)) * 128 + Math.min(128, y);
     }
 
     // Used for getting chunk by coordinates in HashMap
@@ -108,6 +108,31 @@ public class Chunk {
 
         public int getZ() {
             return z;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + x;
+            result = prime * result + z;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Key other = (Key) obj;
+            if (x != other.x)
+                return false;
+            if (z != other.z)
+                return false;
+            return true;
         }
     }
 

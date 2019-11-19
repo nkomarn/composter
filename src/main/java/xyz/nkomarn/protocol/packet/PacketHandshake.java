@@ -13,13 +13,13 @@ public class PacketHandshake extends Packet {
         State state = session.getState();
 
         if (state.equals(State.HANDSHAKE)) {
-            session.setState(State.LOGIN);
             ByteBuf buf = Unpooled.buffer();
             buf.writeByte(0x02);
             ByteBufUtil.writeString(buf, "-");
-            session.send(buf);
-        } else {
-            //session.disconnect("Already shook hands.");
-        }
+            session.write(buf);
+            session.setState(State.LOGIN);
+        } /*else {
+            session.disconnect("Already shook hands.");
+        }*/
     }
 }

@@ -1,8 +1,6 @@
 package xyz.nkomarn.protocol;
 
-import xyz.nkomarn.protocol.packet.PacketHandshake;
-import xyz.nkomarn.protocol.packet.PacketLogin;
-import xyz.nkomarn.protocol.packet.PacketServerListPing;
+import xyz.nkomarn.protocol.packet.*;
 
 public class PacketHandler {
 
@@ -12,10 +10,11 @@ public class PacketHandler {
 
     static {
         try {
-            //register(0x00, PacketPing.class);
             register(0x01, PacketLogin.class);
             register(0x02, PacketHandshake.class);
-            //register(0xFE, PacketServerListPing.class);
+            register(0x03, PacketChat.class);
+            register(0x0D, PacketPlayerPosition.class);
+            register(0xFE, PacketServerListPing.class);
         } catch (IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
         }
@@ -28,7 +27,6 @@ public class PacketHandler {
     }
 
     public static Packet getPacket(final int opcode) {
-        if (packets[opcode] == null) return null;
         return packets[opcode];
     }
 

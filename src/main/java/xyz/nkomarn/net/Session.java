@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
-import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.ByteBufUtil;
@@ -20,9 +19,12 @@ public class Session {
 
     public Session(final Channel channel) {
         this.channel = channel;
-        this.state = State.HANDSHAKE; // default state
-
+        this.state = State.HANDSHAKE;
         SessionManager.openSession(this);
+    }
+
+    public Channel getChannel() {
+        return this.channel;
     }
 
     public State getState() {
@@ -33,20 +35,22 @@ public class Session {
         this.state = state;
     }
 
-    public Channel getChannel() {
-        return this.channel;
-    }
-
-    public void attachPlayer(final String username) {
-        player = new Player(this, username);
-    }
-
     public Player getPlayer() {
         return this.player;
     }
 
+    public void setPlayer(final Player player) {
+        this.player = player;
+    }
+
+    public void keepAlive() {
+        ByteBuf keepAlive = Unpooled.buffer();
+        keepAlive.writeInt(0x00);
+        this.write(keepAlive);
+    }
+
     // Sends packet to client
-    public void send(final ByteBuf buffer) {
+    public void write(final ByteBuf buffer) {
         if (!channel.isActive()) return;
         channel.writeAndFlush(buffer);
     }
@@ -55,7 +59,7 @@ public class Session {
         ByteBuf chatMessage = Unpooled.buffer();
         chatMessage.writeByte(0x03);
         ByteBufUtil.writeString(chatMessage, message);
-        this.send(chatMessage);
+        this.write(chatMessage);
     }
 
     public void disconnect(final String message) {

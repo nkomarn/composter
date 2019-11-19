@@ -1,11 +1,13 @@
 package xyz.nkomarn;
 
+import com.flowpowered.noise.Noise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.nkomarn.net.Bootstrap;
-import xyz.nkomarn.net.SessionManager;
+import xyz.nkomarn.type.Player;
 import xyz.nkomarn.world.World;
 import xyz.nkomarn.world.generator.FlatGenerator;
+import xyz.nkomarn.world.generator.NoiseGenerator;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,16 +31,16 @@ public final class Composter {
         tickLoop.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                getWorld().getPlayers().forEach(p -> p.tick()); // tick each player
+                getWorld().getPlayers().forEach(Player::tick); // tick each player
 
-                int currentTick = 0;
+                /*int currentTick = 0;
                 double[] recentTps = new double[3];
 
                 if ( ++currentTick % 20 == 0 ) {
                    // TODO TPS Calculation (not that it matters)
-                }
+                }*/
             }
-        }, 0, 50, TimeUnit.MILLISECONDS); // 20 tps
+        }, 0, 20, TimeUnit.MILLISECONDS); // 20 tps
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port);

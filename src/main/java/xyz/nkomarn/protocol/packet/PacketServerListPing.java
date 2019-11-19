@@ -12,6 +12,6 @@ public class PacketServerListPing extends Packet {
         ByteBuf buf = Unpooled.buffer();
         buf.writeByte(0xFF);
         ByteBufUtil.writeString(buf, "Composter - Beta 1.7.3§0§10"); // TODO configurable & session count
-        session.send(buf);
+        session.write(buf);
     }
 }

@@ -12,7 +12,6 @@ public class FlatGenerator implements WorldGenerator {
         for (int x = 0; x < 16; x++) {
             for (int y = 0; y < 128; y++) {
                 for (int z = 0; z < 16; z++) {
-
                     if (y < 5) chunk.setBlock(x, y, z, 2); // BEDROCK
                     // This is just a custom flat world generator, nothing fancy
                     else chunk.setBlock(x, y, z, 0);

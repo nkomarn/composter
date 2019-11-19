@@ -25,14 +25,12 @@ public class Bootstrap {
             bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override // TODO move this into a dedicated class (maybe?)
+                    @Override
                     protected void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline().addLast(new PacketDecoder());
                         channel.pipeline().addLast(new ChannelHandler());
                     }
-                })
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
-
+                });
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
             if (channelFuture.isSuccess()) {
                 Composter.getLogger().info("Composter is ready for connections.");

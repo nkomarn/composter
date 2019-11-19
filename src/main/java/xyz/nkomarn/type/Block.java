@@ -11,13 +11,13 @@ public class Block {
     private final int x;
     private final int y;
     private final int z;
-    private final Material type;
+    private int type;
     private int metadata;
     private int blockLight;
     private int skyLight;
 
     public Block(final Chunk chunk, final int x, final int y,
-                 final int z, final Material type, final int metadata) {
+                 final int z, final int type, final int metadata) {
         this.chunk = chunk;
         this.x = x;
         this.y = y;
@@ -46,7 +46,7 @@ public class Block {
         this.metadata = metadata;
     }
 
-    public Material getType() {
+    public int getType() {
         return this.type;
     }
 
