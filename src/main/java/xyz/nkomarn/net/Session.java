@@ -45,8 +45,9 @@ public class Session {
 
     public void keepAlive() {
         ByteBuf keepAlive = Unpooled.buffer();
-        keepAlive.writeInt(0x00);
+        keepAlive.writeByte(0x00);
         this.write(keepAlive);
+        this.write(Unpooled.EMPTY_BUFFER);
     }
 
     // Sends packet to client
@@ -64,7 +65,7 @@ public class Session {
 
     public void disconnect(final String message) {
         ByteBuf buffer = Unpooled.buffer();
-        buffer.writeInt(0xFF);
+        buffer.writeByte(0xFF);
         ByteBufUtil.writeString(buffer, message);
         channel.writeAndFlush(buffer).addListener(ChannelFutureListener.CLOSE);
     }

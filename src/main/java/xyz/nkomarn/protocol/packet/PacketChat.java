@@ -8,9 +8,9 @@ import xyz.nkomarn.util.ByteBufUtil;
 
 public class PacketChat extends Packet {
     @Override
-    public void handle(Session session, ByteBuf buffer) {
-        final String message = ByteBufUtil.readString(buffer);
-        Composter.getWorld().broadcastMessage(message);
-        System.out.println(message);
+    public void handle(Session session, ByteBuf data) {
+        final String message = ByteBufUtil.readString(data); // TODO sanitize
+        Composter.getWorld().broadcastMessage(String.format("<%s> %s",
+            session.getPlayer().getUsername(), message));
     }
 }

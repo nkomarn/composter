@@ -9,17 +9,17 @@ import xyz.nkomarn.util.ByteBufUtil;
 
 public class PacketHandshake extends Packet {
     @Override
-    public void handle(Session session, ByteBuf buffer) {
-        State state = session.getState();
+    public void handle(Session session, ByteBuf data) {
+        final State state = session.getState();
 
-        if (state.equals(State.HANDSHAKE)) {
-            ByteBuf buf = Unpooled.buffer();
-            buf.writeByte(0x02);
-            ByteBufUtil.writeString(buf, "-");
-            session.write(buf);
+        if (state == State.HANDSHAKE) {
+            ByteBuf handshake = Unpooled.buffer();
+            handshake.writeByte(0x02);
+            ByteBufUtil.writeString(handshake, "-");
+            session.write(handshake);
             session.setState(State.LOGIN);
         } /*else {
-            session.disconnect("Already shook hands.");
+            session.disconnect("Already completed handshake.");
         }*/
     }
 }

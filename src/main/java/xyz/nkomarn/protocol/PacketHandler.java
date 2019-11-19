@@ -13,7 +13,7 @@ public class PacketHandler {
             register(0x01, PacketLogin.class);
             register(0x02, PacketHandshake.class);
             register(0x03, PacketChat.class);
-            register(0x0D, PacketPlayerPosition.class);
+            register(0x0B, PacketPlayerPosition.class);
             register(0xFE, PacketServerListPing.class);
         } catch (IllegalAccessException | InstantiationException e) {
             e.printStackTrace();

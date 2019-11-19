@@ -9,11 +9,11 @@ import xyz.nkomarn.protocol.PacketHandler;
 import java.io.IOException;
 import java.util.List;
 
-public class PacketDecoder extends ReplayingDecoder<Void> {
+public class PacketDecoder extends ReplayingDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf buffer, List<Object> list) throws IOException {
-        int opcode = buffer.readByte();
+        int opcode = buffer.readUnsignedByte();
         System.out.println(String.format("Packet received: %s",
             opcode));
 

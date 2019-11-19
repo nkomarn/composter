@@ -1,17 +1,16 @@
 package xyz.nkomarn.protocol.packet;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import xyz.nkomarn.net.Session;
+import xyz.nkomarn.net.State;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
 
 public class PacketServerListPing extends Packet {
     @Override
-    public void handle(Session session, ByteBuf buffer) {
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeByte(0xFF);
-        ByteBufUtil.writeString(buf, "Composter - Beta 1.7.3§0§10"); // TODO configurable & session count
-        session.write(buf);
+    public void handle(Session session, ByteBuf data) {
+        final State state = session.getState();
+
+        if (state != State.HANDSHAKE) return;
+        session.disconnect("Composter - Beta 1.7.3§0§10"); // TODO composter.yml configurable
     }
 }

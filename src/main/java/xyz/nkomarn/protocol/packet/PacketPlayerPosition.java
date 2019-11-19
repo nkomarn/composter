@@ -1,22 +1,20 @@
 package xyz.nkomarn.protocol.packet;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import xyz.nkomarn.net.Session;
+import xyz.nkomarn.net.State;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.type.Location;
 
 public class PacketPlayerPosition extends Packet {
     @Override
-    public void handle(Session session, ByteBuf buffer) {
-        final double x = buffer.readDouble();
-        final double stance = buffer.readDouble();
-        final double y = buffer.readDouble();
-        final double z = buffer.readDouble();
-        final float yaw = buffer.readFloat();
-        final float pitch = buffer.readFloat();
-        // TODO possibly use on ground boolean
-        final Location location = new Location(x, y, z, pitch, yaw);
-        session.getPlayer().setLocation(location);
+    public void handle(Session session, ByteBuf data) {
+        if (session.getState() != State.PLAY) return;
+        final double x = data.readDouble();
+        final double y = data.readDouble();
+        final double stance = data.readDouble();
+        final double z = data.readDouble();
+        final boolean onGround = data.readBoolean();
+        session.getPlayer().setLocation(new Location(x, y, z));
     }
 }
