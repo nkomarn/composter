@@ -23,4 +23,10 @@ public class SessionManager {
     public static int sessionCount() {
         return sessions.size();
     }
+
+    public static void tick() {
+        for (Session session : sessions.values()) {
+            session.tick();
+        }
+    }
 }

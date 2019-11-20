@@ -67,7 +67,6 @@ public final class Player extends Entity {
     }
 
     public void tick() {
-        session.getChannel().writeAndFlush(Unpooled.EMPTY_BUFFER);
         if (session.getState() != State.PLAY) return;
         updateChunks();
     }

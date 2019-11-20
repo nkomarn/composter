@@ -10,19 +10,14 @@ public class PacketHandler {
 
     static {
         try {
-            register(0x01, PacketLogin.class);
-            register(0x02, PacketHandshake.class);
-            register(0x03, PacketChat.class);
-            register(0x0B, PacketPlayerPosition.class);
-            register(0xFE, PacketServerListPing.class);
-        } catch (IllegalAccessException | InstantiationException e) {
-            e.printStackTrace();
+            register(0x01, new PacketLogin());
+            register(0x02, new PacketOutHandshake());
+        } finally {
+
         }
     }
 
-    private static void register(final int opcode, final Class<? extends Packet> clazz)
-        throws IllegalAccessException, InstantiationException {
-        Packet packet = clazz.newInstance();
+    private static void register(final int opcode, final Packet packet) {
         packets[opcode] = packet;
     }
 

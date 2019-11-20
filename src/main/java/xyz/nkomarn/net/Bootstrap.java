@@ -27,8 +27,10 @@ public class Bootstrap {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(new PacketDecoder());
-                        channel.pipeline().addLast(new ChannelHandler());
+                        channel.pipeline()
+                            .addLast(new PacketDecoder())
+                            .addLast(new PacketEncoder())
+                            .addLast(new ChannelHandler());
                     }
                 });
             ChannelFuture channelFuture = bootstrap.bind(port).sync();

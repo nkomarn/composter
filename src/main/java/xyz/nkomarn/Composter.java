@@ -1,13 +1,15 @@
 package xyz.nkomarn;
 
-import com.flowpowered.noise.Noise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.DisposableServer;
+import reactor.netty.tcp.TcpServer;
 import xyz.nkomarn.net.Bootstrap;
+import xyz.nkomarn.net.ChannelHandler;
+import xyz.nkomarn.net.SessionManager;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.world.World;
-import xyz.nkomarn.world.generator.FlatGenerator;
-import xyz.nkomarn.world.generator.NoiseGenerator;
+import xyz.nkomarn.world.generator.FlatGenerator;;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +33,7 @@ public final class Composter {
         tickLoop.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                SessionManager.tick();
                 getWorld().getPlayers().forEach(Player::tick); // tick each player
 
                 /*int currentTick = 0;
@@ -44,6 +47,14 @@ public final class Composter {
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port);
+
+        /*DisposableServer server = TcpServer.create()
+            .host("0.0.0.0")
+            .port(25565)
+            .doOnConnection(connection -> connection.addHandler(new ChannelHandler()))
+            .handle((inbound, outbound) -> inbound.receive().then())
+            .bindNow();
+        server.onDispose().block();*/
     }
 
     public static void main(String[] args) throws InterruptedException{

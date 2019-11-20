@@ -17,6 +17,8 @@ public class Session {
     private State state;
     private Player player;
 
+    private final Queue<ByteBuf> queue = new ArrayDeque<>();
+
     public Session(final Channel channel) {
         this.channel = channel;
         this.state = State.HANDSHAKE;
@@ -52,8 +54,8 @@ public class Session {
 
     // Sends packet to client
     public void write(final ByteBuf buffer) {
-        if (!channel.isActive()) return;
-        channel.writeAndFlush(buffer);
+        //if (!channel.isActive()) return;
+        queue.add(buffer);
     }
 
     public void sendMessage(final String message) {
@@ -70,4 +72,12 @@ public class Session {
         channel.writeAndFlush(buffer).addListener(ChannelFutureListener.CLOSE);
     }
 
+    public void tick() {
+        this.channel.writeAndFlush(Unpooled.EMPTY_BUFFER);
+
+        ByteBuf packet;
+        while ((packet = queue.poll()) != null) {
+            this.channel.writeAndFlush(packet);
+        }
+    }
 }

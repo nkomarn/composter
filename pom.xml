@@ -36,9 +36,9 @@
             <version>2.12.1</version>
         </dependency>
         <dependency>
-            <groupId>com.flowpowered</groupId>
-            <artifactId>flow-noise</artifactId>
-            <version>1.0.0</version>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
+            <version>0.9.1.RELEASE</version>
         </dependency>
     </dependencies>
 </project>
