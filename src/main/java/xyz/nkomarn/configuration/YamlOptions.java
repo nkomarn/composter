@@ -10,13 +10,6 @@ import java.util.Map;
 
 public class YamlOptions {
 
-
-    public static void main(String[] args){
-        String get = yamlResult("motd.enabled");
-        System.out.println(Boolean.parseBoolean(get));
-    }
-
-
     public String getString(String arg) {
         return yamlResult(arg);
     }
