@@ -26,6 +26,7 @@ public class SessionManager {
 
     public static void tick() {
         for (Session session : sessions.values()) {
+            //System.out.println("Ticking session.");
             session.tick();
         }
     }

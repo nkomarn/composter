@@ -2,10 +2,7 @@ package xyz.nkomarn;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.netty.DisposableServer;
-import reactor.netty.tcp.TcpServer;
 import xyz.nkomarn.net.Bootstrap;
-import xyz.nkomarn.net.ChannelHandler;
 import xyz.nkomarn.net.SessionManager;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.world.World;
@@ -57,7 +54,7 @@ public final class Composter {
         server.onDispose().block();*/
     }
 
-    public static void main(String[] args) throws InterruptedException{
+    public static void main(String[] args) throws InterruptedException {
         new Composter(25565); // TODO server config file
     }
 

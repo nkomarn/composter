@@ -3,7 +3,6 @@ package xyz.nkomarn.net;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -28,8 +27,8 @@ public class Bootstrap {
                     @Override
                     protected void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline()
-                            .addLast(new PacketDecoder())
-                            .addLast(new PacketEncoder())
+                            .addLast(new Decoder())
+                            .addLast(new Encoder())
                             .addLast(new ChannelHandler());
                     }
                 });

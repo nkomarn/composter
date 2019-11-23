@@ -4,7 +4,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import xyz.nkomarn.protocol.HandlerHandler;
 import xyz.nkomarn.protocol.Packet;
+import xyz.nkomarn.protocol.PacketHandler;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.ByteBufUtil;
 
@@ -17,7 +19,7 @@ public class Session {
     private State state;
     private Player player;
 
-    private final Queue<ByteBuf> queue = new ArrayDeque<>();
+    private final Queue<Packet> queue = new ArrayDeque<>();
 
     public Session(final Channel channel) {
         this.channel = channel;
@@ -52,10 +54,20 @@ public class Session {
         this.write(Unpooled.EMPTY_BUFFER);
     }
 
+    public void sendPacket(final Packet packet) {
+        // TODO send
+        channel.write(packet);
+    }
+
+    public void queuePacket(final Packet packet) {
+        queue.add(packet);
+    }
+
     // Sends packet to client
+    @Deprecated
     public void write(final ByteBuf buffer) {
         //if (!channel.isActive()) return;
-        queue.add(buffer);
+        //queue.add(buffer);
     }
 
     public void sendMessage(final String message) {
@@ -75,9 +87,14 @@ public class Session {
     public void tick() {
         this.channel.writeAndFlush(Unpooled.EMPTY_BUFFER);
 
-        ByteBuf packet;
-        while ((packet = queue.poll()) != null) {
-            this.channel.writeAndFlush(packet);
+        Packet packet;
+        while ((packet = queue.poll()) != null) { // TODO check cast
+            PacketHandler<Packet> handler = (PacketHandler<Packet>) HandlerHandler.getHandler(packet.getClass());
+            if (handler != null) {
+                handler.handle(this, this.player, packet);
+            }
+
+            // TODO timeout
         }
     }
 }

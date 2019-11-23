@@ -2,14 +2,16 @@ package xyz.nkomarn.net;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.protocol.Packet;
 
-public class ChannelHandler implements io.netty.channel.ChannelHandler {
+public class ChannelHandler extends SimpleChannelInboundHandler<Packet> {
     private Logger logger = Composter.getLogger();
 
     @Override
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) {
         final Channel channel = ctx.channel();
 
         // Create new session
@@ -19,7 +21,7 @@ public class ChannelHandler implements io.netty.channel.ChannelHandler {
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         // Destroy session
         final Channel channel = ctx.channel();
         SessionManager.closeSession(channel);
@@ -28,7 +30,10 @@ public class ChannelHandler implements io.netty.channel.ChannelHandler {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-
+    protected void channelRead0(ChannelHandlerContext ctx, Packet message) {
+        Session session = SessionManager.getSession(ctx.channel());
+        session.queuePacket(message);
     }
+
+    //TODO catch exceptions
 }
