@@ -20,7 +20,7 @@ public class Decoder extends ReplayingDecoder<Packet> {
 
         final Codec codec = CodecHandler.getCodec(id);
         if (codec == null) {
-            //System.out.println("No codec.");
+            System.out.println("No codec for " + id);
             //throw new IOException("Invalid packet: " + opcode);
             return;
         }

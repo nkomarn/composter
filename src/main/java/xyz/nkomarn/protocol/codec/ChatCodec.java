@@ -15,6 +15,7 @@ public class ChatCodec extends Codec<PacketChat> {
 
     @Override
     public ByteBuf encode(PacketChat packet) throws IOException {
+        System.out.println("chat sending");
         ByteBuf buffer = Unpooled.buffer();
         ByteBufUtil.writeString(buffer, packet.getMessage());
         return buffer;
@@ -22,6 +23,8 @@ public class ChatCodec extends Codec<PacketChat> {
 
     @Override
     public PacketChat decode(ByteBuf buffer) throws IOException {
-        return new PacketChat(ByteBufUtil.readString(buffer));
+        final String message = ByteBufUtil.readString(buffer);
+        System.out.println("Received chat: " + message);
+        return new PacketChat(message);
     }
 }

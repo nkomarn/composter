@@ -34,8 +34,10 @@ public final class Player extends Entity {
         this.session.sendPacket(new PacketPlayerPositionAndLook(
             5, 15, 67.240000009536743D, 10, 0, 0, false));
 
-        this.world.broadcastMessage(String.format("§e%s joined the server.", username));
+        Composter.broadcastMessage(String.format("§e%s joined the server.", username));
         this.sendMessage("§6Welcome to Composter :)");
+        this.sendMessage("§cComposter is still in early development.");
+        this.sendMessage("§cMany features are incomplete!");
     }
 
     public Session getSession() {
@@ -64,7 +66,9 @@ public final class Player extends Entity {
 
     public void tick() {
         if (session.getState() != State.PLAY) return;
+        this.session.sendPacket(new PacketKeepAlive());
         //updateChunks();
+        //System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
     }
 
     private void updateChunks() {
@@ -78,20 +82,14 @@ public final class Player extends Entity {
                     Chunk.Key key = new Chunk.Key(x, z);
                     if (!loadedChunks.contains(key)) {
                         loadedChunks.add(key);
-                        Composter.getLogger().debug(String.format(
-                            "Allocating space for chunk (%s, %s).", x, z));
-
-                        this.session.sendPacket(new PacketPreChunk(x * 16, z * 16, true));
-                        this.session.sendPacket(new PacketMapChunk(x, (short) 0, z,
+                        this.session.sendPacket(new PacketPreChunk(x, z, true));
+                        this.session.sendPacket(new PacketMapChunk(x * 16, (short) 0, z * 16,
                             world.getChunkAt(x, z).serializeTileData()));
                     }
                     previousChunks.remove(key);
                 }
             }
             for (Chunk.Key key : previousChunks) {
-                Composter.getLogger().debug(String.format("Unloading chunk (%s, %s).",
-                    key.getX(), key.getZ()));
-
                 this.session.sendPacket(new PacketPreChunk(key.getX(), key.getZ(), false));
                 loadedChunks.remove(key);
             }

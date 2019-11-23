@@ -7,6 +7,7 @@ import io.netty.channel.ChannelFutureListener;
 import xyz.nkomarn.protocol.HandlerHandler;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.protocol.PacketHandler;
+import xyz.nkomarn.protocol.packets.PacketChat;
 import xyz.nkomarn.protocol.packets.PacketDisconnect;
 import xyz.nkomarn.protocol.packets.PacketKeepAlive;
 import xyz.nkomarn.type.Player;
@@ -58,10 +59,7 @@ public class Session {
     }
 
     public void sendMessage(final String message) {
-        ByteBuf chatMessage = Unpooled.buffer();
-        chatMessage.writeByte(0x03);
-        ByteBufUtil.writeString(chatMessage, message);
-        //this.write(chatMessage);
+        channel.writeAndFlush(new PacketChat(message));
     }
 
     public void disconnect(final String message) {
@@ -70,8 +68,6 @@ public class Session {
     }
 
     public void tick() {
-        sendPacket(new PacketKeepAlive());
-
         Packet packet;
         while ((packet = queue.poll()) != null) { // TODO check cast
             PacketHandler<Packet> handler = (PacketHandler<Packet>) HandlerHandler.getHandler(packet.getClass());

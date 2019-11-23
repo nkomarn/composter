@@ -1,14 +1,13 @@
-package xyz.nkomarn.configuration;
+package xyz.nkomarn.util.configuration;
 
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileReader;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
-public class YamlOptions {
+public class Config {
 
     /*Call the correct methods to get the correct yaml result*/
     public String getString(String arg) {
@@ -25,13 +24,12 @@ public class YamlOptions {
         }
     }
 
-    public int getInt(String arg) throws Exception {
-        String get = yamlResult(arg);
-        if(isNumeric(get)){
+    public int getInteger(String path) {
+        String get = yamlResult(path);
+        if (isNumeric(get)) {
             return Integer.parseInt(get);
-        }
-        else{
-            throw new Exception("Not an integer");
+        } else {
+            return 0; // log error
         }
     }
 

@@ -16,7 +16,7 @@ public class LoginHandler extends PacketHandler<PacketLogin> {
             session.setState(State.PLAY);
             session.sendPacket(new PacketLogin(0, "", 0, 0)); // TODO send real values
             final Player sessionPlayer = new Player(session, message.getUsername());
-            Composter.getWorld().addPlayer(sessionPlayer);
+            Composter.addPlayer(sessionPlayer);
             session.setPlayer(sessionPlayer);
         } else {
             session.disconnect("Already logged in.");
