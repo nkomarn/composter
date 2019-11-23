@@ -10,23 +10,39 @@ import java.util.Map;
 
 public class YamlOptions {
 
+    /*Call the correct methods to get the correct yaml result*/
     public String getString(String arg) {
         return yamlResult(arg);
     }
 
-    public Boolean getBoolean(String arg){
+    public Boolean getBoolean(String arg) throws Exception{
         String get = yamlResult(arg);
-        return Boolean.parseBoolean(get);
+        if(get.equals("true") || get.equals("false"))
+        {
+            return Boolean.parseBoolean(get);
+        }else{
+            throw new Exception("Not a Boolean");
+        }
     }
 
-    public int getInt(String arg){
+    public int getInt(String arg) throws Exception {
         String get = yamlResult(arg);
-        return Integer.parseInt(get);
+        if(isNumeric(get)){
+            return Integer.parseInt(get);
+        }
+        else{
+            throw new Exception("Not an integer");
+        }
     }
 
-    public Double getDouble(String arg){
+    public Double getDouble(String arg) throws Exception {
         String get = yamlResult(arg);
-        return Double.parseDouble(get);
+        if(isNumeric(get)){
+            return Double.parseDouble(get);
+        }
+        else{
+            throw new Exception("Not an integer");
+        }
     }
 
     public Float getFloat(String arg){
@@ -41,6 +57,15 @@ public class YamlOptions {
     }
 
 
+    /*The methods below are slaves*/
+    private static boolean isNumeric(String value){
+        try{
+            double d = Double.parseDouble(value);
+        }catch(NumberFormatException | NullPointerException nfe){
+            return false;
+        }
+        return true;
+    }
 
     private static String yamlResult(String arg){
 
