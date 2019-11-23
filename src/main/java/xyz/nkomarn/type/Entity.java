@@ -7,7 +7,7 @@ public abstract class Entity {
     protected boolean alive = true;
 
     protected World world;
-    protected Location location = new Location(0, 0, 0);
+    protected Location location = new Location(0, 15, 0);
 
     public Entity(final World world) {
         this.world = world;

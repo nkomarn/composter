@@ -32,7 +32,7 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Packet message) {
         Session session = SessionManager.getSession(ctx.channel());
-        session.queuePacket(message);
+        session.queueIncomingPacket(message);
     }
 
     //TODO catch exceptions

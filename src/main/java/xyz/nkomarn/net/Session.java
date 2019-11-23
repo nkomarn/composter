@@ -7,6 +7,8 @@ import io.netty.channel.ChannelFutureListener;
 import xyz.nkomarn.protocol.HandlerHandler;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.protocol.PacketHandler;
+import xyz.nkomarn.protocol.packets.PacketDisconnect;
+import xyz.nkomarn.protocol.packets.PacketKeepAlive;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.ByteBufUtil;
 
@@ -47,45 +49,28 @@ public class Session {
         this.player = player;
     }
 
-    public void keepAlive() {
-        ByteBuf keepAlive = Unpooled.buffer();
-        keepAlive.writeByte(0x00);
-        this.write(keepAlive);
-        this.write(Unpooled.EMPTY_BUFFER);
-    }
-
     public void sendPacket(final Packet packet) {
-        // TODO send
-        channel.write(packet);
+        channel.writeAndFlush(packet); // TODO send
     }
 
-    public void queuePacket(final Packet packet) {
+    public void queueIncomingPacket(final Packet packet) {
         queue.add(packet);
-    }
-
-    // Sends packet to client
-    @Deprecated
-    public void write(final ByteBuf buffer) {
-        //if (!channel.isActive()) return;
-        //queue.add(buffer);
     }
 
     public void sendMessage(final String message) {
         ByteBuf chatMessage = Unpooled.buffer();
         chatMessage.writeByte(0x03);
         ByteBufUtil.writeString(chatMessage, message);
-        this.write(chatMessage);
+        //this.write(chatMessage);
     }
 
     public void disconnect(final String message) {
-        ByteBuf buffer = Unpooled.buffer();
-        buffer.writeByte(0xFF);
-        ByteBufUtil.writeString(buffer, message);
-        channel.writeAndFlush(buffer).addListener(ChannelFutureListener.CLOSE);
+        channel.writeAndFlush(new PacketDisconnect(message))
+            .addListener(ChannelFutureListener.CLOSE);
     }
 
     public void tick() {
-        this.channel.writeAndFlush(Unpooled.EMPTY_BUFFER);
+        sendPacket(new PacketKeepAlive());
 
         Packet packet;
         while ((packet = queue.poll()) != null) { // TODO check cast

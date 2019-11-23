@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public final class Composter {
 
     // TODO configurable chunk threading in config
-    public static ExecutorService chunkPool = Executors.newFixedThreadPool(3);
+    public static ExecutorService chunkThread = Executors.newFixedThreadPool(3);
 
     private static final World world = new World(new FlatGenerator());
 

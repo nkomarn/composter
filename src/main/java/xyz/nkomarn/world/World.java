@@ -1,11 +1,8 @@
 package xyz.nkomarn.world;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.type.Player;
-import xyz.nkomarn.util.ByteBufUtil;
 import xyz.nkomarn.world.generator.WorldGenerator;
 
 import java.io.IOException;
@@ -60,10 +57,7 @@ public class World {
     }
 
     public void broadcastMessage(final String message) {
-        ByteBuf chatMessage = Unpooled.buffer();
-        chatMessage.writeInt(0x03);
-        ByteBufUtil.writeString(chatMessage, message);
-        players.forEach(player -> player.getSession().write(chatMessage));
+        players.forEach(player -> player.sendMessage(message));
     }
 
     // TODO save chunks, etc

@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Codec;
 import xyz.nkomarn.protocol.CodecHandler;
 import xyz.nkomarn.protocol.Packet;
@@ -19,8 +20,12 @@ public class Encoder extends MessageToMessageEncoder {
             Codec<Packet> codec = (Codec<Packet>) CodecHandler.getCodec(clazz); // TODO check cast
 
             if (codec == null) {
-                // TODO error
+                // TODO
+                return;
             }
+
+            //Composter.getLogger().info(String.format("Sending %s.", clazz.getName()));
+
             ByteBuf opcode = Unpooled.buffer(1);
             opcode.writeByte(codec.getId());
             out.add(Unpooled.wrappedBuffer(opcode, codec.encode(packet)));

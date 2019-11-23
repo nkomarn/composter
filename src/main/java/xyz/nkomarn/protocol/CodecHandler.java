@@ -1,7 +1,6 @@
 package xyz.nkomarn.protocol;
 
-import xyz.nkomarn.protocol.codec.HandshakeCodec;
-import xyz.nkomarn.protocol.codec.LoginCodec;
+import xyz.nkomarn.protocol.codec.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,8 +15,15 @@ public class CodecHandler {
 
     static {
         try {
+            register(KeepAliveCodec.class);
             register(LoginCodec.class);
             register(HandshakeCodec.class);
+            register(ChatCodec.class);
+            register(SpawnPositionPacket.class);
+            register(DisconnectCodec.class);
+            register(PlayerPositionAndLookCodec.class);
+            register(PreChunkCodec.class);
+            register(MapChunkCodec.class);
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace(); // TODO handle somehow
         }
@@ -27,6 +33,7 @@ public class CodecHandler {
         throws InstantiationException, IllegalAccessException {
         Codec<T> codec = clazz.newInstance();
         codecs[codec.getId()] = codec;
+        classes.put(codec.getType(), codec);
     }
 
     public static Codec<?> getCodec(final int id) {

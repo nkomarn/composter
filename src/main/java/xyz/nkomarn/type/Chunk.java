@@ -164,36 +164,4 @@ public class Chunk {
 
         return dest;
     }
-
-    public ByteBuf getAsBuffer() {
-        ByteBuf chunk = Unpooled.buffer();
-        chunk.writeByte(0x33);
-        chunk.writeInt(x * 16);
-        chunk.writeShort(0);
-        chunk.writeInt(z * 16);
-        chunk.writeByte(15);
-        chunk.writeByte(127);
-        chunk.writeByte(15);
-
-        // Compress chunk data TODO compress on separate thread
-        byte[] data = serializeTileData();
-        byte[] compressedData = new byte[(arraySize * 5) / 2]; // 16 * 16 * 128
-
-        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
-        deflater.setInput(data);
-        deflater.finish();
-
-        int compressed = deflater.deflate(compressedData);
-        try {
-            if (compressed == 0) { // TODO throw IOException
-                Composter.getLogger().error("Not all chunk bytes were compressed.");
-            }
-        } finally {
-            deflater.end();
-        }
-
-        chunk.writeInt(compressed);
-        chunk.writeBytes(compressedData, 0, compressed);
-        return chunk;
-    }
 }

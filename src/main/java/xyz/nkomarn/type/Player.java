@@ -1,10 +1,10 @@
 package xyz.nkomarn.type;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
+import xyz.nkomarn.protocol.packets.*;
+import xyz.nkomarn.world.World;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,33 +25,25 @@ public final class Player extends Entity {
 
         this.updateChunks();
 
-        // Send spawn position to player
-        /*ByteBuf spawnPosition = Unpooled.buffer();
-        spawnPosition.writeInt(0x06);
-        spawnPosition.writeInt((int) spawn.getX());
-        spawnPosition.writeInt((int) spawn.getY());
-        spawnPosition.writeInt((int) spawn.getZ());
-        player.getSession().write(spawnPosition);
-        player.setLocation(spawn);*/
+        // Send spawn position
+        final Location spawn = world.spawn;
+        this.session.sendPacket(new PacketSpawnPosition((int) spawn.getX(),
+            (int) spawn.getY(), (int) spawn.getZ()));
 
-        // Player look + pos packet
-        ByteBuf look = Unpooled.buffer();
-        look.writeByte(0x0D);
-        look.writeDouble(this.location.getX());
-        look.writeDouble(this.location.getY());
-        look.writeDouble(this.location.getY() + 1.62D);
-        look.writeDouble(this.location.getZ());
-        look.writeFloat(this.location.getYaw());
-        look.writeFloat(this.location.getPitch());
-        look.writeBoolean(false);
-        session.write(look);
+        // Send player location to enter the world
+        this.session.sendPacket(new PacketPlayerPositionAndLook(
+            5, 15, 67.240000009536743D, 10, 0, 0, false));
 
-        Composter.getWorld().broadcastMessage(String.format("§e%s joined the server.", username));
-        session.sendMessage("§6Welcome to Composter :)");
+        this.world.broadcastMessage(String.format("§e%s joined the server.", username));
+        this.sendMessage("§6Welcome to Composter :)");
     }
 
     public Session getSession() {
         return this.session;
+    }
+
+    public World getWorld() {
+        return this.world;
     }
 
     public String getUsername() {
@@ -66,13 +58,16 @@ public final class Player extends Entity {
         this.location = location;
     }
 
+    public void sendMessage(final String message) {
+        this.session.sendPacket(new PacketChat(message));
+    }
+
     public void tick() {
         if (session.getState() != State.PLAY) return;
-        updateChunks();
+        //updateChunks();
     }
 
     private void updateChunks() {
-        Composter.chunkPool.submit(() -> {
             final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
             final int centralX = ((int) this.location.getX()) / 16;
             final int centralZ = ((int) this.location.getZ()) / 16;
@@ -86,16 +81,9 @@ public final class Player extends Entity {
                         Composter.getLogger().debug(String.format(
                             "Allocating space for chunk (%s, %s).", x, z));
 
-                        // Send a 0x32
-                        ByteBuf loadChunk = Unpooled.buffer();
-                        loadChunk.writeInt(0x32);
-                        loadChunk.writeInt(x);
-                        loadChunk.writeInt(z);
-                        loadChunk.writeBoolean(true);
-                        session.write(loadChunk);
-
-                        // Send compressed chunk (0x33)
-                        session.write(world.getChunkAt(x, z).getAsBuffer());
+                        this.session.sendPacket(new PacketPreChunk(x * 16, z * 16, true));
+                        this.session.sendPacket(new PacketMapChunk(x, (short) 0, z,
+                            world.getChunkAt(x, z).serializeTileData()));
                     }
                     previousChunks.remove(key);
                 }
@@ -104,17 +92,10 @@ public final class Player extends Entity {
                 Composter.getLogger().debug(String.format("Unloading chunk (%s, %s).",
                     key.getX(), key.getZ()));
 
-                // Send a 0x32 to unload the chunk
-                ByteBuf loadChunk = Unpooled.buffer();
-                loadChunk.writeInt(0x32);
-                loadChunk.writeInt(key.getX());
-                loadChunk.writeInt(key.getZ());
-                loadChunk.writeBoolean(false);
-                session.write(loadChunk);
+                this.session.sendPacket(new PacketPreChunk(key.getX(), key.getZ(), false));
                 loadedChunks.remove(key);
             }
             previousChunks.clear();
-        });
     }
 
 }
