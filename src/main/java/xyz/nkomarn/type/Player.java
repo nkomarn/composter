@@ -67,8 +67,10 @@ public final class Player extends Entity {
     public void tick() {
         if (session.getState() != State.PLAY) return;
         this.session.sendPacket(new PacketKeepAlive());
-        //updateChunks();
-        //System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
+        //this.session.sendPacket(new PacketPlayerPositionAndLook(this.location.getX(), this.location.getY(),
+        //    67.42D, this.location.getZ(), this.location.getYaw(), this.location.getPitch(), true)); // TODO stance variable and ground detection
+        updateChunks();
+        System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
     }
 
     private void updateChunks() {

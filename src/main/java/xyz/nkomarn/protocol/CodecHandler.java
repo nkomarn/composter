@@ -21,6 +21,7 @@ public class CodecHandler {
             register(ChatCodec.class);
             register(SpawnPositionPacket.class);
             register(DisconnectCodec.class);
+            register(PlayerPositionCodec.class);
             register(PlayerPositionAndLookCodec.class);
             register(PreChunkCodec.class);
             register(MapChunkCodec.class);

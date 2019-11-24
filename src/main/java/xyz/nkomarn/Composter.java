@@ -8,7 +8,6 @@ import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.configuration.Config;
 import xyz.nkomarn.world.World;
 import xyz.nkomarn.world.generator.FlatGenerator;
-import xyz.nkomarn.world.generator.NoiseGenerator;;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +21,7 @@ public final class Composter {
     public static ExecutorService chunkThread = Executors.newFixedThreadPool(3);
 
     private static Config config = new Config();
-    private static final World world = new World(new NoiseGenerator());
+    private static final World world = new World(new FlatGenerator());
     private static final Logger logger = LoggerFactory.getLogger(Composter.class);
 
     private static ArrayList<Player> onlinePlayers = new ArrayList<>();
