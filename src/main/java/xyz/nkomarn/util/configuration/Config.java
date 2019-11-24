@@ -10,12 +10,10 @@ import java.util.Map;
 public class Config {
 
     /*Call the correct methods to get the correct yaml result*/
-    public String getString(String arg) {
-        return yamlResult(arg);
-    }
+    public String getString(String path) { return yamlResult(path); }
 
-    public Boolean getBoolean(String arg) throws Exception{
-        String get = yamlResult(arg);
+    public Boolean getBoolean(String path) throws Exception{
+        String get = yamlResult(path);
         if(get.equals("true") || get.equals("false"))
         {
             return Boolean.parseBoolean(get);
@@ -33,8 +31,8 @@ public class Config {
         }
     }
 
-    public Double getDouble(String arg) throws Exception {
-        String get = yamlResult(arg);
+    public Double getDouble(String path) throws Exception {
+        String get = yamlResult(path);
         if(isNumeric(get)){
             return Double.parseDouble(get);
         }
@@ -43,14 +41,14 @@ public class Config {
         }
     }
 
-    public Float getFloat(String arg){
-        String get = yamlResult(arg);
+    public Float getFloat(String path){
+        String get = yamlResult(path);
         return Float.parseFloat(get);
     }
 
-    public ArrayList<String> getList(String arg){
+    public ArrayList<String> getList(String path){
         ArrayList<String> ar = new ArrayList<String>();
-        ar.add(arg);
+        ar.add(path);
         return ar;
     }
 
@@ -66,38 +64,38 @@ public class Config {
     }
 
     private static String yamlResult(String arg){
-
-        String parse = stringSplit(arg, 0);
+        String parse = stringSplit(arg, 0, false);
         String yaml = yaml(parse);
         String[] children = makeArray(yaml);
 
         String result = "";
         for(int i=0; i<children.length; i++){
-            if(children[i].contains(stringSplit(arg, 1))){
-                result = children[i].substring(children[i].indexOf("=") + 1);
+
+            if(children[i].contains(stringSplit(arg, 0, true))){
+                String[] ar;
+
+                String split = children[i].split("}")[0];
+                ar = split.split("\\{");
+                String res = ar[ar.length - 1];
+
+                result = res.substring(res.indexOf("=") + 1);
             }
         }
         return result;
     }
 
-    private static String stringSplit(String arg, int index){
+    private static String stringSplit(String arg, int index, boolean lastIndex){
         String[] split = arg.split("\\.");
-        return split[index];
+        if(lastIndex){
+            return split[split.length - 1];
+        }
+        else{
+            return split[index];
+        }
     }
 
     private static String[] makeArray(String arg) {
-        String[] arr = arg.split(",");
-        ArrayList<String> a = new ArrayList<String>();
-
-        for (int i = 0; i < arr.length; i++) {
-            String yaml;
-            yaml = arr[i].substring(arr[i].indexOf("{") + 1);
-            a.add(yaml.split("}")[0]);
-        }
-
-        String[] ar = new String[a.size()];
-        ar = a.toArray(ar);
-        return ar;
+        return arg.split(",");
     }
 
     private static String yaml(String yamlArgument) {
