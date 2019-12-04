@@ -5,11 +5,14 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.FileReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class Config {
 
     /*Call the correct methods to get the correct yaml result*/
+
     public String getString(String path) { return yamlResult(path); }
 
     public Boolean getBoolean(String path) throws Exception{
@@ -54,6 +57,7 @@ public class Config {
 
 
     /*The methods below are slaves*/
+
     private static boolean isNumeric(String value){
         try{
             double d = Double.parseDouble(value);
@@ -64,23 +68,32 @@ public class Config {
     }
 
     private static String yamlResult(String arg){
+        String[] yArr;
+        String target = stringSplit(arg, 0, true);
+        String[] split = arg.split("\\.");
+        split = Arrays.copyOfRange(split, 1, split.length);
         String parse = stringSplit(arg, 0, false);
+
         String yaml = yaml(parse);
-        String[] children = makeArray(yaml);
+        yArr = makeArray(yaml);
 
         String result = "";
-        for(int i=0; i<children.length; i++){
+        for(int i=0; i<yArr.length; i++){
+            for(int j=0; j<split.length; j++){
+                if(yArr[i].contains(split[j]) && yArr[i].contains(target+"=")){
 
-            if(children[i].contains(stringSplit(arg, 0, true))){
-                String[] ar;
+                    String[] ar;
 
-                String split = children[i].split("}")[0];
-                ar = split.split("\\{");
-                String res = ar[ar.length - 1];
+                    String separate = yArr[i].split("}")[0];
+                    ar = separate.split("\\{");
+                    String res = ar[ar.length - 1];
 
-                result = res.substring(res.indexOf("=") + 1);
+                    result = res.substring(res.indexOf("=") + 1);
+
+                }
             }
         }
+
         return result;
     }
 
