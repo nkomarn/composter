@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class Player extends Entity {
-
     private final String username;
     private final Session session;
     private static Set<Chunk.Key> loadedChunks = new HashSet<>();
@@ -34,7 +33,6 @@ public final class Player extends Entity {
         this.session.sendPacket(new PacketPlayerPositionAndLook(
             5, 15, 67.240000009536743D, 10, 0, 0, false));
 
-        Composter.broadcastMessage(String.format("§e%s joined the server.", username));
         this.sendMessage("§6Welcome to Composter :)");
         this.sendMessage("§cComposter is still in early development.");
         this.sendMessage("§cMany features are incomplete!");
@@ -66,10 +64,12 @@ public final class Player extends Entity {
 
     public void tick() {
         if (session.getState() != State.PLAY) return;
-        this.session.sendPacket(new PacketKeepAlive());
+        System.out.println("Updating chunks for " + this.getUsername());
+        updateChunks();
+
+        //this.session.sendPacket(new PacketKeepAlive());
         //this.session.sendPacket(new PacketPlayerPositionAndLook(this.location.getX(), this.location.getY(),
         //    67.42D, this.location.getZ(), this.location.getYaw(), this.location.getPitch(), true)); // TODO stance variable and ground detection
-        updateChunks();
         //System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
     }
 
@@ -77,7 +77,7 @@ public final class Player extends Entity {
             final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
             final int centralX = ((int) this.location.getX()) / 16;
             final int centralZ = ((int) this.location.getZ()) / 16;
-            final int renderDistance = 6;
+            final int renderDistance = 2;
 
             for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
                 for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
@@ -97,5 +97,4 @@ public final class Player extends Entity {
             }
             previousChunks.clear();
     }
-
 }

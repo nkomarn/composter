@@ -19,6 +19,7 @@ public class CodecHandler {
             register(LoginCodec.class);
             register(HandshakeCodec.class);
             register(ChatCodec.class);
+            register(AnimationCodec.class);
             register(SpawnPositionPacket.class);
             register(DisconnectCodec.class);
             register(PlayerPositionCodec.class);

@@ -1,6 +1,5 @@
 package xyz.nkomarn.protocol.handler;
 
-import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.net.State;
 import xyz.nkomarn.protocol.PacketHandler;
@@ -14,10 +13,8 @@ public class LoginHandler extends PacketHandler<PacketLogin> {
 
         if (state == State.LOGIN) {
             session.setState(State.PLAY);
-            session.sendPacket(new PacketLogin(0, "", 0, 0)); // TODO send real values
-            final Player sessionPlayer = new Player(session, message.getUsername());
-            Composter.addPlayer(sessionPlayer);
-            session.setPlayer(sessionPlayer);
+            session.sendPacket(new PacketLogin(0, message.getUsername(), 0, 0)); // TODO send real values
+            session.setPlayer(new Player(session, message.getUsername()));
         } else {
             session.disconnect("Already logged in.");
         }

@@ -13,8 +13,7 @@ public class ChatHandler extends PacketHandler<PacketChat> {
         final State state = session.getState();
 
         if (state == State.PLAY) {
-            System.out.println(message.getMessage());
-            Composter.broadcastMessage(message.getMessage()); // TODO sanitize & custom format
+            Composter.broadcastMessage(String.format("<%s> %s", player.getUsername(), message.getMessage())); // TODO sanitize & custom format
         } else {
             session.disconnect("Attempting to send chat message in non-play state.");
         }

@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.HandlerHandler;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.protocol.PacketHandler;
@@ -47,6 +48,7 @@ public class Session {
 
     public void setPlayer(final Player player) {
         this.player = player;
+        Composter.addPlayer(player);
     }
 
     public void sendPacket(final Packet packet) {

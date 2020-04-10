@@ -29,17 +29,7 @@ public final class Composter {
         logger.info("Starting Composter.");
 
         ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
-        tickLoop.scheduleAtFixedRate(() -> {
-            onlinePlayers.forEach(player -> {
-                if (!player.getSession().getChannel().isActive()) {
-                    System.out.println("Removing old player object.");
-                    onlinePlayers.remove(player);
-                    broadcastMessage("uh some player left the game");
-                    return;
-                }
-                player.tick();
-            }); // tick each player
-        }, 0, 20, TimeUnit.MILLISECONDS); // 20 tps
+        tickLoop.scheduleAtFixedRate(() -> onlinePlayers.forEach(Player::tick), 0, 1000, TimeUnit.MILLISECONDS);
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.start(port); // start the netty socket server
@@ -68,9 +58,16 @@ public final class Composter {
 
     public static void addPlayer(final Player player) {
         onlinePlayers.add(player);
+        Composter.broadcastMessage(String.format("§e%s joined the server.", player.getUsername()));
+    }
+
+    public static void brutallyMurderPlayer(final Player player) {
+        onlinePlayers.remove(player);
+        Composter.broadcastMessage(String.format("§e%s left the server.", player.getUsername()));
     }
 
     public static void broadcastMessage(final String message) {
         onlinePlayers.forEach(player -> player.sendMessage(message));
+        logger.info(message);
     }
 }
