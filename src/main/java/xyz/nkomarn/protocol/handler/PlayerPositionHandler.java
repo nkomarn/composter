@@ -11,7 +11,7 @@ public class PlayerPositionHandler extends PacketHandler<PacketPlayerPosition> {
     @Override
     public void handle(Session session, Player player, PacketPlayerPosition message) {
         if (session.getState() != State.PLAY) return;
-        player.setLocation(new Location(message.getX(), message.getY(), message.getZ(),
+        player.setLocation(new Location(player.getWorld(), message.getX(), message.getY(), message.getZ(),
             player.getLocation().getPitch(), player.getLocation().getYaw()));
     }
 }

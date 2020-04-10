@@ -1,6 +1,5 @@
 package xyz.nkomarn.protocol.codec;
 
-import com.sun.org.apache.bcel.internal.classfile.Code;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import xyz.nkomarn.protocol.Codec;

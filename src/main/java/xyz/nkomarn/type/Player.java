@@ -70,14 +70,14 @@ public final class Player extends Entity {
         //this.session.sendPacket(new PacketPlayerPositionAndLook(this.location.getX(), this.location.getY(),
         //    67.42D, this.location.getZ(), this.location.getYaw(), this.location.getPitch(), true)); // TODO stance variable and ground detection
         updateChunks();
-        System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
+        //System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
     }
 
     private void updateChunks() {
             final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
             final int centralX = ((int) this.location.getX()) / 16;
             final int centralZ = ((int) this.location.getZ()) / 16;
-            final int renderDistance = 1;
+            final int renderDistance = 6;
 
             for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
                 for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
@@ -86,7 +86,7 @@ public final class Player extends Entity {
                         loadedChunks.add(key);
                         this.session.sendPacket(new PacketPreChunk(x, z, true));
                         this.session.sendPacket(new PacketMapChunk(x * 16, (short) 0, z * 16,
-                            world.getChunkAt(x, z).serializeTileData()));
+                            world.getChunk(x, z).serializeTileData()));
                     }
                     previousChunks.remove(key);
                 }

@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.Map;
 
 public class ChunkIO {
-
     private File directory = new File("world");
     private RegionFileCache cache = new RegionFileCache();
 

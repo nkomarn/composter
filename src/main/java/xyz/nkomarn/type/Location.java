@@ -1,23 +1,27 @@
 package xyz.nkomarn.type;
 
-public class Location {
+import xyz.nkomarn.world.World;
 
+public class Location {
     private final double x, y, z;
     private float pitch, yaw;
+    private final World world;
 
-    public Location(final double x, final double y, final double z) {
+    public Location(final World world, final double x, final double y, final double z) {
+        this.world = world;
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public Location(final double x, final double y, final double z,
-                    final float pitch, final float yaw) {
+    public Location(final World world, final double x, final double y, final double z,
+                    final float yaw, final float pitch) {
+        this.world = world;
         this.x = x;
         this.y = y;
         this.z = z;
-        this.pitch = pitch;
         this.yaw = yaw;
+        this.pitch = pitch;
     }
 
     public double getX() {
@@ -32,11 +36,15 @@ public class Location {
         return this.z;
     }
 
+    public float getYaw() {
+        return this.yaw;
+    }
+
     public float getPitch() {
         return this.pitch;
     }
 
-    public float getYaw() {
-        return this.yaw;
+    public World getWorld () {
+        return this.world;
     }
 }

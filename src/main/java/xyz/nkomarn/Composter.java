@@ -3,7 +3,6 @@ package xyz.nkomarn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.nkomarn.net.Bootstrap;
-import xyz.nkomarn.net.SessionManager;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.configuration.Config;
 import xyz.nkomarn.world.World;
@@ -18,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 public final class Composter {
 
     // TODO configurable chunk threading in config
-    public static ExecutorService chunkThread = Executors.newFixedThreadPool(3);
+    //public static ExecutorService chunkThread = Executors.newFixedThreadPool(3);
 
     private static Config config = new Config();
     private static final World world = new World(new FlatGenerator());
@@ -30,28 +29,16 @@ public final class Composter {
         logger.info("Starting Composter.");
 
         ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
-        tickLoop.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                SessionManager.tick();
-
-                onlinePlayers.forEach(player -> {
-                    if (!player.getSession().getChannel().isActive()) {
-                        System.out.println("Removing old player object.");
-                        onlinePlayers.remove(player);
-                        broadcastMessage("uh some player left the game");
-                        return;
-                    }
-                    player.tick();
-                }); // tick each player
-
-                /*int currentTick = 0;
-                double[] recentTps = new double[3];
-
-                if ( ++currentTick % 20 == 0 ) {
-                   // TODO TPS Calculation (not that it matters)
-                }*/
-            }
+        tickLoop.scheduleAtFixedRate(() -> {
+            onlinePlayers.forEach(player -> {
+                if (!player.getSession().getChannel().isActive()) {
+                    System.out.println("Removing old player object.");
+                    onlinePlayers.remove(player);
+                    broadcastMessage("uh some player left the game");
+                    return;
+                }
+                player.tick();
+            }); // tick each player
         }, 0, 20, TimeUnit.MILLISECONDS); // 20 tps
 
         Bootstrap bootstrap = new Bootstrap();

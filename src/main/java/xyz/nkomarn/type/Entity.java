@@ -7,10 +7,11 @@ public abstract class Entity {
     protected boolean alive = true;
 
     protected World world;
-    protected Location location = new Location(0, 15, 0);
+    protected Location location;
 
     public Entity(final World world) {
         this.world = world;
+        this.location = new Location(world, 0, 15, 0);
         // TODO add entity to world entities
     }
 }

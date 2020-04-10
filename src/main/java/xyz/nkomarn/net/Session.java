@@ -22,12 +22,11 @@ public class Session {
     private State state;
     private Player player;
 
-    private final Queue<Packet> queue = new ArrayDeque<>();
+    //private final Queue<Packet> queue = new ArrayDeque<>();
 
     public Session(final Channel channel) {
         this.channel = channel;
         this.state = State.HANDSHAKE;
-        SessionManager.openSession(this);
     }
 
     public Channel getChannel() {
@@ -54,9 +53,9 @@ public class Session {
         channel.writeAndFlush(packet); // TODO send
     }
 
-    public void queueIncomingPacket(final Packet packet) {
+    /*public void queueIncomingPacket(final Packet packet) {
         queue.add(packet);
-    }
+    }*/
 
     public void sendMessage(final String message) {
         channel.writeAndFlush(new PacketChat(message));
@@ -67,7 +66,14 @@ public class Session {
             .addListener(ChannelFutureListener.CLOSE);
     }
 
-    public void tick() {
+    public void handlePacket(final Packet packet) {
+        PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
+        if (handler != null) {
+            handler.handle(this, this.player, packet);
+        }
+    }
+
+    /*public void tick() {
         Packet packet;
         while ((packet = queue.poll()) != null) { // TODO check cast
             PacketHandler<Packet> handler = (PacketHandler<Packet>) HandlerHandler.getHandler(packet.getClass());
@@ -77,5 +83,5 @@ public class Session {
 
             // TODO timeout
         }
-    }
+    }*/
 }
