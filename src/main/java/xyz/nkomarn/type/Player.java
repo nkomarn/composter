@@ -13,7 +13,7 @@ import java.util.Set;
 public final class Player extends Entity {
     private final String username;
     private final Session session;
-    private static Set<Chunk.Key> loadedChunks = new HashSet<>();
+    private final Set<Chunk.Key> loadedChunks = new HashSet<>();
 
     //TODO crouching support
 
