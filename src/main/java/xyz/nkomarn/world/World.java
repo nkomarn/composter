@@ -42,6 +42,8 @@ public class World {
                     loadedChunks.put(key, newChunk);
                     future.complete(newChunk);
                 });
+            } else {
+                future.complete(chunk);
             }
         });
         return future;
