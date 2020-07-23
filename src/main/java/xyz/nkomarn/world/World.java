@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 public class World {
 
-    public final Location spawn = new Location(this, 0, 15, 0); // TODO implement for player spawning at some point
+    public final Location spawn = new Location(this, 0, 100, 0); // TODO implement for player spawning at some point
     // TODO entities list
 
     private final Properties properties;

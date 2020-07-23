@@ -36,7 +36,7 @@ public final class Player extends Entity {
         this.session.sendPacket(new SpawnPositionS2CPacket((int) spawn.getX(), (int) spawn.getY(), (int) spawn.getZ()));
 
         // Send player location to enter the world
-        this.session.sendPacket(new PlayerPosLookS2CPacket(0, 50, 0, 0, 0, 67.240000009536743D, isGrounded()));
+        this.session.sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 100.240000009536743D, isGrounded()));
 
         this.sendMessage("§6Welcome to Composter :)");
         this.sendMessage("§cComposter is still in early development.");
@@ -102,7 +102,7 @@ public final class Player extends Entity {
         final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
         final int centralX = ((int) this.location.getX()) / 16;
         final int centralZ = ((int) this.location.getZ()) / 16;
-        final int renderDistance = 0; // customizable in config
+        final int renderDistance = 10; // customizable in config
 
         for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
             for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {

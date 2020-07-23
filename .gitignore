@@ -27,5 +27,5 @@ buildNumber.properties
 .vscode/
 
 .editorconfig
-world/
+/worlds/
 .factorypath
