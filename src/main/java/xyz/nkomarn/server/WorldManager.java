@@ -5,6 +5,7 @@ import xyz.nkomarn.Composter;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.world.ChunkIO;
 import xyz.nkomarn.world.World;
+import xyz.nkomarn.world.generator.BetaGenerator;
 import xyz.nkomarn.world.generator.FlatGenerator;
 
 import java.nio.file.Path;
@@ -34,7 +35,8 @@ public class WorldManager {
         worlds.put(UUID.randomUUID(), new World(new World.Properties(
                 UUID.randomUUID(),
                 new ChunkIO(server, directory.resolve("world"), chunkThread),
-                new FlatGenerator()
+                new BetaGenerator()
+                //new FlatGenerator()
         ), chunkThread));
     }
 

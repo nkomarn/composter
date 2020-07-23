@@ -35,7 +35,7 @@ public class PacketHandler {
                     session.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0, (byte) 1));
                     session.setPlayer(new Player(session, loginInPacket.getUsername()));
                 } else {
-                    session.disconnect("Already logged in.");
+//                    session.disconnect("Already logged in.");
                 }
 
                 break;
@@ -47,7 +47,7 @@ public class PacketHandler {
                     session.sendPacket(new HandshakeS2CPacket("-"));
                     session.setState(Session.State.LOGIN);
                 } else {
-                    session.disconnect("Already shook hands.");
+//                    session.disconnect("Already shook hands.");
                 }
 
                 break;
