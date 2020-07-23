@@ -1,15 +1,17 @@
-package xyz.nkomarn.protocol.c2s;
+package xyz.nkomarn.protocol.packet.c2s;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
 
-public class LoginC2SPacket implements Packet<LoginC2SPacket> {
+public class LoginC2SPacket extends Packet<LoginC2SPacket> {
 
-    private final int protocol;
-    private final String username;
+    private int protocol;
+    private String username;
+
+    public LoginC2SPacket() {
+    }
 
     public LoginC2SPacket(int protocol, @NotNull String username) {
         this.protocol = protocol;
@@ -25,8 +27,8 @@ public class LoginC2SPacket implements Packet<LoginC2SPacket> {
     }
 
     @Override
-    public @NotNull ByteBuf encode(LoginC2SPacket packet) {
-        return Unpooled.EMPTY_BUFFER; // C2S
+    public int getId() {
+        return 0x01;
     }
 
     @Override

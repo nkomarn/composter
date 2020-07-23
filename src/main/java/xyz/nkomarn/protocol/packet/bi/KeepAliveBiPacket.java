@@ -1,15 +1,14 @@
-package xyz.nkomarn.protocol.bidirectional;
+package xyz.nkomarn.protocol.packet.bi;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 
-public class KeepAliveBiPacket implements Packet<KeepAliveBiPacket> {
+public class KeepAliveBiPacket extends Packet<KeepAliveBiPacket> {
 
     @Override
-    public @NotNull ByteBuf encode(KeepAliveBiPacket packet) {
-        return Unpooled.EMPTY_BUFFER;
+    public int getId() {
+        return 0x00;
     }
 
     @Override

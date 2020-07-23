@@ -1,31 +1,26 @@
 package xyz.nkomarn.net;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
-import xyz.nkomarn.protocol.HandlerHandler;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.protocol.PacketHandler;
-import xyz.nkomarn.protocol.packets.PacketChat;
-import xyz.nkomarn.protocol.packets.PacketDisconnect;
-import xyz.nkomarn.protocol.packets.PacketKeepAlive;
+import xyz.nkomarn.protocol.packet.s2c.DisconnectS2CPacket;
 import xyz.nkomarn.type.Player;
-import xyz.nkomarn.util.ByteBufUtil;
-
-import java.util.ArrayDeque;
-import java.util.Queue;
 
 public class Session {
 
+    private final Composter server;
     private final Channel channel;
+
     private State state;
     private Player player;
 
     //private final Queue<Packet> queue = new ArrayDeque<>();
 
-    public Session(final Channel channel) {
+    public Session(@NotNull Composter server, @NotNull Channel channel) {
+        this.server = server;
         this.channel = channel;
         this.state = State.HANDSHAKE;
     }
@@ -51,7 +46,7 @@ public class Session {
         Composter.addPlayer(player);
     }
 
-    public void sendPacket(final Packet packet) {
+    public void sendPacket(@NotNull Packet<?> packet) {
         channel.writeAndFlush(packet); // TODO send
     }
 
@@ -60,19 +55,19 @@ public class Session {
     }*/
 
     public void sendMessage(final String message) {
-        channel.writeAndFlush(new PacketChat(message));
+       // channel.writeAndFlush(new PacketChat(message));
     }
 
     public void disconnect(final String message) {
-        channel.writeAndFlush(new PacketDisconnect(message))
-            .addListener(ChannelFutureListener.CLOSE);
+        channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
     }
 
-    public void handlePacket(final Packet packet) {
-        PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
+    public void handlePacket(@NotNull Packet<?> packet) {
+        server.getNetworkManager().getHandler().handle(this, packet);
+        /*PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
         if (handler != null) {
             handler.handle(this, this.player, packet);
-        }
+        }*/
     }
 
     /*public void tick() {
@@ -86,4 +81,10 @@ public class Session {
             // TODO timeout
         }
     }*/
+
+    public enum State {
+        HANDSHAKE,
+        LOGIN,
+        PLAY
+    }
 }

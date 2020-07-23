@@ -44,7 +44,23 @@ public class Location {
         return this.pitch;
     }
 
+    public int getBlockX() {
+        return (int) Math.floor(this.x);
+    }
+
+    public int getBlockY() {
+        return (int) Math.floor(this.y);
+    }
+
+    public int getBlockZ() {
+        return (int)  Math.floor(this.z);
+    }
+
     public World getWorld () {
         return this.world;
+    }
+
+    public Chunk.Key getChunk() {
+       return new Chunk.Key((int) Math.floor(x / 16), (int) Math.floor(z / 16));
     }
 }

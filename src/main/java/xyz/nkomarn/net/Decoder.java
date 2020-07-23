@@ -3,27 +3,39 @@ package xyz.nkomarn.net;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
-import xyz.nkomarn.protocol.Codec;
+import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.protocol.CodecHandler;
+import xyz.nkomarn.protocol.Protocol;
 
 import java.io.IOException;
 import java.util.List;
 
-public class Decoder extends ReplayingDecoder<Packet> {
+public class Decoder extends ReplayingDecoder<Packet<?>> {
+
+    private final Protocol protocol;
+
+    public Decoder(@NotNull Protocol protocol) {
+        this.protocol = protocol;
+    }
 
     @Override
-    protected void decode(ChannelHandlerContext context, ByteBuf buffer, List<Object> list) throws IOException {
+    protected void decode(ChannelHandlerContext context, ByteBuf buffer, List<Object> list) {
         final int id = buffer.readUnsignedByte();
+        if (id == 0) return; // TODO this is retarded smh
 
-        //System.out.println(String.format("Packet received: %s", id));
+        // System.out.println(String.format("Packet received: %s", id));
 
-        final Codec codec = CodecHandler.getCodec(id);
-        if (codec == null) {
-            System.out.println("No codec for " + id);
-            //throw new IOException("Invalid packet: " + opcode);
-            return;
+        Packet<?> packet = protocol.getPacketById(id, Protocol.Direction.C2S);
+
+        if (packet == null) { // TODO this is retarded, but im also retarded so fix this later when im less retarded
+            packet = protocol.getPacketById(id, Protocol.Direction.BI);
+
+            if (packet == null) {
+                // System.out.println("No packet exists for ID " + id + ".");
+                return;
+            }
         }
-        list.add(codec.decode(buffer));
+
+        list.add(packet.decode(buffer));
     }
 }

@@ -11,11 +11,9 @@ import xyz.nkomarn.world.region.RegionFile;
 import xyz.nkomarn.world.region.RegionFileCache;
 
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 

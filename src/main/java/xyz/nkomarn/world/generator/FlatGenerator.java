@@ -4,6 +4,7 @@ import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.world.noise.OpenSimplexNoise;
 
 public class FlatGenerator implements WorldGenerator {
+
     @Override
     public Chunk generate(final int xx, final int zz) {
         Chunk chunk = new Chunk(xx, zz);

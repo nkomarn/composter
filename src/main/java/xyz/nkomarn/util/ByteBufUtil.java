@@ -3,6 +3,7 @@ package xyz.nkomarn.util;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.CharsetUtil;
 
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -24,10 +25,11 @@ public class ByteBufUtil {
      * @param buffer
      * @param string
      */
-    public static void writeString(ByteBuf buffer, String string) {
+    public static ByteBuf writeString(ByteBuf buffer, String string) {
+        //buffer.writeCharSequence(CharBuffer.wrap("-".toCharArray()), Charset.defaultCharset());
         final char[] chars = string.toCharArray();
         buffer.writeShort(chars.length);
         for (char c : chars) buffer.writeChar(c);
+        return buffer;
     }
-
 }

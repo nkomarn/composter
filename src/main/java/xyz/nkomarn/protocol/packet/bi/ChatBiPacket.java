@@ -1,4 +1,4 @@
-package xyz.nkomarn.protocol.packet.s2c;
+package xyz.nkomarn.protocol.packet.bi;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -6,14 +6,14 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
 
-public class DisconnectS2CPacket extends Packet<DisconnectS2CPacket> {
+public class ChatBiPacket extends Packet<ChatBiPacket> {
 
     private String message;
 
-    public DisconnectS2CPacket() {
+    public ChatBiPacket() {
     }
 
-    public DisconnectS2CPacket(@NotNull String message) {
+    public ChatBiPacket(@NotNull String message) {
         this.message = message;
     }
 
@@ -23,13 +23,16 @@ public class DisconnectS2CPacket extends Packet<DisconnectS2CPacket> {
 
     @Override
     public int getId() {
-        return 0xFF;
+        return 0x03;
     }
 
     @Override
     public @NotNull ByteBuf encode() {
-        ByteBuf buffer = Unpooled.buffer();
-        ByteBufUtil.writeString(buffer, message);
-        return buffer;
+        return ByteBufUtil.writeString(Unpooled.buffer(), message);
+    }
+
+    @Override
+    public ChatBiPacket decode(@NotNull ByteBuf buffer) {
+        return new ChatBiPacket(ByteBufUtil.readString(buffer));
     }
 }

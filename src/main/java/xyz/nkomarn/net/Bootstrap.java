@@ -7,13 +7,18 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.server.NetworkManager;
 
 public class Bootstrap {
 
-    /*
-        Starts the Netty server
-     */
+    private final NetworkManager networkManager;
+
+    public Bootstrap(@NotNull NetworkManager networkManager) {
+        this.networkManager = networkManager;
+    }
+
     // TODO separate executor (if not already)
     public void start(int port) throws InterruptedException {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
@@ -27,15 +32,18 @@ public class Bootstrap {
                     @Override
                     protected void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline()
-                            .addLast(new Decoder())
+                            .addLast(new Decoder(networkManager.getProtocol()))
                             .addLast(new Encoder())
-                            .addLast(new ChannelHandler());
+                            .addLast(new ChannelHandler(networkManager.getServer()));
                     }
                 });
+
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
+
             if (channelFuture.isSuccess()) {
                 Composter.getLogger().info("Composter is ready for connections.");
             }
+
             channelFuture.channel().closeFuture().sync();
         } finally {
             Composter.getLogger().info("Stopping Composter.");

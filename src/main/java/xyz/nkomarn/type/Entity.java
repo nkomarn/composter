@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.world.World;
 
 public abstract class Entity {
-    //protected final World world;
     protected boolean alive = true;
 
     protected World world;

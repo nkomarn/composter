@@ -11,18 +11,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 public class World {
+
     public final Location spawn = new Location(this, 0, 15, 0); // TODO implement for player spawning at some point
-    private final HashMap<Chunk.Key, Chunk> loadedChunks = new HashMap<>();
     // TODO entities list
 
     private final Properties properties;
     private final ExecutorService thread;
+    private final HashMap<Chunk.Key, Chunk> loadedChunks;
 
     private long time = 0;
 
     public World(@NotNull Properties properties, @NotNull ExecutorService thread) {
         this.properties = properties;
         this.thread = thread;
+        this.loadedChunks = new HashMap<>();
     }
 
     public CompletableFuture<Chunk> getChunk(int x, int z) {
@@ -47,6 +49,10 @@ public class World {
             }
         });
         return future;
+    }
+
+    public boolean isChunkLoaded(@NotNull Chunk.Key chunk) {
+        return loadedChunks.containsKey(chunk);
     }
 
     // TODO save chunks, etc
