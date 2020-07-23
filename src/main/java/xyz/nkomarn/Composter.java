@@ -1,14 +1,18 @@
 package xyz.nkomarn;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.nkomarn.net.Bootstrap;
+import xyz.nkomarn.server.WorldManager;
+import xyz.nkomarn.type.Location;
 import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.configuration.Config;
 import xyz.nkomarn.world.World;
 import xyz.nkomarn.world.generator.FlatGenerator;
 
-import java.util.ArrayList;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,14 +23,21 @@ public final class Composter {
     // TODO configurable chunk threading in config
     //public static ExecutorService chunkThread = Executors.newFixedThreadPool(3);
 
-    private static Config config = new Config();
-    private static final World world = new World(new FlatGenerator());
+    private static final Config config = new Config();
     private static final Logger logger = LoggerFactory.getLogger(Composter.class);
-
     private static ArrayList<Player> onlinePlayers = new ArrayList<>();
+
+    private final WorldManager worldManager;
+
+    public static Location SPAWN;
 
     public Composter(final int port) throws InterruptedException {
         logger.info("Starting Composter.");
+
+        this.worldManager = new WorldManager(this, Paths.get("worlds"));
+        this.worldManager.load();
+
+        SPAWN = new Location(worldManager.getWorlds().iterator().next(), 0, 15, 0);
 
         ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
         tickLoop.scheduleAtFixedRate(() -> onlinePlayers.forEach(Player::tick), 0, 1000, TimeUnit.MILLISECONDS);
@@ -46,10 +57,6 @@ public final class Composter {
 
     public static Config getConfig() {
         return config;
-    }
-
-    public static World getWorld() {
-        return world;
     }
 
     public static ArrayList<Player> getOnlinePlayers() {

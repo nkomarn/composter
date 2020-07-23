@@ -6,6 +6,7 @@ import xyz.nkomarn.net.State;
 import xyz.nkomarn.protocol.packets.*;
 import xyz.nkomarn.world.World;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -17,7 +18,7 @@ public final class Player extends Entity {
     //TODO crouching support
 
     public Player(final Session session, final String username) {
-        super(Composter.getWorld());
+        super(Composter.SPAWN.getWorld());
         this.session = session;
         this.username = username;
         this.location = world.spawn;
@@ -64,7 +65,7 @@ public final class Player extends Entity {
 
     public void tick() {
         if (session.getState() != State.PLAY) return;
-        System.out.println("Updating chunks for " + this.getUsername());
+        //System.out.println("Updating chunks for " + this.getUsername());
         updateChunks();
 
         //this.session.sendPacket(new PacketKeepAlive());
@@ -84,13 +85,18 @@ public final class Player extends Entity {
                     Chunk.Key key = new Chunk.Key(x, z);
                     if (!loadedChunks.contains(key)) {
                         loadedChunks.add(key);
-                        this.session.sendPacket(new PacketPreChunk(x, z, true));
-                        this.session.sendPacket(new PacketMapChunk(x * 16, (short) 0, z * 16,
-                            world.getChunk(x, z).serializeTileData()));
+
+                        final int finalX = x;
+                        final int finalZ = z;
+                        world.getChunk(x, z).thenAccept(chunk -> {
+                            this.session.sendPacket(new PacketPreChunk(finalX, finalZ, true));
+                            this.session.sendPacket(new PacketMapChunk(finalX * 16, (short) 0, finalZ * 16, chunk.serializeTileData()));
+                        });
                     }
                     previousChunks.remove(key);
                 }
             }
+
             for (Chunk.Key key : previousChunks) {
                 this.session.sendPacket(new PacketPreChunk(key.getX(), key.getZ(), false));
                 loadedChunks.remove(key);
