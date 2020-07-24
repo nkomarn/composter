@@ -31,7 +31,7 @@ public class Decoder extends ReplayingDecoder<Packet<?>> {
             packet = protocol.getPacketById(id, Protocol.Direction.BI);
 
             if (packet == null) {
-                // System.out.println("No packet exists for ID " + id + ".");
+                System.out.println("No packet exists for ID " + id + ".");
                 return;
             }
         }

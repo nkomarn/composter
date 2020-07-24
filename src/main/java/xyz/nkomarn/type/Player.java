@@ -8,7 +8,6 @@ import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.s2c.MapChunkS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PreChunkS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.SpawnPositionS2CPacket;
 import xyz.nkomarn.world.World;
 
 import java.util.HashSet;
@@ -16,8 +15,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public final class Player extends Entity {
-    private final String username;
+
     private final Session session;
+    private final String username;
     private final Set<Chunk.Key> loadedChunks = new HashSet<>();
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
@@ -27,86 +27,65 @@ public final class Player extends Entity {
         super(Composter.SPAWN.getWorld());
         this.session = session;
         this.username = username;
-        this.location = world.spawn;
-
-        updateChunks(true);
-
-        // Send spawn position
-        final Location spawn = world.spawn;
-        this.session.sendPacket(new SpawnPositionS2CPacket((int) spawn.getX(), (int) spawn.getY(), (int) spawn.getZ()));
-
-        // Send player location to enter the world
-        this.session.sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 100.240000009536743D, isGrounded()));
-
-        this.sendMessage("§6Welcome to Composter :)");
-        this.sendMessage("§cComposter is still in early development.");
-        this.sendMessage("§cMany features are incomplete!");
     }
 
     public Session getSession() {
-        return this.session;
-    }
-
-    public World getWorld() {
-        return this.world;
+        return session;
     }
 
     public String getUsername() {
-        return this.username;
+        return username;
+    }
+
+    public World getWorld() {
+        return world;
     }
 
     public Location getLocation() {
-        return this.location;
+        return location;
     }
 
-    public void setLocation(final Location location) {
+    public void setLocation(@NotNull Location location) {
         this.location = location;
     }
 
-    public void sendMessage(final String message) {
-        this.session.sendPacket(new ChatBiPacket(message));
-    }
-
-    public boolean isGrounded() { // TODO lol this is retarded
-        try {
-            return world.getChunk(
-                    location.getChunk().getX(),
-                    location.getChunk().getZ()
-            ).get().getType(
-                    location.getBlockX(),
-                    location.getBlockY() - 1,
-                    location.getBlockZ()
-            ) != 0;
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public void sendMessage(@NotNull String message) {
+        session.sendPacket(new ChatBiPacket(message));
     }
 
     public void teleport(@NotNull Location location) {
         this.location = location;
-        session.sendPacket(new PlayerPosLookS2CPacket(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch(), DEFAULT_STANCE, isGrounded())); // TODO figure out grounded detection
+        updateLocation();
     }
 
+    public void updateLocation() {
+        session.sendPacket(new PlayerPosLookS2CPacket(
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                location.getYaw(),
+                location.getPitch(),
+                DEFAULT_STANCE,
+                isTouchingGround()
+        ));
+    }
+
+    // @Override - override once entities are implemented (should players be ticked differently?)
     public void tick() {
-        if (session.getState() != Session.State.PLAY) return;
-        updateChunks(false);
-
-        this.session.sendPacket(new KeepAliveBiPacket());
-        System.out.println(String.format("%s, %s, %s", location.getX(), location.getY(), location.getZ()));
-        System.out.println("Grounded?: " + isGrounded());
-        //System.out.println(String.format("Current chunk- X: %s, Z: %s", location.getChunk().getX(), location.getChunk().getZ()));
+        syncChunks(false);
+        this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
     }
 
-    private void updateChunks(boolean sync) {
+    public synchronized void syncChunks(boolean sync) {
         final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
         final int centralX = ((int) this.location.getX()) / 16;
         final int centralZ = ((int) this.location.getZ()) / 16;
-        final int renderDistance = 10; // customizable in config
+        final int viewDistance = 8; // customizable in config
 
-        for (int x = (centralX - renderDistance); x <= (centralX + renderDistance); x++) {
-            for (int z = (centralZ - renderDistance); z <= (centralZ + renderDistance); z++) {
+        for (int x = (centralX - viewDistance); x <= (centralX + viewDistance); x++) {
+            for (int z = (centralZ - viewDistance); z <= (centralZ + viewDistance); z++) {
                 Chunk.Key key = new Chunk.Key(x, z);
+
                 if (!loadedChunks.contains(key)) {
                     loadedChunks.add(key);
 

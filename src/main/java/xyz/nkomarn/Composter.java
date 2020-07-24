@@ -1,84 +1,70 @@
 package xyz.nkomarn;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.server.NetworkManager;
+import xyz.nkomarn.server.PlayerManager;
 import xyz.nkomarn.server.WorldManager;
 import xyz.nkomarn.type.Location;
-import xyz.nkomarn.type.Player;
 import xyz.nkomarn.util.configuration.Config;
 
 import java.nio.file.Paths;
-import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public final class Composter {
 
-    private static final Config config = new Config();
-    private static final Logger logger = LoggerFactory.getLogger(Composter.class);
-    private static ArrayList<Player> onlinePlayers = new ArrayList<>();
+    private final Config config = new Config();
+    private final ScheduledExecutorService tickLoop;
+    private final Logger logger;
 
+    private final PlayerManager playerManager;
     private final NetworkManager networkManager;
     private final WorldManager worldManager;
 
     public static Location SPAWN;
 
     public Composter(final int port) throws InterruptedException {
-        logger.info("Starting Composter.");
+        this.logger = LogManager.getLogger("Server");
+        this.logger.info("Starting Composter.");
 
+        this.playerManager = new PlayerManager(this);
         this.networkManager = new NetworkManager(this);
         this.worldManager = new WorldManager(this, Paths.get("worlds"));
         this.worldManager.load();
 
         SPAWN = new Location(worldManager.getWorlds().iterator().next(), 0, 15, 0);
 
-        ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
-        tickLoop.scheduleAtFixedRate(() -> onlinePlayers.forEach(Player::tick), 0, 50, TimeUnit.MILLISECONDS); // TODO change back to 50ms
+        this.tickLoop = Executors.newSingleThreadScheduledExecutor();
+        this.tickLoop.scheduleAtFixedRate(playerManager::tick, 0, 50, TimeUnit.MILLISECONDS);
 
         networkManager.bind(port);
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        final int port = getConfig().getInteger("network.port");
-        new Composter(port);
-    }
-
-    public NetworkManager getNetworkManager() {
-        return networkManager;
-    }
-
-    public WorldManager getWorldManager() {
-        return worldManager;
-    }
-
-    // TODO -------------------------------
-
-    public static Logger getLogger() {
-        return logger;
-    }
-
-    public static Config getConfig() {
+    public @NotNull Config getConfig() {
         return config;
     }
 
-    public static ArrayList<Player> getOnlinePlayers() {
-        return onlinePlayers;
+    public @NotNull Logger getLogger() {
+        return logger;
     }
 
-    public static void addPlayer(final Player player) {
-        onlinePlayers.add(player);
-        Composter.broadcastMessage(String.format("§e%s joined the server.", player.getUsername()));
+    public @NotNull PlayerManager getPlayerManager() {
+        return playerManager;
     }
 
-    public static void brutallyMurderPlayer(final Player player) {
-        onlinePlayers.remove(player);
-        Composter.broadcastMessage(String.format("§e%s left the server.", player.getUsername()));
+    public @NotNull NetworkManager getNetworkManager() {
+        return networkManager;
     }
 
-    public static void broadcastMessage(final String message) {
-        onlinePlayers.forEach(player -> player.sendMessage(message));
-        logger.info(message);
+    public @NotNull WorldManager getWorldManager() {
+        return worldManager;
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        //int port = getConfig().getInteger("network.port");
+        new Composter(25565);
     }
 }

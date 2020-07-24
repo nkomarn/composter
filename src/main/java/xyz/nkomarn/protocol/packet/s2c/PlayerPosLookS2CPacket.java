@@ -42,6 +42,6 @@ public class PlayerPosLookS2CPacket extends Packet<PlayerPosLookS2CPacket> {
                 .writeDouble(z)
                 .writeFloat(yaw)
                 .writeFloat(pitch)
-                .writeBoolean(grounded);
+                .writeByte(grounded ? 1 : 0);
     }
 }

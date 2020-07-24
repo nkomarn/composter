@@ -4,14 +4,14 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
-import xyz.nkomarn.protocol.packet.c2s.HandshakeC2SPacket;
 import xyz.nkomarn.protocol.packet.c2s.LoginC2SPacket;
 import xyz.nkomarn.protocol.packet.c2s.PlayerPosC2SPacket;
 import xyz.nkomarn.protocol.packet.c2s.PlayerPosLookC2SPacket;
 import xyz.nkomarn.protocol.packet.s2c.HandshakeS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.LoginS2CPacket;
 import xyz.nkomarn.type.Location;
-import xyz.nkomarn.type.Player;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class PacketHandler {
 
@@ -21,77 +21,126 @@ public class PacketHandler {
         this.server = server;
     }
 
+    public static void register(int id, @NotNull State state, @NotNull Handler handler) {
+        state.getHandlerMap().put(id, handler);
+    }
+
     public void handle(@NotNull Session session, @NotNull Packet<?> packet) {
-        // TODO this is temporary and i know it's fucked up - also please use a hashmap for this istg
-        Session.State state = session.getState();
+        Handler handler = State.valueOf(session.getState().name()).getHandlerMap().get(packet.getId());
 
-        switch (packet.getId()) {
-            case 0x01: // Login
-                LoginC2SPacket loginInPacket = (LoginC2SPacket) packet;
-                System.out.println("Logging in with protocol version " + loginInPacket.getProtocol());
-
-                if (state == Session.State.LOGIN) {
-                    session.setState(Session.State.PLAY); // TODO figure out the best placement
-                    session.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0, (byte) 1));
-                    session.setPlayer(new Player(session, loginInPacket.getUsername()));
-                } else {
-//                    session.disconnect("Already logged in.");
-                }
-
-                break;
-            case 0x02: // Handshake
-                HandshakeC2SPacket handshakeInPacket = (HandshakeC2SPacket) packet;
-                System.out.println("Handshaking with username: " + handshakeInPacket.getUsername());
-
-                if (state == Session.State.HANDSHAKE) {
-                    session.sendPacket(new HandshakeS2CPacket("-"));
-                    session.setState(Session.State.LOGIN);
-                } else {
-//                    session.disconnect("Already shook hands.");
-                }
-
-                break;
-            case 0x03: // Chat message
-                ChatBiPacket chatInPacket = (ChatBiPacket) packet;
-                Composter.broadcastMessage(chatInPacket.getMessage());
-                break; // TODO this is dumb, handle this correctly later lmao
-            case 0x0B:
-                PlayerPosC2SPacket posInPacket = (PlayerPosC2SPacket) packet;
-                Location currentLocation1 = session.getPlayer().getLocation();
-                Location newLocation1 = new Location(
-                        Composter.SPAWN.getWorld(), // TODO temporary
-                        posInPacket.getX(),
-                        posInPacket.getY(),
-                        posInPacket.getZ(),
-                        0,
-                        0
-                );
-
-                if (!session.getPlayer().getWorld().isChunkLoaded(newLocation1.getChunk())) {
-                    // System.out.println("Chunk is not loaded.");
-                    session.getPlayer().teleport(currentLocation1);
-                } else {
-                    session.getPlayer().setLocation(newLocation1);
-                }
-                break;
-            case 0x0D: // Pos + look
-                PlayerPosLookC2SPacket posLookInPacket = (PlayerPosLookC2SPacket) packet;
-                Location currentLocation = session.getPlayer().getLocation();
-                Location newLocation = new Location(
-                        Composter.SPAWN.getWorld(), // TODO temporary
-                        posLookInPacket.getX(),
-                        posLookInPacket.getY(),
-                        posLookInPacket.getZ(),
-                        posLookInPacket.getYaw(),
-                        posLookInPacket.getPitch()
-                );
-
-                if (!session.getPlayer().getWorld().isChunkLoaded(newLocation.getChunk())) {
-                    // System.out.println("Chunk is not loaded.");
-                    session.getPlayer().teleport(currentLocation);
-                } else {
-                    session.getPlayer().setLocation(newLocation);
-                }
+        if (handler == null) {
+            // TODO something idk maybe asdhjkhjsadkfhasdjfhdhjbdasfhjkasdhkfafasjfadskhfjhk :))))
+            return;
         }
+
+        handler.handle(session, packet);
+    }
+
+    static {
+        // Login
+        register(0x01, State.LOGIN, (session, packet) -> {
+            LoginC2SPacket loginPacket = (LoginC2SPacket) packet;
+            Composter server = session.getServer();
+            Session.State state = session.getState();
+
+            if (loginPacket.getProtocol() != 14) {
+                session.disconnect(server.getConfig().getString("messages.unsupported_protocol"));
+                return;
+            }
+
+            if (state != Session.State.LOGIN) {
+                session.disconnect(server.getConfig().getString("messages.already_logged_in"));
+                return;
+            }
+
+            session.getServer().getPlayerManager().onLogin(session, loginPacket.getUsername());
+        });
+
+        // Handshake
+        register(0x02, State.HANDSHAKE, (session, packet) -> {
+            Session.State state = session.getState();
+
+            if (state == Session.State.HANDSHAKE) {
+                session.sendPacket(new HandshakeS2CPacket("-"));
+                session.setState(Session.State.LOGIN);
+            } else {
+                session.disconnect(session.getServer().getConfig().getString("messages.already_handshook"));
+            }
+        });
+
+        // Chat message
+        register(0x03, State.PLAY, (session, packet) -> {
+            ChatBiPacket chatPacket = (ChatBiPacket) packet;
+            session.getPlayer().ifPresent(player -> session.getServer().getPlayerManager().onChat(player, chatPacket.getMessage()));
+        });
+
+        // Player position
+        register(0x0B, State.PLAY, (session, packet) -> {
+            PlayerPosC2SPacket posPacket = (PlayerPosC2SPacket) packet;
+            session.getPlayer().ifPresent(player -> {
+                Location oldLocation = player.getLocation();
+                Location newLocation = new Location(
+                        oldLocation.getWorld(), // TODO use actual world
+                        posPacket.getX(),
+                        posPacket.getY(),
+                        posPacket.getZ(),
+                        oldLocation.getYaw(),
+                        oldLocation.getPitch()
+                );
+
+                session.getServer().getPlayerManager().onMove(player, oldLocation, newLocation);
+            });
+        });
+
+        // Player position and look
+        register(0x0D, State.PLAY, (session, packet) -> {
+            PlayerPosLookC2SPacket posLookPacket = (PlayerPosLookC2SPacket) packet;
+            session.getPlayer().ifPresent(player -> {
+                Location oldLocation = player.getLocation();
+                Location newLocation = new Location(
+                        oldLocation.getWorld(), // TODO use actual world
+                        posLookPacket.getX(),
+                        posLookPacket.getY(),
+                        posLookPacket.getZ(),
+                        posLookPacket.getYaw(),
+                        posLookPacket.getPitch()
+                );
+
+                session.getServer().getPlayerManager().onMove(player, oldLocation, newLocation);
+            });
+        });
+
+        // Server list ping (for beta 1.8 - release 1.6.4)
+        register(0xFE, State.HANDSHAKE, (session, packet) -> {
+            Composter server = session.getServer();
+            if (server.getConfig().getBoolean("motd.enabled")) {
+                session.disconnect(String.format("%s§%s§%s", server.getConfig().getString("motd.message"),
+                        server.getPlayerManager().getPlayers().size(), server.getConfig().getInteger("server.slots")
+                ));
+            }
+        });
+    }
+
+    public enum State {
+
+        HANDSHAKE(new HashMap<>()),
+        LOGIN(new HashMap<>()),
+        PLAY(new HashMap<>());
+
+        private final Map<Integer, Handler> map;
+
+        State(@NotNull HashMap<Integer, Handler> map) {
+            this.map = map;
+        }
+
+        Map<Integer, Handler> getHandlerMap() {
+            return map;
+        }
+    }
+
+    @FunctionalInterface
+    public interface Handler {
+
+        void handle(@NotNull Session session, @NotNull Packet<?> packet);
     }
 }

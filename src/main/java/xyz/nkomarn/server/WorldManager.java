@@ -35,7 +35,7 @@ public class WorldManager {
         worlds.put(UUID.randomUUID(), new World(new World.Properties(
                 UUID.randomUUID(),
                 new ChunkIO(server, directory.resolve("world"), chunkThread),
-                new BetaGenerator()
+                new BetaGenerator(server)
                 //new FlatGenerator()
         ), chunkThread));
     }

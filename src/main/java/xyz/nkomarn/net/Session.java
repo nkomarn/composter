@@ -9,6 +9,8 @@ import xyz.nkomarn.protocol.PacketHandler;
 import xyz.nkomarn.protocol.packet.s2c.DisconnectS2CPacket;
 import xyz.nkomarn.type.Player;
 
+import java.util.Optional;
+
 public class Session {
 
     private final Composter server;
@@ -25,6 +27,10 @@ public class Session {
         this.state = State.HANDSHAKE;
     }
 
+    public @NotNull Composter getServer() {
+        return server;
+    }
+
     public Channel getChannel() {
         return this.channel;
     }
@@ -37,13 +43,12 @@ public class Session {
         this.state = state;
     }
 
-    public Player getPlayer() {
-        return this.player;
+    public Optional<Player> getPlayer() {
+        return Optional.ofNullable(player);
     }
 
     public void setPlayer(final Player player) {
         this.player = player;
-        Composter.addPlayer(player);
     }
 
     public void sendPacket(@NotNull Packet<?> packet) {

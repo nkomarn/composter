@@ -1,10 +1,18 @@
-network:
-  host: 0.0.0.0
-  port: 25565
+server:
+  network:
+    host: 0.0.0.0
+    port: 25565
+  slots: 200
 
 messages:
-  protocol_kick: "Unsupported protocol version '%s'."
+  already_logged_in: "Already logged in."
+  already_handshook: "Already handshook."
+  unsupported_protocol: "Composter only supports Beta 1.7.3."
 
+world:
+  seed: 1
+
+# Supported for Beta 1.8 - Release 1.6.4 server list pings
 motd:
   enabled: true
   message: "Composter - Beta 1.7.3"

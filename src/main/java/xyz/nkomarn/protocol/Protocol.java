@@ -1,6 +1,7 @@
 package xyz.nkomarn.protocol;
 
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.c2s.*;
 import xyz.nkomarn.protocol.packet.s2c.*;
@@ -34,19 +35,17 @@ public class Protocol {
         }
     }
 
-    /*public static <T extends Packet> Codec<T> getCodec(final Class<T> clazz) {
-        return (Codec<T>) packetMappings.get(clazz); // TODO check cast
-    }*/
-
     static {
-        register(Direction.BI, KeepAliveBiPacket.class);
-        register(Direction.C2S, LoginC2SPacket.class);
-        register(Direction.S2C, LoginS2CPacket.class);
-        register(Direction.C2S, HandshakeC2SPacket.class);
-        register(Direction.S2C, HandshakeC2SPacket.class);
+        register(Direction.BI, KeepAliveBiPacket.class); // 0x00
+        register(Direction.C2S, LoginC2SPacket.class); // 0x01
+        register(Direction.S2C, LoginS2CPacket.class); // 0x01
+        register(Direction.C2S, HandshakeC2SPacket.class); // 0x02
+        register(Direction.S2C, HandshakeC2SPacket.class); // 0x02
+        register(Direction.BI, ChatBiPacket.class); // 0x03
 
         register(Direction.S2C, SpawnPositionS2CPacket.class); // 0x06
 
+        register(Direction.C2S, PlayerC2SPacket.class); // 0x0A
         register(Direction.C2S, PlayerPosC2SPacket.class); // 0x0B
         register(Direction.C2S, PlayerLookC2SPacket.class); // 0x0C
         register(Direction.C2S, PlayerPosLookC2SPacket.class); // 0x0D
@@ -55,16 +54,8 @@ public class Protocol {
         register(Direction.S2C, PreChunkS2CPacket.class); // 0x32
         register(Direction.S2C, MapChunkS2CPacket.class); // 0x33
 
-        register(Direction.S2C, DisconnectS2CPacket.class);
-        /*register(HandshakeCodec.class);
-        register(ChatCodec.class);
-        register(AnimationCodec.class);
-        register(SpawnPositionPacket.class);
-        register(DisconnectCodec.class);
-        register(PlayerPositionCodec.class);
-        register(PlayerPositionAndLookCodec.class);
-        register(PreChunkCodec.class);
-        register(MapChunkCodec.class);*/
+        register(Direction.C2S, ServerListPingC2SPacket.class); // 0xFE
+        register(Direction.S2C, DisconnectS2CPacket.class); // 0xFF
     }
 
     public enum Direction {

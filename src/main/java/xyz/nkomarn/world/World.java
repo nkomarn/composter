@@ -8,11 +8,12 @@ import xyz.nkomarn.world.generator.WorldGenerator;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 public class World {
 
-    public final Location spawn = new Location(this, 0, 100, 0); // TODO implement for player spawning at some point
+    private final Location spawn = new Location(this, 0, 100, 0); // TODO implement for player spawning at some point
     // TODO entities list
 
     private final Properties properties;
@@ -25,6 +26,15 @@ public class World {
         this.properties = properties;
         this.thread = thread;
         this.loadedChunks = new HashMap<>();
+    }
+
+    public Chunk getChunkImmediately(int x, int z) {
+        try {
+            return getChunk(x, z).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public CompletableFuture<Chunk> getChunk(int x, int z) {
@@ -53,6 +63,10 @@ public class World {
 
     public boolean isChunkLoaded(@NotNull Chunk.Key chunk) {
         return loadedChunks.containsKey(chunk);
+    }
+
+    public Location getSpawn() {
+        return spawn;
     }
 
     // TODO save chunks, etc

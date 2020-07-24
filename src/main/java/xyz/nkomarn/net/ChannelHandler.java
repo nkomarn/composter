@@ -14,7 +14,6 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
 
     private final Composter server;
     private final Logger logger;
-
     private Session session;
 
     public ChannelHandler(@NotNull Composter server) {
@@ -30,9 +29,8 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
+        session.getPlayer().ifPresent(player -> server.getPlayerManager().onDisconnect(player));
         logger.info(String.format("Session closed- channel: %s.", ctx.channel().toString()));
-        // TODO check if player exists
-        Composter.brutallyMurderPlayer(session.getPlayer());
         ctx.channel().close();
     }
 

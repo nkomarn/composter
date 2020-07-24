@@ -1,5 +1,6 @@
 package xyz.nkomarn.util.configuration;
 
+import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileReader;
@@ -9,20 +10,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+// TODO this file is an absolute circlejerk and needs to be rewritten to be less shit
 public class Config {
 
     /*Call the correct methods to get the correct yaml result*/
 
-    public String getString(String path) { return yamlResult(path); }
+    public String getString(String path) {
+        return yamlResult(path);
+    }
 
-    public Boolean getBoolean(String path) throws Exception{
+    public Boolean getBoolean(@NotNull String path) {
         String get = yamlResult(path);
-        if(get.equals("true") || get.equals("false"))
-        {
-            return Boolean.parseBoolean(get);
-        }else{
-            throw new Exception("Not a Boolean");
-        }
+        return Boolean.parseBoolean(get);
     }
 
     public int getInteger(String path) {
@@ -36,20 +35,19 @@ public class Config {
 
     public Double getDouble(String path) throws Exception {
         String get = yamlResult(path);
-        if(isNumeric(get)){
+        if (isNumeric(get)) {
             return Double.parseDouble(get);
-        }
-        else{
+        } else {
             throw new Exception("Not an integer");
         }
     }
 
-    public Float getFloat(String path){
+    public Float getFloat(String path) {
         String get = yamlResult(path);
         return Float.parseFloat(get);
     }
 
-    public ArrayList<String> getList(String path){
+    public ArrayList<String> getList(String path) {
         ArrayList<String> ar = new ArrayList<String>();
         ar.add(path);
         return ar;
@@ -58,16 +56,16 @@ public class Config {
 
     /*The methods below are slaves*/
 
-    private static boolean isNumeric(String value){
-        try{
+    private static boolean isNumeric(String value) {
+        try {
             double d = Double.parseDouble(value);
-        }catch(NumberFormatException | NullPointerException nfe){
+        } catch (NumberFormatException | NullPointerException nfe) {
             return false;
         }
         return true;
     }
 
-    private static String yamlResult(String arg){
+    private static String yamlResult(String arg) {
         String[] yArr;
         String target = stringSplit(arg, 0, true);
         String[] split = arg.split("\\.");
@@ -78,9 +76,9 @@ public class Config {
         yArr = makeArray(yaml);
 
         String result = "";
-        for(int i=0; i<yArr.length; i++){
-            for(int j=0; j<split.length; j++){
-                if(yArr[i].contains(split[j]) && yArr[i].contains(target+"=")){
+        for (int i = 0; i < yArr.length; i++) {
+            for (int j = 0; j < split.length; j++) {
+                if (yArr[i].contains(split[j]) && yArr[i].contains(target + "=")) {
 
                     String[] ar;
 
@@ -97,12 +95,11 @@ public class Config {
         return result;
     }
 
-    private static String stringSplit(String arg, int index, boolean lastIndex){
+    private static String stringSplit(String arg, int index, boolean lastIndex) {
         String[] split = arg.split("\\.");
-        if(lastIndex){
+        if (lastIndex) {
             return split[split.length - 1];
-        }
-        else{
+        } else {
             return split[index];
         }
     }
@@ -120,8 +117,7 @@ public class Config {
             Reader yamlFile = new FileReader(filePath);
             Map<String, Object> yamlMaps = yaml.load(yamlFile);
             value.add(yamlMaps.get(yamlArgument).toString());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

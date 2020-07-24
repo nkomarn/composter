@@ -1,5 +1,7 @@
 package xyz.nkomarn.world.generator;
 
+import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.Composter;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.world.noise.NoiseGeneratorOctaves3D;
 
@@ -7,7 +9,9 @@ import java.util.Random;
 
 public class BetaGenerator implements WorldGenerator {
 
-    private long worldSeed = 22252l;
+    private final Composter server;
+
+    private long worldSeed;
     private Random rand;
     private NoiseGeneratorOctaves3D noiseGen1;
     private NoiseGeneratorOctaves3D noiseGen2;
@@ -28,7 +32,9 @@ public class BetaGenerator implements WorldGenerator {
     private double noise6[];
     private double noise7[];
 
-    public BetaGenerator() {
+    public BetaGenerator(@NotNull Composter server) {
+        this.server = server;
+        this.worldSeed = server.getConfig().getInteger("world.seed"); // TODO we need a long method in the config file
         rand = new Random(worldSeed);
         noiseGen1 = new NoiseGeneratorOctaves3D(rand, 16, false);
         noiseGen2 = new NoiseGeneratorOctaves3D(rand, 16, false);
