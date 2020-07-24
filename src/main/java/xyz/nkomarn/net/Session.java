@@ -5,9 +5,8 @@ import io.netty.channel.ChannelFutureListener;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.protocol.PacketHandler;
 import xyz.nkomarn.protocol.packet.s2c.DisconnectS2CPacket;
-import xyz.nkomarn.type.Player;
+import xyz.nkomarn.entity.Player;
 
 import java.util.Optional;
 

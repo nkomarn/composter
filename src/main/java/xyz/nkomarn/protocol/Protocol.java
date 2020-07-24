@@ -42,6 +42,7 @@ public class Protocol {
         register(Direction.C2S, HandshakeC2SPacket.class); // 0x02
         register(Direction.S2C, HandshakeC2SPacket.class); // 0x02
         register(Direction.BI, ChatBiPacket.class); // 0x03
+        register(Direction.S2C, TimeUpdateS2CPacket.class); // 0x04
 
         register(Direction.S2C, SpawnPositionS2CPacket.class); // 0x06
 
@@ -53,6 +54,8 @@ public class Protocol {
 
         register(Direction.S2C, PreChunkS2CPacket.class); // 0x32
         register(Direction.S2C, MapChunkS2CPacket.class); // 0x33
+
+        register(Direction.S2C, WindowItemsS2CPacket.class); // 0x68
 
         register(Direction.C2S, ServerListPingC2SPacket.class); // 0xFE
         register(Direction.S2C, DisconnectS2CPacket.class); // 0xFF

@@ -1,6 +1,8 @@
 package xyz.nkomarn.world;
 
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.Composter;
+import xyz.nkomarn.protocol.packet.s2c.TimeUpdateS2CPacket;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.generator.WorldGenerator;
@@ -16,16 +18,22 @@ public class World {
     private final Location spawn = new Location(this, 0, 100, 0); // TODO implement for player spawning at some point
     // TODO entities list
 
+    private final Composter server;
     private final Properties properties;
     private final ExecutorService thread;
     private final HashMap<Chunk.Key, Chunk> loadedChunks;
 
     private long time = 0;
 
-    public World(@NotNull Properties properties, @NotNull ExecutorService thread) {
+    public World(@NotNull Composter server, @NotNull Properties properties, @NotNull ExecutorService thread) {
+        this.server = server;
         this.properties = properties;
         this.thread = thread;
         this.loadedChunks = new HashMap<>();
+    }
+
+    public UUID getUUID() {
+        return properties.uuid;
     }
 
     public Chunk getChunkImmediately(int x, int z) {
@@ -67,6 +75,16 @@ public class World {
 
     public Location getSpawn() {
         return spawn;
+    }
+
+    public void tick() {
+        time += 1; // TODO change to just ++
+
+        if (server.getTicks() % 20 == 0) {
+            server.getPlayerManager().getPlayers().stream()
+                    .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
+                    .forEach(player -> player.getSession().sendPacket(new TimeUpdateS2CPacket(time)));
+        }
     }
 
     // TODO save chunks, etc

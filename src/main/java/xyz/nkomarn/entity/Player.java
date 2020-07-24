@@ -1,20 +1,23 @@
-package xyz.nkomarn.type;
+package xyz.nkomarn.entity;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.command.CommandSource;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.s2c.MapChunkS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PreChunkS2CPacket;
+import xyz.nkomarn.type.Chunk;
+import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.World;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-public final class Player extends Entity {
+public final class Player extends Entity implements CommandSource {
 
     private final Session session;
     private final String username;
@@ -49,6 +52,7 @@ public final class Player extends Entity {
         this.location = location;
     }
 
+    @Override
     public void sendMessage(@NotNull String message) {
         session.sendPacket(new ChatBiPacket(message));
     }

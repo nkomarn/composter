@@ -32,7 +32,7 @@ public class WorldManager {
         directory.toFile().mkdirs();
 
         // TODO temporarily create just 1 world
-        worlds.put(UUID.randomUUID(), new World(new World.Properties(
+        worlds.put(UUID.randomUUID(), new World(server, new World.Properties(
                 UUID.randomUUID(),
                 new ChunkIO(server, directory.resolve("world"), chunkThread),
                 new BetaGenerator(server)
@@ -46,5 +46,9 @@ public class WorldManager {
 
     public Collection<World> getWorlds() {
         return worlds.values();
+    }
+
+    public void tick() {
+        this.worlds.values().forEach(World::tick);
     }
 }

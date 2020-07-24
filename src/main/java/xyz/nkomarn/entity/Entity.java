@@ -1,6 +1,8 @@
-package xyz.nkomarn.type;
+package xyz.nkomarn.entity;
 
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.type.Chunk;
+import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.World;
 
 import java.util.concurrent.ExecutionException;

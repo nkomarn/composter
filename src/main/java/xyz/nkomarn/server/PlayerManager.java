@@ -6,9 +6,11 @@ import xyz.nkomarn.net.Session;
 import xyz.nkomarn.protocol.packet.s2c.LoginS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.SpawnPositionS2CPacket;
+import xyz.nkomarn.protocol.packet.s2c.WindowItemsS2CPacket;
 import xyz.nkomarn.type.Location;
-import xyz.nkomarn.type.Player;
+import xyz.nkomarn.entity.Player;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -57,6 +59,9 @@ public class PlayerManager {
         player.syncChunks(true);
 
         Location worldSpawn = player.getWorld().getSpawn();
+        int[] items = new int[45];
+        Arrays.fill(items, 1);
+        player.getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items)); // TODO this is temporary
         player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
         player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 67.240000009536743D, player.isTouchingGround()));
         broadcastMessage("§e" + player.getUsername() + " joined the game.");
@@ -73,7 +78,12 @@ public class PlayerManager {
     }
 
     public void onChat(@NotNull Player player, @NotNull String message) {
-        broadcastMessage(String.format("<%s> %s", player.getUsername(), message)); // TODO command support
+        if (message.startsWith("/")) {
+            server.getCommandManager().handle(player, message);
+            return;
+        }
+
+        broadcastMessage(String.format("<%s> %s", player.getUsername(), message));
     }
 
     public void onMove(@NotNull Player player, @NotNull Location oldLocation, @NotNull Location newLocation) {
