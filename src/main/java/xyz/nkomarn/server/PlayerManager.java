@@ -3,10 +3,7 @@ package xyz.nkomarn.server;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.net.Session;
-import xyz.nkomarn.protocol.packet.s2c.LoginS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.SpawnPositionS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.WindowItemsS2CPacket;
+import xyz.nkomarn.protocol.packet.s2c.*;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.entity.Player;
 

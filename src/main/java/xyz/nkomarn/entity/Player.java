@@ -59,6 +59,7 @@ public final class Player extends Entity implements CommandSource {
 
     public void teleport(@NotNull Location location) {
         this.location = location;
+        syncChunks(true);
         updateLocation();
     }
 

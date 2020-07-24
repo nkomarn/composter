@@ -4,6 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.command.CommandExecutor;
 import xyz.nkomarn.command.CommandSource;
+import xyz.nkomarn.entity.Player;
+import xyz.nkomarn.type.Location;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,9 +39,25 @@ public class CommandManager {
     }
 
     public void registerDefaults() {
-        register("about", (source, arguments) -> {
+        register("about", (source, args) -> {
             source.sendMessage("This server is running Composter Beta 1.7.3.");
             source.sendMessage("§7This software is early alpha!");
+        });
+
+        register("tp", (source, args) -> {
+            if (args.length < 3) {
+                source.sendMessage("§cUsage: /tp <x> <y> <z>");
+            } else {
+                if (source instanceof Player) {
+                    ((Player) source).teleport(new Location(
+                            Composter.SPAWN.getWorld(),
+                            Integer.parseInt(args[0]),
+                            Integer.parseInt(args[1]),
+                            Integer.parseInt(args[2]),
+                            0, 0
+                    ));
+                }
+            }
         });
     }
 }

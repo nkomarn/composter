@@ -55,6 +55,8 @@ public class Protocol {
         register(Direction.S2C, PreChunkS2CPacket.class); // 0x32
         register(Direction.S2C, MapChunkS2CPacket.class); // 0x33
 
+        register(Direction.S2C, EffectS2CPacket.class); // 0x33
+
         register(Direction.S2C, WindowItemsS2CPacket.class); // 0x68
 
         register(Direction.C2S, ServerListPingC2SPacket.class); // 0xFE
