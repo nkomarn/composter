@@ -57,7 +57,7 @@ public class PlayerManager {
 
         Location worldSpawn = player.getWorld().getSpawn();
         int[] items = new int[45];
-        Arrays.fill(items, 1);
+        Arrays.fill(items, 3);
         player.getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items)); // TODO this is temporary
         player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
         player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 67.240000009536743D, player.isTouchingGround()));
@@ -66,6 +66,8 @@ public class PlayerManager {
         player.sendMessage("§6Welcome to Composter :)");
         player.sendMessage("§cComposter is still in early development.");
         player.sendMessage("§cMany features are incomplete!");
+
+        player.getWorld().trackEntity(player);
     }
 
     public void onDisconnect(@NotNull Player player) {

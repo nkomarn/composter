@@ -2,6 +2,7 @@ package xyz.nkomarn.world;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.entity.Entity;
 import xyz.nkomarn.protocol.packet.s2c.TimeUpdateS2CPacket;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
@@ -21,7 +22,9 @@ public class World {
     private final Composter server;
     private final Properties properties;
     private final ExecutorService thread;
+
     private final HashMap<Chunk.Key, Chunk> loadedChunks;
+    private final HashMap<UUID, Entity> entities;
 
     private long time = 0;
 
@@ -30,6 +33,7 @@ public class World {
         this.properties = properties;
         this.thread = thread;
         this.loadedChunks = new HashMap<>();
+        this.entities = new HashMap<>();
     }
 
     public UUID getUUID() {
@@ -75,6 +79,14 @@ public class World {
 
     public Location getSpawn() {
         return spawn;
+    }
+
+    public HashMap<UUID, Entity> getEntities() {
+        return entities;
+    }
+
+    public void trackEntity(@NotNull Entity entity) {
+        entities.put(entity.getUUID(), entity);
     }
 
     public void tick() {

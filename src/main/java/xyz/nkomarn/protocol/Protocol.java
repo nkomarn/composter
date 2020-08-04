@@ -1,6 +1,7 @@
 package xyz.nkomarn.protocol;
 
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.entity.Entity;
 import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.c2s.*;
@@ -51,6 +52,12 @@ public class Protocol {
         register(Direction.C2S, PlayerLookC2SPacket.class); // 0x0C
         register(Direction.C2S, PlayerPosLookC2SPacket.class); // 0x0D
         register(Direction.S2C, PlayerPosLookS2CPacket.class); // 0x0D
+
+        register(Direction.S2C, NamedEntitySpawnS2CPacket.class); // 0x14
+
+        register(Direction.S2C, EntityS2CPacket.class); // 0x1E
+
+        register(Direction.S2C, EntityTeleportS2CPacket.class); // 0x22
 
         register(Direction.S2C, PreChunkS2CPacket.class); // 0x32
         register(Direction.S2C, MapChunkS2CPacket.class); // 0x33

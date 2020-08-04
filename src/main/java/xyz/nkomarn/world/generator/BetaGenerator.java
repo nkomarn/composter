@@ -34,7 +34,8 @@ public class BetaGenerator implements WorldGenerator {
 
     public BetaGenerator(@NotNull Composter server) {
         this.server = server;
-        this.worldSeed = server.getConfig().getInteger("world.seed"); // TODO we need a long method in the config file
+        // this.worldSeed = server.getConfig().getInteger("world.seed"); // TODO we need a long method in the config file
+        this.worldSeed = 2151901553968352745l; // TODO we need a long method in the config file
         rand = new Random(worldSeed);
         noiseGen1 = new NoiseGeneratorOctaves3D(rand, 16, false);
         noiseGen2 = new NoiseGeneratorOctaves3D(rand, 16, false);

@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 public final class Composter implements CommandSource {
 
     private final Config config = new Config();
-    private final ScheduledExecutorService tickLoop;
     private final Logger logger;
 
     private final CommandManager commandManager;
@@ -28,6 +27,7 @@ public final class Composter implements CommandSource {
     private final WorldManager worldManager;
 
     private long ticks = 0;
+    private final ScheduledExecutorService tickLoop;
 
     public static Location SPAWN;
 

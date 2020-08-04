@@ -3,6 +3,7 @@ package xyz.nkomarn.entity;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.command.CommandSource;
+import xyz.nkomarn.entity.tracker.EntityTracker;
 import xyz.nkomarn.net.Session;
 import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
@@ -21,6 +22,7 @@ public final class Player extends Entity implements CommandSource {
 
     private final Session session;
     private final String username;
+    private final EntityTracker tracker;
     private final Set<Chunk.Key> loadedChunks = new HashSet<>();
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
@@ -30,6 +32,7 @@ public final class Player extends Entity implements CommandSource {
         super(Composter.SPAWN.getWorld());
         this.session = session;
         this.username = username;
+        this.tracker = new EntityTracker(this);
     }
 
     public Session getSession() {
@@ -79,6 +82,8 @@ public final class Player extends Entity implements CommandSource {
     public void tick() {
         syncChunks(false);
         this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
+
+        tracker.tick();
     }
 
     public synchronized void syncChunks(boolean sync) {
