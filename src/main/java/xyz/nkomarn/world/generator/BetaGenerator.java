@@ -5,6 +5,8 @@ import xyz.nkomarn.Composter;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.world.noise.NoiseGeneratorOctaves3D;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class BetaGenerator implements WorldGenerator {
@@ -12,6 +14,7 @@ public class BetaGenerator implements WorldGenerator {
     private final Composter server;
 
     private long worldSeed;
+    private Populator populator;
     private Random rand;
     private NoiseGeneratorOctaves3D noiseGen1;
     private NoiseGeneratorOctaves3D noiseGen2;
@@ -21,6 +24,7 @@ public class BetaGenerator implements WorldGenerator {
     private NoiseGeneratorOctaves3D noiseGen6;
     private NoiseGeneratorOctaves3D noiseGen7;
     private NoiseGeneratorOctaves3D treeNoise;
+    public Chunk world;
 
     private double noise[];
     private double sandNoise[] = new double[256];
@@ -45,12 +49,14 @@ public class BetaGenerator implements WorldGenerator {
         noiseGen6 = new NoiseGeneratorOctaves3D(rand, 10, false);
         noiseGen7 = new NoiseGeneratorOctaves3D(rand, 16, false);
         treeNoise = new NoiseGeneratorOctaves3D(rand, 8, false);
+
+        this.populator = new Populator();
     }
 
     @Override
     public Chunk generate(int x, int z) {
         Chunk chunk = new Chunk(x, z);
-
+        //BetaBiome[] biomes = wcm.getBiomeBlock(null, x * 16, z * 16, 16, 16);
         generateTerrain(x, z, chunk);
         replaceBlocksForBiome(x, z, chunk);
         genC(x, z, chunk);
@@ -92,7 +98,7 @@ public class BetaGenerator implements WorldGenerator {
                             double d15 = d10;
                             double d16 = (d11 - d10) * d14;
                             for(int k2 = 0; k2 < 4; k2++) {
-                                double d17 = 0.6d; //temperatures[(xPiece * 4 + i2) * 16 + (zPiece * 4 + k2)];
+                                double d17 = 0.6d;//temperatures[(xPiece * 4 + i2) * 16 + (zPiece * 4 + k2)];
                                 int type = 0; // air
                                 if(yPiece * 8 + l1 < oceanHeight) {
                                     if(d17 < 0.5D && yPiece * 8 + l1 >= oceanHeight - 1) {
@@ -133,17 +139,24 @@ public class BetaGenerator implements WorldGenerator {
         sandNoise = noiseGen4.generateNoiseArray(sandNoise, xPos * 16, zPos * 16, 0.0D, 16, 16, 1, d, d, 1.0D);
         gravelNoise = noiseGen4.generateNoiseArray(gravelNoise, xPos * 16, 109.0134D, zPos * 16, 16, 1, 16, d, 1.0D, d);
         stoneNoise = noiseGen5.generateNoiseArray(stoneNoise, xPos * 16, zPos * 16, 0.0D, 16, 16, 1, d * 2D, d * 2D, d * 2D);
+        int[] lastBlock = {};
+        List<Integer[]> flowerBlocks = new ArrayList<>();
+        List<Integer[]> sugarCaneBlocks =  new ArrayList<>();
+        List<Integer[]> oakBlock = new ArrayList<>();
+        int maxFlower = 0;
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
-                // BetaBiome biome = biomes[x + z * 16];
+                //BetaBiome biome = biomes[x + z * 16];
                 boolean sand = sandNoise[x + z * 16] + rand.nextDouble() * 0.2D > 0.0D;
                 boolean gravel = gravelNoise[x + z * 16] + rand.nextDouble() * 0.2D > 3D;
                 int depth = (int)(stoneNoise[x + z * 16] / 3D + 3D + rand.nextDouble() * 0.25D);
                 int prevDepth = -1;
-//                            topBlock = BiomeOld.top(biome);
-//                            fillerBlock = BiomeOld.filler(biome);
-                int topBlock = 2;
-                int fillerBlock = 3;
+                int randFlower;
+                int randWood;
+                int randsugarCaneBlocks;
+                int topBlock = 2;//BiomeOld.top(biome);
+                int fillerBlock = 3;//BiomeOld.filler(biome);
+
                 for(int y = 127; y >= 0; y--) {
                     if(y <= 0 + rand.nextInt(5)) {
                         terrain.setBlock(z, y, x, 7);
@@ -162,10 +175,8 @@ public class BetaGenerator implements WorldGenerator {
                             topBlock = 0;
                             fillerBlock = 1;
                         } else if(y >= oceanHeight - 4 && y <= oceanHeight + 1) {
-//                            topBlock = BiomeOld.top(biome);
-//                            fillerBlock = BiomeOld.filler(biome);
-                            topBlock = 12;
-                            fillerBlock = 13;
+                            //topBlock = BiomeOld.top(biome);
+                            //fillerBlock = BiomeOld.filler(biome);
                             if(gravel) {
                                 topBlock = 0;
                                 fillerBlock = 13;
@@ -181,6 +192,41 @@ public class BetaGenerator implements WorldGenerator {
                         prevDepth = depth;
                         if(y >= oceanHeight - 1) {
                             terrain.setBlock(z, y, x, topBlock);
+                            randFlower = rand.nextInt(1000);
+                            if(randFlower < 3) {
+                                if (terrain.getType(z, y, x) == 2) {
+                                    terrain.setBlock(z, y + 1, x, 37);
+                                    Integer[] blockPos = {z, y + 1, x};
+                                    flowerBlocks.add(blockPos);
+                                }
+                            } else {
+                                populator.generateFlowers(flowerBlocks, terrain, z, y, x);
+                            }
+                            randWood = rand.nextInt(1000);
+                            if((x > 2 && x < 13) && (z > 2 && z < 13)){
+                                if(randWood < 20){
+                                    if(terrain.getType(z, y, x) == 2){
+                                        int highestIteration = 0;
+                                        for(int i = 0; i < rand.nextInt(7 + 1 - 5) + 5; i++){
+                                            if(i != 0){
+                                                terrain.setBlock(z, y + i, x, 17);
+                                            }
+                                            highestIteration++;
+                                        }
+                                        Integer[] blockPos = {z, y + highestIteration, x};
+                                        oakBlock.add(blockPos);
+                                    }
+                                }
+                            }
+                            if(y == oceanHeight - 1){
+                                randsugarCaneBlocks = rand.nextInt(1000);
+                                if(randsugarCaneBlocks < 20){
+                                    if (terrain.getType(z, y, x) == 12 || terrain.getType(z, y, x) == 2) {
+                                        Integer[] blockPos = {z, y + 1, x};
+                                        sugarCaneBlocks.add(blockPos);
+                                    }
+                                }
+                            }
                         } else {
                             terrain.setBlock(z, y, x, fillerBlock);
                         }
@@ -200,6 +246,8 @@ public class BetaGenerator implements WorldGenerator {
             }
 
         }
+        populator.generateSugarCanes(sugarCaneBlocks, terrain);
+        populator.generateOakTree(oakBlock, terrain);
     }
 
     private double[] initNoiseField(double array[], int xPos, int yPos, int zPos, int xSize, int ySize, int zSize) {
@@ -208,8 +256,8 @@ public class BetaGenerator implements WorldGenerator {
         }
         double d0 = 684.412D;
         double d1 = 684.412D;
-//        double temp[] = this.wcm.temperatures;
-//        double rain[] = this.wcm.rain;
+        //double temp[] = this.wcm.temperatures;
+        //double rain[] = this.wcm.rain;
         noise6 = noiseGen6.generateNoiseArray(noise6, xPos, zPos, xSize, zSize, 1.121D, 1.121D, 0.5D);
         noise7 = noiseGen7.generateNoiseArray(noise7, xPos, zPos, xSize, zSize, 200D, 200D, 0.5D);
         noise3 = noiseGen3.generateNoiseArray(noise3, xPos, yPos, zPos, xSize, ySize, zSize,
@@ -225,9 +273,9 @@ public class BetaGenerator implements WorldGenerator {
             int k2 = x * i2 + i2 / 2;
             for(int z = 0; z < zSize; z++) {
                 int i3 = z * i2 + i2 / 2;
-//                double d2 = temp[k2 * 16 + i3];
-//                double d3 = rain[k2 * 16 + i3] * d2;
-                double d4 = 1.0D;// - d3;
+                //double d2 = temp[k2 * 16 + i3];
+                //double d3 = rain[k2 * 16 + i3] * d2;
+                double d4 = 1.0D; //d3;
                 d4 *= d4;
                 d4 *= d4;
                 d4 = 1.0D - d4;

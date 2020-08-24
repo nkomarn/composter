@@ -1,11 +1,6 @@
 package xyz.nkomarn.type;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import xyz.nkomarn.Composter;
-
 import java.util.Arrays;
-import java.util.zip.Deflater;
 
 /**
  * Represents a chunk
@@ -15,6 +10,7 @@ public class Chunk {
     private final int x, z;
     private final byte[] blocks, metadata, skyLight, blockLight;
     private final int arraySize = 32768;
+    private int lastX, lastY, lastZ;
 
     public Chunk(final int x, final int z) {
         this.x = x;
@@ -28,6 +24,7 @@ public class Chunk {
         Arrays.fill(skyLight, (byte) 15);
         Arrays.fill(blockLight, (byte) 15);
     }
+
 
     public int getX() {
         return this.x;
@@ -69,6 +66,14 @@ public class Chunk {
         return 15;
     }
 
+    public void setLastBlock(int x, int y, int z){
+        lastX = x; lastY = y; lastZ = z;
+    }
+
+    public int[] getLastBlock(){
+        return new int[]{lastX, lastY, lastZ};
+    }
+
     public void setSkyLight(int x, int z, int y, int skyLight) {
         if (skyLight < 0 || skyLight >= 16)
             throw new IllegalArgumentException();
@@ -91,6 +96,14 @@ public class Chunk {
         /*if (x < 0 || z < 0 || y < 0 || x >= 16 || z >= 16 || y >= 128)
             throw new IndexOutOfBoundsException();*/
         return (Math.min(16, x) * 16 + Math.min(16, z)) * 128 + Math.min(128, y);
+    }
+
+    public boolean isEmpty(int blockX, int blockY, int blockZ) {
+        if(getType(blockX, blockY, blockZ) == 0){
+            return true;
+        }else{
+            return false;
+        }
     }
 
     // Used for getting chunk by coordinates in HashMap

@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 // TODO this file is an absolute circlejerk and needs to be rewritten to be less shit
@@ -76,13 +75,13 @@ public class Config {
         yArr = makeArray(yaml);
 
         String result = "";
-        for (int i = 0; i < yArr.length; i++) {
-            for (int j = 0; j < split.length; j++) {
-                if (yArr[i].contains(split[j]) && yArr[i].contains(target + "=")) {
+        for (String value : yArr) {
+            for (String s : split) {
+                if (value.contains(s) && value.contains(target + "=")) {
 
                     String[] ar;
 
-                    String separate = yArr[i].split("}")[0];
+                    String separate = value.split("}")[0];
                     ar = separate.split("\\{");
                     String res = ar[ar.length - 1];
 
