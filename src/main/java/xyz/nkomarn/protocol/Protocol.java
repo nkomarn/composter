@@ -1,5 +1,7 @@
 package xyz.nkomarn.protocol;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.entity.Entity;
 import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
@@ -72,16 +74,16 @@ public class Protocol {
 
     public enum Direction {
 
-        C2S(new HashMap<>()),
-        S2C(new HashMap<>()),
-        BI(new HashMap<>());
+        C2S(new Int2ObjectOpenHashMap<>()),
+        S2C(new Int2ObjectOpenHashMap<>()),
+        BI(new Int2ObjectOpenHashMap<>());
 
-        private final Map<Integer, Class<? extends Packet<?>>> map;
+        private final Int2ObjectMap<Class<? extends Packet<?>>> map;
 
-        Direction(@NotNull HashMap<Integer, Class<? extends Packet<?>>> map) {
+        Direction(@NotNull Int2ObjectMap<Class<? extends Packet<?>>> map) {
             this.map = map;
         }
-
+        
         Map<Integer, Class<? extends Packet<?>>> getPacketMap() {
             return map;
         }

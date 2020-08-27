@@ -52,10 +52,9 @@ public class Bootstrap {
 
             channelFuture.channel().closeFuture().sync();
         } finally {
-            logger.info("Stopping Composter.");
+            logger.info("Closing network listener.");
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
         }
     }
-
 }
