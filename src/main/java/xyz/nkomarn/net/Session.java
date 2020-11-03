@@ -37,6 +37,7 @@ public class Session {
     }
 
     public void setState(ConnectionState state) {
+        System.out.printf("Moved state from %s to %s.%n", this.state, state);
         this.state = state;
     }
 
@@ -49,7 +50,7 @@ public class Session {
     }
 
     public void sendPacket(@NotNull Packet<?> packet) {
-        channel.writeAndFlush(packet); // TODO send
+        channel.writeAndFlush(packet);
     }
 
     /*public void queueIncomingPacket(final Packet packet) {

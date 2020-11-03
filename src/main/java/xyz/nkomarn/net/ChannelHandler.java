@@ -38,10 +38,9 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Packet<?> packet) {
+        logger.info("Received " + packet.getClass().getSimpleName() + ". State: " + session.getState() + ".");
         if (session != null) {
             session.handlePacket(packet);
         }
     }
-
-    //TODO catch exceptions
 }

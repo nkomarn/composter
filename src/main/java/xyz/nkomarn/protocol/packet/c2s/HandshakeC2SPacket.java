@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.net.ConnectionState;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
+import xyz.nkomarn.util.DataTypeUtils;
 
 public class HandshakeC2SPacket extends Packet<HandshakeC2SPacket> {
 
@@ -46,10 +46,10 @@ public class HandshakeC2SPacket extends Packet<HandshakeC2SPacket> {
 
     @Override
     public HandshakeC2SPacket decode(@NotNull ByteBuf buffer) {
-        var protocol = ByteBufUtil.readVarInt(buffer);
-        var address = ByteBufUtil.readString(buffer);
+        var protocol = DataTypeUtils.readVarInt(buffer);
+        var address = DataTypeUtils.readString(buffer);
         var port = buffer.readShort();
-        var nextState = ConnectionState.getById(ByteBufUtil.readVarInt(buffer));
+        var nextState = ConnectionState.getById(DataTypeUtils.readVarInt(buffer));
         return new HandshakeC2SPacket(protocol, address, port, nextState);
     }
 }

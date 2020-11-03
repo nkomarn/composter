@@ -1,36 +1,17 @@
 package xyz.nkomarn.util;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.CharsetUtil;
 
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
-public class ByteBufUtil {
+public class DataTypeUtils {
 
-    public static String readString(ByteBuf buf) {
-        int length = readVarInt(buf);
-
-        byte[] bytes = new byte[length];
-        buf.readBytes(bytes);
-
-        return new String(bytes, StandardCharsets.UTF_8);
-    }
-
-    public static void writeString(String string, ByteBuf buf) {
-        byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
-        writeVarInt(bytes.length, buf);
-        buf.writeBytes(bytes);
-    }
-
-    public static int readVarInt(ByteBuf buf) {
+    public static int readVarInt(ByteBuf buffer) {
         int numRead = 0;
         int result = 0;
         byte read;
         do {
-            read = buf.readByte();
+            read = buffer.readByte();
             int value = (read & 0b01111111);
             result |= (value << (7 * numRead));
 
@@ -43,24 +24,25 @@ public class ByteBufUtil {
         return result;
     }
 
-    public static void writeVarInt(int value, ByteBuf buf) {
+    public static ByteBuf writeVarInt(ByteBuf buffer, int value) {
         do {
             byte temp = (byte) (value & 0b01111111);
-            // Note: >>> means that the sign bit is shifted with the rest of the number rather than being left alone
             value >>>= 7;
             if (value != 0) {
                 temp |= 0b10000000;
             }
-            buf.writeByte(temp);
+            buffer.writeByte(temp);
         } while (value != 0);
+
+        return buffer;
     }
 
-    public static long readVarLong(ByteBuf buf) {
+    public static long readVarLong(ByteBuf buffer) {
         int numRead = 0;
         long result = 0;
         byte read;
         do {
-            read = buf.readByte();
+            read = buffer.readByte();
             int value = (read & 0b01111111);
             result |= (value << (7 * numRead));
 
@@ -73,15 +55,30 @@ public class ByteBufUtil {
         return result;
     }
 
-    public static void writeVarLong(long value, ByteBuf buf) {
+    public static ByteBuf writeVarLong(ByteBuf buffer, long value) {
         do {
             byte temp = (byte) (value & 0b01111111);
-            // Note: >>> means that the sign bit is shifted with the rest of the number rather than being left alone
             value >>>= 7;
             if (value != 0) {
                 temp |= 0b10000000;
             }
-            buf.writeByte(temp);
+            buffer.writeByte(temp);
         } while (value != 0);
+
+        return buffer;
+    }
+
+    public static String readString(ByteBuf buffer) {
+        int length = readVarInt(buffer);
+        byte[] bytes = new byte[length];
+        buffer.readBytes(bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    public static ByteBuf writeString(ByteBuf buffer, String string) {
+        byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+        writeVarInt(buffer, bytes.length);
+        buffer.writeBytes(bytes);
+        return buffer;
     }
 }

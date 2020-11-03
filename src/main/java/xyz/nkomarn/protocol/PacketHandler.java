@@ -41,26 +41,16 @@ public class PacketHandler {
     static {
         register(0x00, ConnectionState.HANDSHAKING, (session, packet) -> {
             var handshakePacket = (HandshakeC2SPacket) packet;
-
-            System.out.println(handshakePacket.getAddress());
-            System.out.println("Protocol: " + handshakePacket.getProtocol());
-            System.out.println(handshakePacket.getPort());
-            System.out.println("Port: " + handshakePacket.getPort());
-            System.out.println("Next state: " + handshakePacket.getNextState());
-
             session.setState(handshakePacket.getNextState());
         });
 
-        register(0x00, ConnectionState.STATUS, (session, packet) -> {
-            System.out.println("motd time");
-            session.sendPacket(new StatusResponseS2CPacket()); // TODO edit MOTD field later
+        register(0x01, ConnectionState.STATUS, (session, packet) -> {
+            var pingPacket = (StatusPingC2SPacket) packet;
+            session.sendPacket(new StatusPongS2CPacket(pingPacket.getTimestamp()));
         });
 
-        register(0x01, ConnectionState.STATUS, (session, packet) -> {
-            System.out.println("ping");
-            var pingPacket = (StatusPingC2SPacket) packet;
-            System.out.println(pingPacket.getTimestamp());
-            session.sendPacket(new StatusPongS2CPacket(pingPacket.getTimestamp()));
+        register(0x00, ConnectionState.STATUS, (session, packet) -> {
+            session.sendPacket(new StatusResponseS2CPacket()); // TODO edit MOTD field later
         });
 
         // Login

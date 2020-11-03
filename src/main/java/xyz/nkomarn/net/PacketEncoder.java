@@ -7,7 +7,7 @@ import xyz.nkomarn.protocol.Packet;
 
 import java.util.List;
 
-public class Encoder extends MessageToMessageEncoder<Packet<?>> {
+public class PacketEncoder extends MessageToMessageEncoder<Packet<?>> {
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, Packet<?> packet, List<Object> out) throws Exception {

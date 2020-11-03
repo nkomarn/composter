@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
+import xyz.nkomarn.util.DataTypeUtils;
 
 public class StatusResponseS2CPacket extends Packet<StatusResponseS2CPacket> {
 
@@ -18,11 +18,11 @@ public class StatusResponseS2CPacket extends Packet<StatusResponseS2CPacket> {
 
     @Override
     @NotNull
-    public ByteBuf encode() {
+    public ByteBuf encode() { // TODO yes this is dumb, properly encode the correct data later
         String response = "{\n" +
                 "    \"version\": {\n" +
-                "        \"name\": \"1.8.7\",\n" +
-                "        \"protocol\": 47\n" +
+                "        \"name\": \"1.16.3\",\n" +
+                "        \"protocol\": 753\n" +
                 "    },\n" +
                 "    \"players\": {\n" +
                 "        \"max\": 100,\n" +
@@ -35,12 +35,12 @@ public class StatusResponseS2CPacket extends Packet<StatusResponseS2CPacket> {
                 "        ]\n" +
                 "    },\n" +
                 "    \"description\": {\n" +
-                "        \"text\": \"Hello world\"\n" +
+                "        \"text\": \"" + "§a§lComposter - 1.16.3!\n§eNow with modern protocol support." + "\"\n" +
                 "    },\n" +
                 "    \"favicon\": \"data:image/png;base64,<data>\"\n" +
                 "}";
         var buffer = Unpooled.buffer();
-        ByteBufUtil.writeString(response, buffer);
+        DataTypeUtils.writeString(buffer, response);
         return buffer;
     }
 }

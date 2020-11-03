@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
 
 public class StatusPongS2CPacket extends Packet<StatusPongS2CPacket> {
 

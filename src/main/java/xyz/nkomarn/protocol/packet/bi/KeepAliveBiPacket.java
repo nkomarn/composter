@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
+import xyz.nkomarn.util.DataTypeUtils;
 
 public class KeepAliveBiPacket extends Packet<KeepAliveBiPacket> {
 
@@ -25,13 +25,11 @@ public class KeepAliveBiPacket extends Packet<KeepAliveBiPacket> {
     @Override
     @NotNull
     public ByteBuf encode() {
-        var buffer = Unpooled.buffer();
-        ByteBufUtil.writeVarLong(id, buffer);
-        return buffer;
+        return DataTypeUtils.writeVarLong(Unpooled.buffer(), id);
     }
 
     @Override
     public KeepAliveBiPacket decode(@NotNull ByteBuf buffer) {
-        return new KeepAliveBiPacket(ByteBufUtil.readVarLong(buffer));
+        return new KeepAliveBiPacket(DataTypeUtils.readVarLong(buffer));
     }
 }

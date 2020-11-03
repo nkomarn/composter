@@ -12,7 +12,5 @@ messages:
 world:
   seed: 1
 
-# Supported for Beta 1.8 - Release 1.6.4 server list pings
 motd:
-  enabled: true
-  message: "Composter - Beta 1.7.3"
+  message: "§a§lComposter - 1.16.3!\n§eNow with modern protocol support."

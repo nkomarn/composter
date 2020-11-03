@@ -8,11 +8,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.Composter;
 import xyz.nkomarn.server.NetworkManager;
 
 public class Bootstrap {
@@ -39,8 +37,10 @@ public class Bootstrap {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast(new Decoder(networkManager.getProtocol()))
-                                    .addLast(new Encoder())
+                                    .addLast(new PacketLengthReader())
+                                    .addLast(new PacketDecoder(networkManager.getProtocol()))
+                                    .addLast(new PacketLengthEncoder())
+                                    .addLast(new PacketEncoder())
                                     .addLast(new ChannelHandler(networkManager.getServer()));
                         }
                     });

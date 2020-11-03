@@ -3,7 +3,6 @@ package xyz.nkomarn.protocol.packet.c2s;
 import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.util.ByteBufUtil;
 
 public class StatusPingC2SPacket extends Packet<StatusPingC2SPacket> {
 
@@ -27,9 +26,6 @@ public class StatusPingC2SPacket extends Packet<StatusPingC2SPacket> {
 
     @Override
     public StatusPingC2SPacket decode(@NotNull ByteBuf buffer) {
-        System.out.println("reading timestamp");
-        var timestamp = buffer.readLong();
-        System.out.println("finished reading timestamp");
-        return new StatusPingC2SPacket(timestamp);
+        return new StatusPingC2SPacket(buffer.readLong());
     }
 }
