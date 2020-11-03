@@ -31,7 +31,7 @@ public class PlayerManager {
     }
 
     public void onLogin(@NotNull Session session, @NotNull String username) {
-        if (session.getState() != Session.State.LOGIN) {
+        /*if (session.getState() != Session.State.LOGIN) {
             session.disconnect("Invalid connection state.");
             return;
         }
@@ -40,13 +40,13 @@ public class PlayerManager {
             String playerName = username.toLowerCase();
             players.get(playerName).getSession().disconnect("Logged in from another location.");
             players.remove(playerName);
-        }
+        }*/
 
         Player player = new Player(session, username);
-        session.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0, (byte) 1)); // TODO use actual coordinates
+        // session.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0, (byte) 1)); // TODO use actual coordinates
         players.put(username.toLowerCase(), player);
         session.setPlayer(player);
-        session.setState(Session.State.PLAY);
+        //session.setState(Session.State.PLAY);
 
         onJoin(player);
     }
@@ -58,16 +58,16 @@ public class PlayerManager {
         Location worldSpawn = player.getWorld().getSpawn();
         int[] items = new int[45];
         Arrays.fill(items, 3);
-        player.getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items)); // TODO this is temporary
-        player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
-        player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 67.240000009536743D, player.isTouchingGround()));
+        //player.getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items)); // TODO this is temporary
+        //player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
+        //player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 100, 0, 0, 0, 67.240000009536743D, player.isTouchingGround()));
         broadcastMessage("§e" + player.getUsername() + " joined the game.");
 
         player.sendMessage("§6Welcome to Composter :)");
         player.sendMessage("§cComposter is still in early development.");
         player.sendMessage("§cMany features are incomplete!");
 
-        player.getWorld().trackEntity(player);
+        player.getWorld().addEntity(player);
     }
 
     public void onDisconnect(@NotNull Player player) {

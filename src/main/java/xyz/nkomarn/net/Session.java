@@ -1,29 +1,27 @@
 package xyz.nkomarn.net;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
+import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Packet;
-import xyz.nkomarn.protocol.packet.s2c.DisconnectS2CPacket;
 import xyz.nkomarn.entity.Player;
 
 import java.util.Optional;
 
 public class Session {
 
+    public static final AttributeKey<Session> SESSION_KEY = AttributeKey.valueOf("session");
     private final Composter server;
     private final Channel channel;
 
-    private State state;
+    private ConnectionState state;
     private Player player;
-
-    //private final Queue<Packet> queue = new ArrayDeque<>();
 
     public Session(@NotNull Composter server, @NotNull Channel channel) {
         this.server = server;
         this.channel = channel;
-        this.state = State.HANDSHAKE;
+        this.state = ConnectionState.HANDSHAKING;
     }
 
     public @NotNull Composter getServer() {
@@ -34,11 +32,11 @@ public class Session {
         return this.channel;
     }
 
-    public State getState() {
-        return this.state;
+    public ConnectionState getState() {
+        return state;
     }
 
-    public void setState(final State state) {
+    public void setState(ConnectionState state) {
         this.state = state;
     }
 
@@ -63,7 +61,7 @@ public class Session {
     }
 
     public void disconnect(final String message) {
-        channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
+        //channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
     }
 
     public void handlePacket(@NotNull Packet<?> packet) {
@@ -86,9 +84,4 @@ public class Session {
         }
     }*/
 
-    public enum State {
-        HANDSHAKE,
-        LOGIN,
-        PLAY
-    }
 }

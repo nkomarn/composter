@@ -6,6 +6,9 @@ import org.jetbrains.annotations.NotNull;
 
 public abstract class Packet<T> {
 
+    public Packet() {
+    }
+
     public int getId() {
         return 0x0;
     }

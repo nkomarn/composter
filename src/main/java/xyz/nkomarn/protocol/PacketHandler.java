@@ -1,33 +1,35 @@
 package xyz.nkomarn.protocol;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.net.ConnectionState;
 import xyz.nkomarn.net.Session;
-import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
-import xyz.nkomarn.protocol.packet.c2s.LoginC2SPacket;
-import xyz.nkomarn.protocol.packet.c2s.PlayerPosC2SPacket;
-import xyz.nkomarn.protocol.packet.c2s.PlayerPosLookC2SPacket;
-import xyz.nkomarn.protocol.packet.s2c.HandshakeS2CPacket;
-import xyz.nkomarn.type.Location;
+import xyz.nkomarn.protocol.packet.c2s.HandshakeC2SPacket;
+import xyz.nkomarn.protocol.packet.c2s.StatusPingC2SPacket;
+import xyz.nkomarn.protocol.packet.s2c.StatusPongS2CPacket;
+import xyz.nkomarn.protocol.packet.s2c.StatusResponseS2CPacket;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
 public class PacketHandler {
 
+    private static final EnumMap<ConnectionState, Int2ObjectMap<Handler>> HANDLERS = new EnumMap<>(ConnectionState.class);
     private final Composter server;
 
     public PacketHandler(@NotNull Composter server) {
         this.server = server;
     }
 
-    public static void register(int id, @NotNull State state, @NotNull Handler handler) {
-        state.getHandlerMap().put(id, handler);
+    public static void register(int id, ConnectionState state, Handler handler) {
+        HANDLERS.computeIfAbsent(state, state1 -> new Int2ObjectOpenHashMap<>()).put(id, handler);
     }
 
-    public void handle(@NotNull Session session, @NotNull Packet<?> packet) {
-        Handler handler = State.valueOf(session.getState().name()).getHandlerMap().get(packet.getId());
-
+    public void handle(Session session, Packet<?> packet) {
+        var handler = HANDLERS.get(session.getState()).get(packet.getId());
         if (handler == null) {
             // TODO something idk maybe asdhjkhjsadkfhasdjfhdhjbdasfhjkasdhkfafasjfadskhfjhk :))))
             return;
@@ -37,8 +39,32 @@ public class PacketHandler {
     }
 
     static {
+        register(0x00, ConnectionState.HANDSHAKING, (session, packet) -> {
+            var handshakePacket = (HandshakeC2SPacket) packet;
+
+            System.out.println(handshakePacket.getAddress());
+            System.out.println("Protocol: " + handshakePacket.getProtocol());
+            System.out.println(handshakePacket.getPort());
+            System.out.println("Port: " + handshakePacket.getPort());
+            System.out.println("Next state: " + handshakePacket.getNextState());
+
+            session.setState(handshakePacket.getNextState());
+        });
+
+        register(0x00, ConnectionState.STATUS, (session, packet) -> {
+            System.out.println("motd time");
+            session.sendPacket(new StatusResponseS2CPacket()); // TODO edit MOTD field later
+        });
+
+        register(0x01, ConnectionState.STATUS, (session, packet) -> {
+            System.out.println("ping");
+            var pingPacket = (StatusPingC2SPacket) packet;
+            System.out.println(pingPacket.getTimestamp());
+            session.sendPacket(new StatusPongS2CPacket(pingPacket.getTimestamp()));
+        });
+
         // Login
-        register(0x01, State.LOGIN, (session, packet) -> {
+        /*register(0x01, State.LOGIN, (session, packet) -> {
             LoginC2SPacket loginPacket = (LoginC2SPacket) packet;
             Composter server = session.getServer();
             Session.State state = session.getState();
@@ -118,24 +144,7 @@ public class PacketHandler {
                         server.getPlayerManager().getPlayers().size(), server.getConfig().getInteger("server.slots")
                 ));
             }
-        });
-    }
-
-    public enum State {
-
-        HANDSHAKE(new HashMap<>()),
-        LOGIN(new HashMap<>()),
-        PLAY(new HashMap<>());
-
-        private final Map<Integer, Handler> map;
-
-        State(@NotNull HashMap<Integer, Handler> map) {
-            this.map = map;
-        }
-
-        Map<Integer, Handler> getHandlerMap() {
-            return map;
-        }
+        });*/
     }
 
     @FunctionalInterface

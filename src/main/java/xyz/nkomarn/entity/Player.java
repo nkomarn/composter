@@ -5,11 +5,6 @@ import xyz.nkomarn.Composter;
 import xyz.nkomarn.command.CommandSource;
 import xyz.nkomarn.entity.tracker.EntityTracker;
 import xyz.nkomarn.net.Session;
-import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
-import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
-import xyz.nkomarn.protocol.packet.s2c.MapChunkS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
-import xyz.nkomarn.protocol.packet.s2c.PreChunkS2CPacket;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.World;
@@ -57,7 +52,7 @@ public final class Player extends Entity implements CommandSource {
 
     @Override
     public void sendMessage(@NotNull String message) {
-        session.sendPacket(new ChatBiPacket(message));
+        // session.sendPacket(new ChatBiPacket(message));
     }
 
     public void teleport(@NotNull Location location) {
@@ -67,7 +62,7 @@ public final class Player extends Entity implements CommandSource {
     }
 
     public void updateLocation() {
-        session.sendPacket(new PlayerPosLookS2CPacket(
+        /*session.sendPacket(new PlayerPosLookS2CPacket(
                 location.getX(),
                 location.getY(),
                 location.getZ(),
@@ -75,13 +70,13 @@ public final class Player extends Entity implements CommandSource {
                 location.getPitch(),
                 DEFAULT_STANCE,
                 isTouchingGround()
-        ));
+        ));*/
     }
 
     // @Override - override once entities are implemented (should players be ticked differently?)
     public void tick() {
         syncChunks(false);
-        this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
+        // this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
 
         tracker.tick();
     }
@@ -90,7 +85,7 @@ public final class Player extends Entity implements CommandSource {
         final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
         final int centralX = ((int) this.location.getX()) / 16;
         final int centralZ = ((int) this.location.getZ()) / 16;
-        final int viewDistance = 8; // customizable in config
+        final int viewDistance = 6; // customizable in config
 
         for (int x = (centralX - viewDistance); x <= (centralX + viewDistance); x++) {
             for (int z = (centralZ - viewDistance); z <= (centralZ + viewDistance); z++) {
@@ -102,8 +97,8 @@ public final class Player extends Entity implements CommandSource {
                     if (sync) { // TODO hacky af but itll do for now
                         try {
                             Chunk chunk = world.getChunk(x, z).get();
-                            this.session.sendPacket(new PreChunkS2CPacket(x, z, true));
-                            this.session.sendPacket(new MapChunkS2CPacket(x * 16, (short) 0, z * 16, chunk.serializeTileData()));
+                            //this.session.sendPacket(new PreChunkS2CPacket(x, z, true));
+                            //this.session.sendPacket(new MapChunkS2CPacket(x * 16, (short) 0, z * 16, chunk.serializeTileData()));
                         } catch (InterruptedException | ExecutionException e) {
                             e.printStackTrace();
                         }
@@ -112,8 +107,8 @@ public final class Player extends Entity implements CommandSource {
                         final int finalZ = z;
 
                         world.getChunk(x, z).thenAccept(chunk -> {
-                            this.session.sendPacket(new PreChunkS2CPacket(finalX, finalZ, true));
-                            this.session.sendPacket(new MapChunkS2CPacket(finalX * 16, (short) 0, finalZ * 16, chunk.serializeTileData()));
+                            //this.session.sendPacket(new PreChunkS2CPacket(finalX, finalZ, true));
+                            //this.session.sendPacket(new MapChunkS2CPacket(finalX * 16, (short) 0, finalZ * 16, chunk.serializeTileData()));
                         });
                     }
                 }
@@ -123,7 +118,7 @@ public final class Player extends Entity implements CommandSource {
         }
 
         for (Chunk.Key key : previousChunks) {
-            this.session.sendPacket(new PreChunkS2CPacket(key.getX(), key.getZ(), false));
+            //this.session.sendPacket(new PreChunkS2CPacket(key.getX(), key.getZ(), false));
             loadedChunks.remove(key);
         }
 

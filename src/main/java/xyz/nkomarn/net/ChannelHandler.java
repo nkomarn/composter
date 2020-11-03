@@ -2,6 +2,7 @@ package xyz.nkomarn.net;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +25,7 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         session = new Session(server, ctx.channel());
+        ctx.channel().attr(Session.SESSION_KEY).set(session);
         logger.info("New session opened: " + ctx.channel().toString());
     }
 

@@ -53,27 +53,33 @@ public final class Composter implements CommandSource {
         networkManager.bind(port);
     }
 
-    public @NotNull Config getConfig() {
+    @NotNull
+    public Config getConfig() {
         return config;
     }
 
-    public @NotNull Logger getLogger() {
+    @NotNull
+    public Logger getLogger() {
         return logger;
     }
 
-    public @NotNull CommandManager getCommandManager() {
+    @NotNull
+    public CommandManager getCommandManager() {
         return commandManager;
     }
 
-    public @NotNull PlayerManager getPlayerManager() {
+    @NotNull
+    public PlayerManager getPlayerManager() {
         return playerManager;
     }
 
-    public @NotNull NetworkManager getNetworkManager() {
+    @NotNull
+    public NetworkManager getNetworkManager() {
         return networkManager;
     }
 
-    public @NotNull WorldManager getWorldManager() {
+    @NotNull
+    public WorldManager getWorldManager() {
         return worldManager;
     }
 

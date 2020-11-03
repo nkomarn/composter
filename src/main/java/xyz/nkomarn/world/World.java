@@ -1,9 +1,10 @@
 package xyz.nkomarn.world;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.entity.Entity;
-import xyz.nkomarn.protocol.packet.s2c.TimeUpdateS2CPacket;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.generator.WorldGenerator;
@@ -24,7 +25,7 @@ public class World {
     private final ExecutorService thread;
 
     private final HashMap<Chunk.Key, Chunk> loadedChunks;
-    private final HashMap<UUID, Entity> entities;
+    private final Int2ObjectMap<Entity> entities;
 
     private long time = 0;
 
@@ -33,7 +34,7 @@ public class World {
         this.properties = properties;
         this.thread = thread;
         this.loadedChunks = new HashMap<>();
-        this.entities = new HashMap<>();
+        this.entities = new Int2ObjectOpenHashMap<>();
     }
 
     public UUID getUUID() {
@@ -51,7 +52,7 @@ public class World {
 
     public CompletableFuture<Chunk> getChunk(int x, int z) {
         CompletableFuture<Chunk> future = new CompletableFuture<>();
-        thread.submit(() -> {
+        thread.execute(() -> {
             Chunk.Key key = new Chunk.Key(x, z);
             Chunk chunk = loadedChunks.get(key);
 
@@ -81,22 +82,22 @@ public class World {
         return spawn;
     }
 
-    public HashMap<UUID, Entity> getEntities() {
+    public Int2ObjectMap<Entity> getEntities() {
         return entities;
     }
 
-    public void trackEntity(@NotNull Entity entity) {
-        entities.put(entity.getUUID(), entity);
+    public void addEntity(Entity entity) {
+        entities.put(entity.getId(), entity);
     }
 
     public void tick() {
         time += 1; // TODO change to just ++
 
-        if (server.getTicks() % 20 == 0) {
+        /*if (server.getTicks() % 20 == 0) {
             server.getPlayerManager().getPlayers().stream()
                     .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
                     .forEach(player -> player.getSession().sendPacket(new TimeUpdateS2CPacket(time)));
-        }
+        }*/
     }
 
     // TODO save chunks, etc
@@ -113,15 +114,18 @@ public class World {
             this.generator = generator;
         }
 
-        public @NotNull UUID getUUID() {
+        @NotNull
+        public UUID getUUID() {
             return uuid;
         }
 
-        public @NotNull ChunkIO getIO() {
+        @NotNull
+        public ChunkIO getIO() {
             return io;
         }
 
-        public @NotNull WorldGenerator getGenerator() {
+        @NotNull
+        public WorldGenerator getGenerator() {
             return generator;
         }
     }
