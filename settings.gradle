@@ -1,4 +1,4 @@
-rootProject.name = 'composter-gradle'
+rootProject.name = 'composter'
 include 'api'
 include 'server'
 

@@ -3,6 +3,7 @@ package xyz.nkomarn.composter.util;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class DataTypeUtils {
 
@@ -79,6 +80,12 @@ public class DataTypeUtils {
         byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
         writeVarInt(buffer, bytes.length);
         buffer.writeBytes(bytes);
+        return buffer;
+    }
+
+    public static ByteBuf writeUuid(ByteBuf buffer, UUID uuid) {
+        buffer.writeLongLE(uuid.getMostSignificantBits());
+        buffer.writeLongLE(uuid.getLeastSignificantBits());
         return buffer;
     }
 }

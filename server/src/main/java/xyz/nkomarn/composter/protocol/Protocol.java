@@ -3,6 +3,7 @@ package xyz.nkomarn.composter.protocol;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import xyz.nkomarn.composter.net.ConnectionState;
 import xyz.nkomarn.composter.protocol.packet.c2s.*;
+import xyz.nkomarn.composter.protocol.packet.s2c.LoginSuccessS2CPacket;
 import xyz.nkomarn.composter.protocol.packet.s2c.StatusPongS2CPacket;
 import xyz.nkomarn.composter.protocol.packet.s2c.StatusResponseS2CPacket;
 
@@ -24,5 +25,7 @@ public class Protocol {
         register(ConnectionState.STATUS, Direction.S2C, StatusPongS2CPacket.class);
         register(ConnectionState.STATUS, Direction.C2S, StatusRequestC2SPacket.class);
         register(ConnectionState.STATUS, Direction.S2C, StatusResponseS2CPacket.class);
+        register(ConnectionState.LOGIN, Direction.C2S, LoginStartC2SPacket.class);
+        register(ConnectionState.LOGIN, Direction.S2C, LoginSuccessS2CPacket.class);
     }
 }
