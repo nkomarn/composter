@@ -1,4 +1,0 @@
-[13:41:08] [INFO ] [main                     ] [x.n.Composter                 ]: Starting Composter.inecraftFormatting
-[13:41:10] [INFO ] [main                     ] [x.n.Composter                 ]: Composter is ready for connections.inecraftFormatting
-[13:41:27] [INFO ] [nioEventLoopGroup-3-1    ] [x.n.Composter                 ]: New session (1 total). Channel: [id: 0x34932065, L:/127.0.0.1:25565 - R:/127.0.0.1:52216].inecraftFormatting
-[13:41:28] [INFO ] [nioEventLoopGroup-3-1    ] [x.n.Composter                 ]: Session closed (0 total). Channel: [id: 0x34932065, L:/127.0.0.1:25565 ! R:/127.0.0.1:52216].inecraftFormatting

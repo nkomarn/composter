@@ -1,0 +1,4 @@
+rootProject.name = 'composter-gradle'
+include 'api'
+include 'server'
+

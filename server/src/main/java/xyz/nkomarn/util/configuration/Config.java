@@ -1,7 +1,7 @@
 package xyz.nkomarn.util.configuration;
 
 import org.jetbrains.annotations.NotNull;
-import org.yaml.snakeyaml.Yaml;
+// import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileReader;
 import java.io.Reader;
@@ -109,7 +109,8 @@ public class Config {
     }
 
     private static String yaml(String yamlArgument) {
-        final String filePath = "src/main/resources/composter.yml";
+        return ""; // TODO
+        /*final String filePath = "src/main/resources/composter.yml";
         ArrayList<String> value = new ArrayList<String>();
         Yaml yaml = new Yaml();
 
@@ -121,7 +122,7 @@ public class Config {
             e.printStackTrace();
         }
 
-        return " " + value;
+        return " " + value;*/
     }
 
 }
