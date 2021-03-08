@@ -1,33 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class StringTag extends Tag {
-    /**
-     * The value.
-     */
-    private final String value;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public StringTag(String name, String value) {
+    private String data;
+
+    public StringTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public StringTag(@NotNull String name, @NotNull String data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_String" + append + ": " + value;
+    @NotNull
+    public Type getType() {
+        return Type.STRING;
     }
 }

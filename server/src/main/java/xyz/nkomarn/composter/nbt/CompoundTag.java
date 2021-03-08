@@ -1,36 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
-import java.util.Collections;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CompoundTag extends Tag {
 
-    private final Map<String, Tag> value;
+    private final Map<String, Tag> data;
 
-    public CompoundTag(final String name, Map<String, Tag> value) {
+    public CompoundTag(@NotNull String name) {
         super(name);
-        this.value = Collections.unmodifiableMap(value);
+        this.data = new HashMap<>();
     }
 
     @Override
-    public Map<String, Tag> getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-
-        StringBuilder bldr = new StringBuilder();
-        bldr.append("TAG_Compound" + append + ": " + value.size() + " entries\r\n{\r\n");
-        for (Map.Entry<String, Tag> entry : value.entrySet()) {
-            bldr.append("   " + entry.getValue().toString().replaceAll("\r\n", "\r\n   ") + "\r\n");
-        }
-        bldr.append("}");
-        return bldr.toString();
+    @NotNull
+    public Type getType() {
+        return Type.COMPOUND;
     }
 }

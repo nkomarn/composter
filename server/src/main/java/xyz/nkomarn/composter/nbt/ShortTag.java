@@ -1,34 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class ShortTag extends Tag {
-    /**
-     * The value.
-     */
-    private final short value;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public ShortTag(String name, short value) {
+    private short data;
+
+    public ShortTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public ShortTag(@NotNull String name, short data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public Short getValue() {
-        return value;
+    @NotNull
+    public Type getType() {
+        return Type.SHORT;
     }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Short" + append + ": " + value;
-    }
-
 }

@@ -1,33 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class LongTag extends Tag {
-    /**
-     * The value.
-     */
-    private final long value;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public LongTag(String name, long value) {
+    private long data;
+
+    public LongTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public LongTag(@NotNull String name, long data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public Long getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Long" + append + ": " + value;
+    @NotNull
+    public Type getType() {
+        return Type.LONG;
     }
 }

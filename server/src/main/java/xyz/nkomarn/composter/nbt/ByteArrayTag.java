@@ -1,43 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
-public class ByteArrayTag extends Tag{
+import org.jetbrains.annotations.NotNull;
 
-    /**
-     * The value.
-     */
-    private final byte[] value;
+public class ByteArrayTag extends Tag {
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public ByteArrayTag(String name, byte[] value) {
+    private byte[] data;
+
+    public ByteArrayTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public ByteArrayTag(@NotNull String name, byte[] data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public byte[] getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder hex = new StringBuilder();
-        for (byte b : value) {
-            String hexDigits = Integer.toHexString(b).toUpperCase();
-            if (hexDigits.length() == 1) {
-                hex.append("0");
-            }
-            hex.append(hexDigits).append(" ");
-        }
-
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Byte_Array" + append + ": " + hex.toString();
+    @NotNull
+    public Type getType() {
+        return Type.BYTE_ARRAY;
     }
 }

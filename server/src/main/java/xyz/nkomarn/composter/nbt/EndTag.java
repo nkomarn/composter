@@ -1,21 +1,16 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class EndTag extends Tag {
 
-    /**
-     * Creates the tag.
-     */
     public EndTag() {
-        super();
+        super(null);
     }
 
     @Override
-    public Object getValue() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return "TAG_End";
+    @NotNull
+    public Type getType() {
+        return Type.END;
     }
 }

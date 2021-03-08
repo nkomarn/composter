@@ -2,15 +2,15 @@ package xyz.nkomarn.composter.nbt;
 
 import org.jetbrains.annotations.NotNull;
 
-public class ByteTag extends Tag {
+public class IntArrayTag extends Tag {
 
-    private byte data;
+    private int[] data;
 
-    public ByteTag(@NotNull String name) {
+    public IntArrayTag(@NotNull String name) {
         super(name);
     }
 
-    public ByteTag(@NotNull String name, byte data) {
+    public IntArrayTag(@NotNull String name, int[] data) {
         super(name);
         this.data = data;
     }
@@ -18,6 +18,6 @@ public class ByteTag extends Tag {
     @Override
     @NotNull
     public Type getType() {
-        return Type.BYTE;
+        return Type.INT_ARRAY;
     }
 }

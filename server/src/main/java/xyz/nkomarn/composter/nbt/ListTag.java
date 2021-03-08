@@ -1,58 +1,25 @@
 package xyz.nkomarn.composter.nbt;
 
-import java.util.Collections;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
-public class ListTag<T extends Tag> extends Tag {
-    /**
-     * The type of entries within this list.
-     */
-    private final Class<T> type;
+public class ListTag extends Tag {
 
-    /**
-     * The value.
-     */
-    private final List<T> value;
+    private List<Tag> data;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param type The type of item in the list.
-     * @param value The value.
-     */
-    public ListTag(String name, Class<T> type, List<T> value) {
+    public ListTag(@NotNull String name) {
         super(name);
-        this.type = type;
-        this.value = Collections.unmodifiableList(value);
     }
 
-    /**
-     * Gets the type of item in this list.
-     * @return The type of item in this list.
-     */
-    public Class<T> getType() {
-        return type;
+    public ListTag(@NotNull String name, @NotNull List<Tag> data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public List<T> getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-
-        StringBuilder bldr = new StringBuilder();
-        bldr.append("TAG_List" + append + ": " + value.size() + " entries of type " + NBTUtils.getTypeName(type) + "\r\n{\r\n");
-        for (Tag t : value) {
-            bldr.append("   " + t.toString().replaceAll("\r\n", "\r\n   ") + "\r\n");
-        }
-        bldr.append("}");
-        return bldr.toString();
+    @NotNull
+    public Type getType() {
+        return Type.LIST;
     }
 }

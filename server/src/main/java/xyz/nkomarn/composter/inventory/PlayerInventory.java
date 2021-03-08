@@ -1,7 +1,6 @@
 package xyz.nkomarn.composter.inventory;
 
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.nbt.CompoundTag;
 
 public class PlayerInventory implements Inventory {
 

@@ -2,10 +2,6 @@ package xyz.nkomarn.composter.world;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.nbt.ByteArrayTag;
-import xyz.nkomarn.composter.nbt.CompoundTag;
-import xyz.nkomarn.composter.nbt.NBTInputStream;
-import xyz.nkomarn.composter.nbt.Tag;
 import xyz.nkomarn.composter.type.Chunk;
 import xyz.nkomarn.composter.world.region.RegionFile;
 import xyz.nkomarn.composter.world.region.RegionFileCache;

@@ -1,33 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class FloatTag extends Tag {
-    /**
-     * The value.
-     */
-    private final float value;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public FloatTag(String name, float value) {
+    private float data;
+
+    public FloatTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public FloatTag(@NotNull String name, float data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public Float getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Float" + append + ": " + value;
+    @NotNull
+    public Type getType() {
+        return Type.FLOAT;
     }
 }

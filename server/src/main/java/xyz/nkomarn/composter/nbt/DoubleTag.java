@@ -1,34 +1,23 @@
 package xyz.nkomarn.composter.nbt;
 
+import org.jetbrains.annotations.NotNull;
+
 public class DoubleTag extends Tag {
-    /**
-     * The value.
-     */
-    private final double value;
 
-    /**
-     * Creates the tag.
-     * @param name The name.
-     * @param value The value.
-     */
-    public DoubleTag(String name, double value) {
+    private double data;
+
+    public DoubleTag(@NotNull String name) {
         super(name);
-        this.value = value;
+    }
+
+    public DoubleTag(@NotNull String name, double data) {
+        super(name);
+        this.data = data;
     }
 
     @Override
-    public Double getValue() {
-        return value;
+    @NotNull
+    public Type getType() {
+        return Type.DOUBLE;
     }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Double" + append + ": " + value;
-    }
-
 }
