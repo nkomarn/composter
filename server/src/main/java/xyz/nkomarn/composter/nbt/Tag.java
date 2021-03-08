@@ -42,13 +42,15 @@ public abstract class Tag {
         INT_ARRAY,
         LONG_ARRAY;
 
+        private static final Type[] TYPES = Type.values();
+
         public byte getId() {
             return (byte) this.ordinal();
         }
 
         @NotNull
         public static Type fromId(byte id) {
-            return values()[id];
+            return TYPES[id];
         }
     }
 }
