@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 public class EndTag extends Tag {
 
     public EndTag() {
-        super(null);
+        super("");
     }
 
     @Override

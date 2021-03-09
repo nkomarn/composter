@@ -15,6 +15,10 @@ public class NbtInputStream {
         var file = new File("test.nbt");
         var stream = new DataInputStream(new GZIPInputStream(new FileInputStream(file)));
 
+        stream.readByte();
+        System.out.println(Tag.Type.COMPOUND.read(stream).toString());
+
+        /*
         do {
             var type = Tag.Type.fromId(stream.readByte());
             var nameLength = stream.readShort();
@@ -24,9 +28,10 @@ public class NbtInputStream {
             System.out.println(nameLength);
             System.out.println(name);
 
-            System.out.println("Type of first item in tag: " + Tag.Type.fromId(stream.readByte()));
-            new StringTag(stream);
+            var tag = Tag.Type.fromId(stream.readByte()).read(stream);
+            System.out.println(tag);
             System.exit(0);
         } while (true);
+         */
     }
 }
