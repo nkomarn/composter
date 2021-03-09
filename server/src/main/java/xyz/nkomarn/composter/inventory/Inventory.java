@@ -13,6 +13,4 @@ public interface Inventory {
     int[] getItems();
 
     void update();
-
-    @NotNull CompoundTag toNBT();
 }

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class Tag {
 
-    private final String name;
+    protected String name;
 
     Tag(@Nullable String name) {
         this.name = name;

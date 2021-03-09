@@ -31,9 +31,4 @@ public class PlayerInventory implements Inventory {
     public void update() {
 
     }
-
-    @Override
-    public @NotNull CompoundTag toNBT() {
-        return null;
-    }
 }

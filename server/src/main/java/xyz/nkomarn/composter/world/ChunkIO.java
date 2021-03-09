@@ -30,7 +30,7 @@ public class ChunkIO {
     public CompletableFuture<Chunk> read(int x, int z) {
         CompletableFuture<Chunk> future = new CompletableFuture<>();
         thread.submit(() -> {
-            try {
+            /*try {
                 RegionFile regionFile = cache.getRegionFile(directory.toFile(), x, z);
 
                 int regionX = x & 31;
@@ -83,7 +83,7 @@ public class ChunkIO {
                 future.complete(chunk);
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         });
         return future;
     }
