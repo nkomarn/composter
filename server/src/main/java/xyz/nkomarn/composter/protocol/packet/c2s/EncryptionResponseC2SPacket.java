@@ -36,7 +36,7 @@ public class EncryptionResponseC2SPacket extends Packet<EncryptionResponseC2SPac
         return secret;
     }
 
-    public byte[] token() {
+    public byte[] getToken() {
         return token;
     }
 

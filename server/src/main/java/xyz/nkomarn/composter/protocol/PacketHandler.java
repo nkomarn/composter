@@ -11,24 +11,22 @@ import xyz.nkomarn.composter.protocol.packet.c2s.HandshakeC2SPacket;
 import xyz.nkomarn.composter.protocol.packet.s2c.*;
 import xyz.nkomarn.composter.protocol.packet.c2s.LoginStartC2SPacket;
 import xyz.nkomarn.composter.protocol.packet.c2s.StatusPingC2SPacket;
-import xyz.nkomarn.composter.util.RSAKeyGen;
+import xyz.nkomarn.composter.util.RSA;
 
-import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.UUID;
 
 public class PacketHandler {
 
     // TODO maybe storing classes instead of raw ids would make updates easier
     private static final EnumMap<ConnectionState, Int2ObjectMap<Handler>> HANDLERS = new EnumMap<>(ConnectionState.class);
     private final Composter server;
-    private static RSAKeyGen keyGen;
+    private static RSA rsa;
 
     public PacketHandler(@NotNull Composter server) throws NoSuchAlgorithmException {
         this.server = server;
-        keyGen = new RSAKeyGen();
+        rsa = new RSA();
     }
 
     public static void register(int id, ConnectionState state, Handler handler) {
@@ -61,15 +59,21 @@ public class PacketHandler {
         });
 
         register(0x00, ConnectionState.LOGIN, (session, packet) -> {
-            var pKey = keyGen.getPublicKey();
+            var publicKey = rsa.getPublicKey();
             var loginPacket = (LoginStartC2SPacket) packet;
-            System.out.println("Login started w/ username " + loginPacket.getUsername() + ", Public Key Length: " + pKey.getEncoded().length);
-            session.sendPacket(new EncryptionRequestS2CPacket("", pKey.getEncoded().length, pKey.getEncoded(), 4, keyGen.generateBytes()));
+            System.out.println("Login started w/ username " + loginPacket.getUsername());
+            session.sendPacket(new EncryptionRequestS2CPacket("", publicKey.getEncoded().length, publicKey.getEncoded(), 4, rsa.getToken()));
         });
 
         register(0x01, ConnectionState.LOGIN, (session, packet) -> {
             var encryptionResponse = (EncryptionResponseC2SPacket) packet;
-            System.out.println("yessir");
+            var secret = rsa.decrypt(encryptionResponse.getSecret());
+            var token = rsa.decrypt(encryptionResponse.getToken());
+
+            if (Arrays.equals(token, rsa.getToken())) {
+                System.out.println("yessir");
+            }
+            session.disconnect("Bad RSA token");
         });
     }
 
