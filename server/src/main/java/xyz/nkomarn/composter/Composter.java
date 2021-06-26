@@ -12,6 +12,7 @@ import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.util.configuration.Config;
 
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +32,7 @@ public final class Composter implements CommandSource {
 
     public static Location SPAWN;
 
-    public Composter(final int port) throws InterruptedException {
+    public Composter(final int port) throws InterruptedException, NoSuchAlgorithmException {
         this.logger = LogManager.getLogger("Server");
         this.logger.info("Starting Composter.");
 
@@ -92,7 +93,7 @@ public final class Composter implements CommandSource {
         getLogger().info(message);
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, NoSuchAlgorithmException {
         //int port = getConfig().getInteger("network.port");
         new Composter(25565);
     }

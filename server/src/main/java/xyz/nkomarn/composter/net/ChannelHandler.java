@@ -8,6 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.protocol.Packet;
 
+import java.security.NoSuchAlgorithmException;
+
 public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
 
     private final Composter server;
@@ -34,7 +36,7 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Packet<?> packet) {
+    protected void channelRead0(ChannelHandlerContext ctx, Packet<?> packet) throws NoSuchAlgorithmException {
         logger.info("Received " + packet.getClass().getSimpleName() + ". State: " + session.getState() + ".");
         if (session != null) {
             session.handlePacket(packet);

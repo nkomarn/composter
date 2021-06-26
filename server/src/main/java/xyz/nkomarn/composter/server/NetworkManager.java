@@ -6,6 +6,8 @@ import xyz.nkomarn.composter.net.Bootstrap;
 import xyz.nkomarn.composter.protocol.PacketHandler;
 import xyz.nkomarn.composter.protocol.Protocol;
 
+import java.security.NoSuchAlgorithmException;
+
 public class NetworkManager {
 
     private final Composter server;
@@ -13,7 +15,7 @@ public class NetworkManager {
     private final PacketHandler handler;
     private final Bootstrap bootstrap;
 
-    public NetworkManager(@NotNull Composter server) {
+    public NetworkManager(@NotNull Composter server) throws NoSuchAlgorithmException {
         this.server = server;
         this.protocol = new Protocol();
         this.handler = new PacketHandler(server);

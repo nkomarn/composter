@@ -7,6 +7,7 @@ import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.protocol.Packet;
 import xyz.nkomarn.composter.entity.Player;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 public class Session {
@@ -65,7 +66,7 @@ public class Session {
         //channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
     }
 
-    public void handlePacket(@NotNull Packet<?> packet) {
+    public void handlePacket(@NotNull Packet<?> packet) throws NoSuchAlgorithmException {
         server.getNetworkManager().getHandler().handle(this, packet);
         /*PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
         if (handler != null) {
