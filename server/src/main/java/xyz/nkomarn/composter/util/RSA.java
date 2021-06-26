@@ -7,7 +7,13 @@ import javax.crypto.NoSuchPaddingException;
 import java.security.*;
 import java.util.Random;
 
+/**
+ * Generates RSA Public and Private keys for client
+ * and server auth
+ */
+
 public class RSA {
+
     private final PrivateKey privateKey;
     private final PublicKey publicKey;
     private final byte[] token;
@@ -29,6 +35,12 @@ public class RSA {
 
     public byte[] getToken() { return token; }
 
+    public byte[] generateBytes() {
+        byte[] b = new byte[4];
+        new Random().nextBytes(b);
+        return b;
+    }
+
     private KeyPair GenerateKeyPair() throws NoSuchAlgorithmException {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(1024);
@@ -46,11 +58,4 @@ public class RSA {
         }
         return null;
     }
-
-    public byte[] generateBytes() {
-        byte[] b = new byte[4];
-        new Random().nextBytes(b);
-        return b;
-    }
-
 }

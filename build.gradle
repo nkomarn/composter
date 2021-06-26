@@ -9,9 +9,14 @@ allprojects {
 
     repositories {
         mavenCentral()
+        maven {
+            name = 'minecraft-repo'
+            url = 'https://libraries.minecraft.net/'
+        }
     }
 
     dependencies {
+        compile 'com.mojang:authlib:1.5.21'
         compile 'com.googlecode.json-simple:json-simple:1.1'
         implementation 'io.netty:netty-all:4.1.59.Final'
         implementation 'it.unimi.dsi:fastutil:8.5.2'
