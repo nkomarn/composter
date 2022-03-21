@@ -21,8 +21,8 @@ public class StatusResponseS2CPacket extends Packet<StatusResponseS2CPacket> {
     public ByteBuf encode() { // TODO yes this is dumb, properly encode the correct data later
         String response = "{\n" +
                 "    \"version\": {\n" +
-                "        \"name\": \"1.17\",\n" +
-                "        \"protocol\": 755\n" +
+                "        \"name\": \"1.18\",\n" +
+                "        \"protocol\": 758\n" +
                 "    },\n" +
                 "    \"players\": {\n" +
                 "        \"max\": 100,\n" +
@@ -35,7 +35,7 @@ public class StatusResponseS2CPacket extends Packet<StatusResponseS2CPacket> {
                 "        ]\n" +
                 "    },\n" +
                 "    \"description\": {\n" +
-                "        \"text\": \"" + "§a§lComposter - 1.17!\n§eNow with modern protocol support." + "\"\n" +
+                "        \"text\": \"" + "§a§lComposter - 1.18!\n§eNow with modern protocol support." + "\"\n" +
                 "    },\n" +
                 "    \"favicon\": \"data:image/png;base64,<data>\"\n" +
                 "}";

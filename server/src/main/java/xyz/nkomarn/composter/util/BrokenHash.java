@@ -16,27 +16,20 @@ public class BrokenHash {
         try {
             MessageDigest hash = MessageDigest.getInstance("SHA-1");
             hash.reset();
-            hash.update(publicKey);
             hash.update(sharedSecret);
-            return hash(hash.toString());
+            hash.update(publicKey);
+            return hash(hash.digest());
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
         return "";
     }
 
-    private static String hash(String str) {
+    private static String hash(byte[] digest) {
         try {
-            byte[] digest = digest(str);
             return new BigInteger(digest).toString(16);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Error e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static byte[] digest(String str) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");
-        byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
-        return md.digest(strBytes);
     }
 }

@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.net.ConnectionState;
 import xyz.nkomarn.composter.net.Session;
+import xyz.nkomarn.composter.protocol.objects.EncryptionResponseObject;
 import xyz.nkomarn.composter.protocol.packet.c2s.EncryptionResponseC2SPacket;
 import xyz.nkomarn.composter.protocol.packet.c2s.HandshakeC2SPacket;
 import xyz.nkomarn.composter.protocol.packet.s2c.*;
@@ -20,6 +21,8 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.UUID;
 import java.util.concurrent.BrokenBarrierException;
+
+
 
 public class PacketHandler {
 
@@ -71,8 +74,6 @@ public class PacketHandler {
             var publicKey = rsa.getPublicKey();
 
             username = loginPacket.getUsername();
-            id = auth.getUUID(username);
-
             System.out.println("Login started w/ username " + username);
             session.sendPacket(new EncryptionRequestS2CPacket("", publicKey.getEncoded().length, publicKey.getEncoded(), 4, rsa.getToken()));
         });
@@ -82,14 +83,18 @@ public class PacketHandler {
             var secret = rsa.decrypt(encryptionResponse.getSecret());
             var token = rsa.decrypt(encryptionResponse.getToken());
 
-            // Kind of broken, but we will get it working
             String serverHash = BrokenHash.encryptServerHash(rsa.getPublicKey().getEncoded(), secret);
-            auth.clientAuth(encryptionResponse.getToken(), id, serverHash, username);
+            EncryptionResponseObject response =  auth.clientAuth(serverHash, username);
 
+            UUID uuid = java.util.UUID.fromString(
+                    response.id
+                            .replaceFirst(
+                                    "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
+                            )
+            );
             if (Arrays.equals(token, rsa.getToken())) {
-                System.out.println("meowwww nyaaa :3 " + id.toString());
+                session.sendPacket(new LoginSuccessS2CPacket(uuid, response.name));
                 session.setState(ConnectionState.PLAY);
-                session.sendPacket(new LoginSuccessS2CPacket(id, username));
             }
             session.disconnect("Bad RSA token");
         });

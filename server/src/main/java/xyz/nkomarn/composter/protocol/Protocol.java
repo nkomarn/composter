@@ -26,5 +26,6 @@ public class Protocol {
         register(ConnectionState.LOGIN, Direction.C2S, LoginStartC2SPacket.class);
         register(ConnectionState.LOGIN, Direction.S2C, EncryptionRequestS2CPacket.class);
         register(ConnectionState.LOGIN, Direction.C2S, EncryptionResponseC2SPacket.class);
+        register(ConnectionState.LOGIN, Direction.S2C, LoginSuccessS2CPacket.class);
     }
 }
