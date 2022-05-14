@@ -1,11 +1,12 @@
 package xyz.nkomarn.composter.entity;
 
+import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.tracker.EntityTracker;
 import xyz.nkomarn.composter.network.Session;
-import xyz.nkomarn.composter.network.protocol.packet.bi.BidirectionalChatPacket;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.MapChunkS2CPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.PlayerPosLookS2CPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.PreChunkS2CPacket;
@@ -61,8 +62,8 @@ public final class Player extends Entity implements CommandSource {
     }
 
     @Override
-    public void sendMessage(@NotNull String message) {
-        session.sendPacket(new BidirectionalChatPacket(message));
+    public void sendMessage(@NotNull Component message) {
+        session.sendPacket(new ClientboundChatPacket(message));
     }
 
     public void teleport(@NotNull Location location) {

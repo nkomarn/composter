@@ -1,5 +1,7 @@
 package xyz.nkomarn.composter;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -87,8 +89,11 @@ public final class Composter implements CommandSource {
     }
 
     @Override
-    public void sendMessage(@NotNull String message) {
-        getLogger().info(message);
+    public void sendMessage(@NotNull Component message) {
+        /*
+         * TODO: Console color support.
+         */
+        getLogger().info(PlainTextComponentSerializer.plainText().serialize(message));
     }
 
     public static void main(String[] args) throws InterruptedException {

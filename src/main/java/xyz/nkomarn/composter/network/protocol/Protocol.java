@@ -3,7 +3,7 @@ package xyz.nkomarn.composter.network.protocol;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import xyz.nkomarn.composter.network.ConnectionState;
 import xyz.nkomarn.composter.network.Direction;
-import xyz.nkomarn.composter.network.protocol.packet.bi.BidirectionalChatPacket;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.*;
@@ -57,10 +57,10 @@ public class Protocol {
         register(ConnectionState.HANDSHAKING, Direction.SERVERBOUND, HandshakeC2SPacket.class); // 0x02
 
         /*
-         * The chat packet is bi-directional.
+         * There are two chat packets, one for each side.
          */
-        register(ConnectionState.PLAY, Direction.SERVERBOUND, BidirectionalChatPacket.class); // 0x03
-        register(ConnectionState.PLAY, Direction.CLIENTBOUND, BidirectionalChatPacket.class); // 0x03
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundChatPacket.class); // 0x03
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, ClientboundChatPacket.class); // 0x03
 
         register(ConnectionState.PLAY, Direction.CLIENTBOUND, ClientboundSetTimePacket.class); // 0x04
         register(ConnectionState.PLAY, Direction.CLIENTBOUND, SpawnPositionS2CPacket.class); // 0x06

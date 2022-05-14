@@ -1,5 +1,7 @@
 package xyz.nkomarn.composter.server;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.network.ConnectionState;
@@ -26,9 +28,9 @@ public class PlayerManager {
         return players.values();
     }
 
-    public void broadcastMessage(@NotNull String message) {
+    public void broadcastMessage(@NotNull Component message) {
         getPlayers().forEach(player -> player.sendMessage(message));
-        server.getLogger().info(message);
+        server.sendMessage(message);
     }
 
     public void onLogin(@NotNull Session session, @NotNull String username) {
@@ -59,11 +61,11 @@ public class PlayerManager {
         Location worldSpawn = player.getWorld().getSpawn();
         player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
         player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 128, 0, 0, 0, 67.240000009536743D, false));
-        broadcastMessage("§e" + player.getUsername() + " joined the game.");
+        broadcastMessage(Component.text(player.getUsername() + " joined the game.", NamedTextColor.YELLOW));
 
-        player.sendMessage("§6Welcome to Composter :)");
-        player.sendMessage("§cComposter is still in early development.");
-        player.sendMessage("§cMany features are incomplete!");
+        player.sendMessage(Component.text("Welcome to Composter :)", NamedTextColor.GOLD));
+        player.sendMessage(Component.text("Composter is still in early development.", NamedTextColor.RED));
+        player.sendMessage(Component.text("Many features are incomplete!", NamedTextColor.RED));
 
         player.getWorld().addEntity(player);
     }
@@ -71,7 +73,7 @@ public class PlayerManager {
     public void onDisconnect(@NotNull Player player) {
         String username = player.getUsername();
         players.remove(username.toLowerCase());
-        broadcastMessage("§e" + username + " left the game.");
+        broadcastMessage(Component.text(username + " left the game.", NamedTextColor.YELLOW));
 
         player.markRemoved();
     }
@@ -82,7 +84,7 @@ public class PlayerManager {
             return;
         }
 
-        broadcastMessage(String.format("<%s> %s", player.getUsername(), message));
+        broadcastMessage(Component.text(String.format("<%s> %s", player.getUsername(), message)));
     }
 
     public void onMove(@NotNull Player player, @NotNull Location oldLocation, @NotNull Location newLocation) {

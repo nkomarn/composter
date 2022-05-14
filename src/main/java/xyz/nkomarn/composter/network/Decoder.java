@@ -2,6 +2,7 @@ package xyz.nkomarn.composter.network;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.ReplayingDecoder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -10,7 +11,7 @@ import xyz.nkomarn.composter.network.protocol.Protocol;
 
 import java.util.List;
 
-public class Decoder extends ReplayingDecoder<Void> {
+public class Decoder extends ByteToMessageDecoder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Packet Decoder");
     private final Protocol protocol;

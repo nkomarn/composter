@@ -32,7 +32,7 @@ public class ServerboundPlayerActionPacket extends Packet<ServerboundPlayerActio
 
     @Override
     public ServerboundPlayerActionPacket decode(@NotNull ByteBuf buffer) {
-        return new ServerboundPlayerActionPacket(buffer.readInt(), Action.values()[buffer.readByte() - 1]);
+        return new ServerboundPlayerActionPacket(buffer.readInt(), Action.LEAVE_BED /* Action.values()[buffer.readByte() - 1] */);
     }
 
     public enum Action {

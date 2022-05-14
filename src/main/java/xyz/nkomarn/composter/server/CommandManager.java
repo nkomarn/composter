@@ -1,6 +1,11 @@
 package xyz.nkomarn.composter.server;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.command.CommandExecutor;
 import xyz.nkomarn.composter.command.CommandSource;
@@ -13,6 +18,7 @@ import java.util.HashMap;
 
 public class CommandManager {
 
+    private final Logger LOGGER = LoggerFactory.getLogger("Command Manager");
     private final Composter server;
     private final HashMap<String, CommandExecutor> commands;
 
@@ -27,12 +33,14 @@ public class CommandManager {
     }
 
     public void handle(@NotNull CommandSource source, @NotNull String command) {
+        LOGGER.info(source.getName() + " executed command \"" + command + "\"");
+
         command = command.substring(1);
         String[] arguments = command.split("\\s+");
 
         CommandExecutor executor = commands.get(arguments[0].toLowerCase());
         if (executor == null) {
-            source.sendMessage("Unrecognized command.");
+            source.sendMessage(Component.text("Unrecognized command."));
             return;
         }
 
@@ -41,13 +49,13 @@ public class CommandManager {
 
     public void registerDefaults() {
         register("about", (source, args) -> {
-            source.sendMessage("This server is running Composter Beta 1.7.3.");
-            source.sendMessage("§7This software is early alpha!");
+            source.sendMessage(Component.text("This server is running Composter Beta 1.7.3."));
+            source.sendMessage(Component.text("This software is early alpha!", NamedTextColor.GRAY));
         });
 
         register("tp", (source, args) -> {
             if (args.length < 3) {
-                source.sendMessage("§cUsage: /tp <x> <y> <z>");
+                source.sendMessage(Component.text("Usage: /tp <x> <y> <z>", NamedTextColor.RED));
             } else {
                 if (source instanceof Player) {
                     ((Player) source).teleport(new Location(
@@ -66,16 +74,25 @@ public class CommandManager {
             Arrays.fill(items, Integer.parseInt(arguments[0]));
             ((Player) source).getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items));
 
-            source.sendMessage("§dGAVE YOU ITEMS LOL");
+            source.sendMessage(Component.text("GAVE YOU ITEMS LOL", NamedTextColor.LIGHT_PURPLE));
         });
 
         register("say", (source, arguments) -> {
             var message = String.join(" ", arguments);
-            server.getPlayerManager().broadcastMessage(String.format("§d[%s] %s", source.getName(), message));
+            var component = Component.text(String.format("[%s] %s", source.getName(), message), NamedTextColor.LIGHT_PURPLE);
+            server.getPlayerManager().broadcastMessage(component);
         });
 
         register("seed", (source, arguments) -> {
-            source.sendMessage("The current world seed is §a[" + server.getWorldManager().getWorlds().stream().findFirst().orElseThrow().getProperties().getSeed() + "]");
+            var seed = server.getWorldManager().getWorlds().stream().findFirst().orElseThrow().getProperties().getSeed();
+            var config = TextReplacementConfig.builder()
+                    .match("<seed>")
+                    .replacement(Component.text(seed, NamedTextColor.GREEN))
+                    .build();
+            var message = Component.text("The current world seed is <seed>")
+                    .replaceText(config);
+
+            source.sendMessage(message);
         });
     }
 }

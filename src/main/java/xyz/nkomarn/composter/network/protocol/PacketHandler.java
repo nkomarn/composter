@@ -4,11 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.network.ConnectionState;
 import xyz.nkomarn.composter.network.Session;
-import xyz.nkomarn.composter.network.protocol.packet.bi.BidirectionalChatPacket;
-import xyz.nkomarn.composter.network.protocol.packet.c2s.LoginC2SPacket;
-import xyz.nkomarn.composter.network.protocol.packet.c2s.PlayerPosC2SPacket;
-import xyz.nkomarn.composter.network.protocol.packet.c2s.PlayerPosLookC2SPacket;
-import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundPlayerActionPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.HandshakeS2CPacket;
 import xyz.nkomarn.composter.type.Location;
 
@@ -72,8 +69,8 @@ public class PacketHandler {
 
         // Chat message
         register(0x03, State.PLAY, (session, packet) -> {
-            BidirectionalChatPacket chatPacket = (BidirectionalChatPacket) packet;
-            session.getPlayer().ifPresent(player -> session.getServer().getPlayerManager().onChat(player, chatPacket.getMessage()));
+            ServerboundChatPacket chatPacket = (ServerboundChatPacket) packet;
+            session.getPlayer().ifPresent(player -> session.getServer().getPlayerManager().onChat(player, chatPacket.rawMessage()));
         });
 
         // Player position

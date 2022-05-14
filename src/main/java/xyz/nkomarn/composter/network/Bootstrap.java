@@ -36,8 +36,6 @@ public class Bootstrap {
 
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
-                            logger.info(channel.remoteAddress() + " connected.");
-
                             channel.pipeline()
                                     .addLast(new Decoder(networkManager.getProtocol()))
                                     .addLast(new Encoder())
