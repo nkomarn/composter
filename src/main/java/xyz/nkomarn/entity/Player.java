@@ -5,7 +5,7 @@ import xyz.nkomarn.Composter;
 import xyz.nkomarn.command.CommandSource;
 import xyz.nkomarn.entity.tracker.EntityTracker;
 import xyz.nkomarn.net.Session;
-import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
+import xyz.nkomarn.protocol.packet.bi.BidirectionalChatPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.s2c.MapChunkS2CPacket;
 import xyz.nkomarn.protocol.packet.s2c.PlayerPosLookS2CPacket;
@@ -24,6 +24,7 @@ public final class Player extends Entity implements CommandSource {
     private final String username;
     private final EntityTracker tracker;
     private final Set<Chunk.Key> loadedChunks = new HashSet<>();
+    private boolean crouching;
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
     //TODO crouching support
@@ -56,14 +57,27 @@ public final class Player extends Entity implements CommandSource {
     }
 
     @Override
+    public String getName() {
+        return getUsername();
+    }
+
+    @Override
     public void sendMessage(@NotNull String message) {
-        session.sendPacket(new ChatBiPacket(message));
+        session.sendPacket(new BidirectionalChatPacket(message));
     }
 
     public void teleport(@NotNull Location location) {
         this.location = location;
         syncChunks(true);
-        updateLocation();
+        // updateLocation();
+    }
+
+    public boolean isCrouching() {
+        return crouching;
+    }
+
+    public void setCrouching(boolean crouching) {
+        this.crouching = crouching;
     }
 
     public void updateLocation() {
@@ -80,17 +94,18 @@ public final class Player extends Entity implements CommandSource {
 
     // @Override - override once entities are implemented (should players be ticked differently?)
     public void tick() {
-        syncChunks(false);
-        this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
-
         tracker.tick();
+        syncChunks(false);
+        // this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
+
+        // TODO tracker.tick();
     }
 
     public synchronized void syncChunks(boolean sync) {
         final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
         final int centralX = ((int) this.location.getX()) / 16;
         final int centralZ = ((int) this.location.getZ()) / 16;
-        final int viewDistance = 8; // customizable in config
+        final int viewDistance = 3; // customizable in config
 
         for (int x = (centralX - viewDistance); x <= (centralX + viewDistance); x++) {
             for (int z = (centralZ - viewDistance); z <= (centralZ + viewDistance); z++) {

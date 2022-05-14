@@ -1,20 +1,19 @@
 package xyz.nkomarn.protocol;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.entity.Entity;
-import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
+import xyz.nkomarn.net.ConnectionState;
+import xyz.nkomarn.net.Direction;
+import xyz.nkomarn.protocol.packet.bi.BidirectionalChatPacket;
 import xyz.nkomarn.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.protocol.packet.c2s.*;
 import xyz.nkomarn.protocol.packet.s2c.*;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class Protocol {
 
+    /*
+    @Nullable
     public Packet<?> getPacketById(int id, @NotNull Direction direction) {
         if (!direction.getPacketMap().containsKey(id)) {
             return null;
@@ -29,63 +28,65 @@ public class Protocol {
             return null;
         }
     }
+     */
 
-    private static void register(@NotNull Direction direction, @NotNull Class<? extends Packet<?>> clazz) {
+    private static void register(ConnectionState state, Direction direction, Class<? extends Packet<?>> clazz) {
         try {
-            direction.getPacketMap().put(clazz.getDeclaredConstructor().newInstance().getId(), clazz);
+            state.getPacketMap().computeIfAbsent(direction, a -> new Int2ObjectOpenHashMap<>()).put(clazz.getDeclaredConstructor().newInstance().getId(), clazz);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
     }
 
     static {
-        register(Direction.BI, KeepAliveBiPacket.class); // 0x00
-        register(Direction.C2S, LoginC2SPacket.class); // 0x01
-        register(Direction.S2C, LoginS2CPacket.class); // 0x01
-        register(Direction.C2S, HandshakeC2SPacket.class); // 0x02
-        register(Direction.S2C, HandshakeC2SPacket.class); // 0x02
-        register(Direction.BI, ChatBiPacket.class); // 0x03
-        register(Direction.S2C, TimeUpdateS2CPacket.class); // 0x04
+        /*
+         * The keep-alive packet is bi-directional.
+         */
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, KeepAliveBiPacket.class); // 0x00
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, KeepAliveBiPacket.class); // 0x00
+        /*
+         * The login packet is bi-directional.
+         */
+        register(ConnectionState.LOGIN, Direction.CLIENTBOUND, LoginS2CPacket.class); // 0x01
+        register(ConnectionState.LOGIN, Direction.SERVERBOUND, LoginC2SPacket.class); // 0x01
 
-        register(Direction.S2C, SpawnPositionS2CPacket.class); // 0x06
+        /*
+         * The handshake packet is bi-directional.
+         */
+        register(ConnectionState.HANDSHAKING, Direction.CLIENTBOUND, HandshakeC2SPacket.class); // 0x02
+        register(ConnectionState.HANDSHAKING, Direction.SERVERBOUND, HandshakeC2SPacket.class); // 0x02
 
-        register(Direction.C2S, PlayerC2SPacket.class); // 0x0A
-        register(Direction.C2S, PlayerPosC2SPacket.class); // 0x0B
-        register(Direction.C2S, PlayerLookC2SPacket.class); // 0x0C
-        register(Direction.C2S, PlayerPosLookC2SPacket.class); // 0x0D
-        register(Direction.S2C, PlayerPosLookS2CPacket.class); // 0x0D
+        /*
+         * The chat packet is bi-directional.
+         */
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, BidirectionalChatPacket.class); // 0x03
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, BidirectionalChatPacket.class); // 0x03
 
-        register(Direction.S2C, NamedEntitySpawnS2CPacket.class); // 0x14
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, ClientboundSetTimePacket.class); // 0x04
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, SpawnPositionS2CPacket.class); // 0x06
 
-        register(Direction.S2C, EntityS2CPacket.class); // 0x1E
 
-        register(Direction.S2C, EntityTeleportS2CPacket.class); // 0x22
+        // register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerC2SPacket.class); // 0x0A
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundOnGroundPacket.class); // 0x0A
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosC2SPacket.class); // 0x0B
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerLookC2SPacket.class); // 0x0C
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosLookC2SPacket.class); // 0x0D
 
-        register(Direction.S2C, PreChunkS2CPacket.class); // 0x32
-        register(Direction.S2C, MapChunkS2CPacket.class); // 0x33
+        // register(Direction.CLIENTBOUND, NamedEntitySpawnS2CPacket.class); // 0x14
+        // register(Direction.CLIENTBOUND, EntityS2CPacket.class); // 0x1E
+        // register(Direction.CLIENTBOUND, EntityTeleportS2CPacket.class); // 0x22
 
-        register(Direction.S2C, EffectS2CPacket.class); // 0x33
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, PreChunkS2CPacket.class); // 0x32
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, MapChunkS2CPacket.class); // 0x33
 
-        register(Direction.S2C, WindowItemsS2CPacket.class); // 0x68
+        // register(Direction.CLIENTBOUND, EffectS2CPacket.class); // 0x33
 
-        register(Direction.C2S, ServerListPingC2SPacket.class); // 0xFE
-        register(Direction.S2C, DisconnectS2CPacket.class); // 0xFF
-    }
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, WindowItemsS2CPacket.class); // 0x68
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundPlayerActionPacket.class); // 0x13
 
-    public enum Direction {
-
-        C2S(new Int2ObjectOpenHashMap<>()),
-        S2C(new Int2ObjectOpenHashMap<>()),
-        BI(new Int2ObjectOpenHashMap<>());
-
-        private final Int2ObjectMap<Class<? extends Packet<?>>> map;
-
-        Direction(@NotNull Int2ObjectMap<Class<? extends Packet<?>>> map) {
-            this.map = map;
-        }
-        
-        Map<Integer, Class<? extends Packet<?>>> getPacketMap() {
-            return map;
-        }
+        register(ConnectionState.HANDSHAKING, Direction.SERVERBOUND, ServerListPingC2SPacket.class); // 0xFE
+        register(ConnectionState.HANDSHAKING, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
+        register(ConnectionState.LOGIN, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
     }
 }

@@ -10,16 +10,15 @@ public class LoginS2CPacket extends Packet<LoginS2CPacket> {
 
     private int entityId;
     private long seed;
-    private byte dimension, difficulty;
+    private byte dimension;
 
     public LoginS2CPacket() {
     }
 
-    public LoginS2CPacket(int entityId, long seed, byte dimension, byte difficulty) {
+    public LoginS2CPacket(int entityId, long seed, byte dimension) {
         this.entityId = entityId;
         this.seed = seed;
         this.dimension = dimension;
-        this.difficulty = difficulty;
     }
 
     public int getEntityId() {
@@ -32,10 +31,6 @@ public class LoginS2CPacket extends Packet<LoginS2CPacket> {
 
     public byte getDimension() {
         return dimension;
-    }
-
-    public byte getDifficulty() {
-        return difficulty;
     }
 
     @Override

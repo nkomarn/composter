@@ -5,14 +5,14 @@ import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 
-public class TimeUpdateS2CPacket extends Packet<TimeUpdateS2CPacket> {
+public class ClientboundSetTimePacket extends Packet<ClientboundSetTimePacket> {
 
     private long time;
 
-    public TimeUpdateS2CPacket() {
+    public ClientboundSetTimePacket() {
     }
 
-    public TimeUpdateS2CPacket(long time) {
+    public ClientboundSetTimePacket(long time) {
         this.time = time;
     }
 

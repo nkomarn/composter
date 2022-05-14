@@ -4,24 +4,21 @@ import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 
-public class PlayerPosC2SPacket extends Packet<PlayerPosC2SPacket> {
+public class PlayerPosC2SPacket extends ServerboundOnGroundPacket {
 
     private double x;
     private double y;
     private double z;
     private double stance;
-    private boolean grounded;
-
 
     public PlayerPosC2SPacket() {
     }
 
-    public PlayerPosC2SPacket(double x, double y, double z, double stance, boolean grounded) {
+    public PlayerPosC2SPacket(double x, double y, double z, double stance) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.stance = stance;
-        this.grounded = grounded;
     }
 
     public double getX() {
@@ -40,10 +37,6 @@ public class PlayerPosC2SPacket extends Packet<PlayerPosC2SPacket> {
         return stance;
     }
 
-    public boolean isGrounded() {
-        return grounded;
-    }
-
     @Override
     public int getId() {
         return 0x0B;
@@ -55,8 +48,8 @@ public class PlayerPosC2SPacket extends Packet<PlayerPosC2SPacket> {
         double y = buffer.readDouble();
         double stance = buffer.readDouble();
         double z = buffer.readDouble();
-        boolean grounded = buffer.readBoolean();
+        super.decode(buffer); // read on ground data
 
-        return new PlayerPosC2SPacket(x, y, z, stance, grounded);
+        return new PlayerPosC2SPacket(x, y, z, stance);
     }
 }

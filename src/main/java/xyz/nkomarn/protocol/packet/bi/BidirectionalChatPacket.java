@@ -6,14 +6,14 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
 
-public class ChatBiPacket extends Packet<ChatBiPacket> {
+public class BidirectionalChatPacket extends Packet<BidirectionalChatPacket> {
 
     private String message;
 
-    public ChatBiPacket() {
+    public BidirectionalChatPacket() {
     }
 
-    public ChatBiPacket(@NotNull String message) {
+    public BidirectionalChatPacket(@NotNull String message) {
         this.message = message;
     }
 
@@ -32,7 +32,7 @@ public class ChatBiPacket extends Packet<ChatBiPacket> {
     }
 
     @Override
-    public ChatBiPacket decode(@NotNull ByteBuf buffer) {
-        return new ChatBiPacket(ByteBufUtil.readString(buffer));
+    public BidirectionalChatPacket decode(@NotNull ByteBuf buffer) {
+        return new BidirectionalChatPacket(ByteBufUtil.readString(buffer));
     }
 }

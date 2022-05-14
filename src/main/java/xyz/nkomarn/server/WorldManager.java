@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WorldManager {
 
@@ -32,12 +33,16 @@ public class WorldManager {
         directory.toFile().mkdirs();
 
         // TODO temporarily create just 1 world
-        worlds.put(UUID.randomUUID(), new World(server, new World.Properties(
+        var seed = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, Long.MAX_VALUE);
+        var world = new World(server, new World.Properties(
                 UUID.randomUUID(),
+                seed,
                 new ChunkIO(server, directory.resolve("world"), chunkThread),
-                new BetaGenerator(server)
-                //new FlatGenerator()
-        ), chunkThread));
+                new BetaGenerator(server, seed)),
+                //new FlatGenerator(),
+                chunkThread
+        );
+        worlds.put(UUID.randomUUID(), world);
     }
 
     public Optional<World> getWorld(@NotNull UUID uuid) {

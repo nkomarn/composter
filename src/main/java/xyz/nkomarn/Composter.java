@@ -26,7 +26,7 @@ public final class Composter implements CommandSource {
     private final NetworkManager networkManager;
     private final WorldManager worldManager;
 
-    private long ticks = 0;
+    private long currentTick = 0;
     private final ScheduledExecutorService tickLoop;
 
     public static Location SPAWN;
@@ -41,16 +41,21 @@ public final class Composter implements CommandSource {
         this.worldManager = new WorldManager(this, Paths.get("worlds"));
         this.worldManager.load();
 
-        SPAWN = new Location(worldManager.getWorlds().iterator().next(), 0, 15, 0);
+        SPAWN = new Location(worldManager.getWorlds().iterator().next(), 0, 128, 0);
 
         this.tickLoop = Executors.newSingleThreadScheduledExecutor();
         this.tickLoop.scheduleAtFixedRate(() -> {
+            currentTick++;
             playerManager.tick();
             worldManager.tick();
-            ticks ++;
         }, 0, 50, TimeUnit.MILLISECONDS);
 
         networkManager.bind(port);
+    }
+
+    @Override
+    public String getName() {
+        return "Server";
     }
 
     public @NotNull Config getConfig() {
@@ -77,8 +82,8 @@ public final class Composter implements CommandSource {
         return worldManager;
     }
 
-    public long getTicks() {
-        return ticks;
+    public long currentTick() {
+        return currentTick;
     }
 
     @Override

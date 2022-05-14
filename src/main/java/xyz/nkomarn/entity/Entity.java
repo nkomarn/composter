@@ -7,16 +7,21 @@ import xyz.nkomarn.world.World;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Entity {
 
-    protected boolean alive = true;
 
+    private static final AtomicInteger ENTITY_COUNTER = new AtomicInteger();
+
+    private final int id;
     protected World world;
     protected Location location;
     protected UUID uuid;
+    private boolean removed;
 
     public Entity(@NotNull World world) {
+        this.id = ENTITY_COUNTER.getAndIncrement();
         this.world = world;
         this.location = new Location(world, 0, 15, 0);
         this.uuid = UUID.randomUUID();
@@ -37,7 +42,7 @@ public abstract class Entity {
     }
 
     public int getId() {
-        return Math.abs(uuid.hashCode()); // TODO temporary
+        return id;
     }
 
     public UUID getUUID() {
@@ -46,6 +51,14 @@ public abstract class Entity {
 
     public Location getLocation() {
         return location;
+    }
+
+    public boolean isRemoved() {
+        return removed;
+    }
+
+    public void markRemoved() {
+        this.removed = true;
     }
 
     public void tick() {

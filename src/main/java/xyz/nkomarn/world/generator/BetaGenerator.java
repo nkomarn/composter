@@ -8,6 +8,7 @@ import xyz.nkomarn.world.noise.NoiseGeneratorOctaves3D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class BetaGenerator implements WorldGenerator {
 
@@ -36,10 +37,9 @@ public class BetaGenerator implements WorldGenerator {
     private double noise6[];
     private double noise7[];
 
-    public BetaGenerator(@NotNull Composter server) {
+    public BetaGenerator(@NotNull Composter server, long worldSeed) {
         this.server = server;
-        // this.worldSeed = server.getConfig().getInteger("world.seed"); // TODO we need a long method in the config file
-        this.worldSeed = 2151901553968352745l; // TODO we need a long method in the config file
+        this.worldSeed = worldSeed;
         rand = new Random(worldSeed);
         noiseGen1 = new NoiseGeneratorOctaves3D(rand, 16, false);
         noiseGen2 = new NoiseGeneratorOctaves3D(rand, 16, false);

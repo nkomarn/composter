@@ -32,4 +32,8 @@ public class ByteBufUtil {
         for (char c : chars) buffer.writeChar(c);
         return buffer;
     }
+
+    public static int toAbsolute(double value) {
+        return (int)(Math.abs(value) * 32.0);
+    }
 }

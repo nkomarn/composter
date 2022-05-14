@@ -36,7 +36,7 @@ public class WindowItemsS2CPacket extends Packet<WindowItemsS2CPacket> {
                 buffer.writeShort(-1);
             } else {
                 buffer.writeShort(item)
-                        .writeByte((byte) 5)
+                        .writeByte((byte) 127) // TODO
                         .writeShort((short) 7);
             }
         }

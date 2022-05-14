@@ -3,20 +3,20 @@ package xyz.nkomarn.world;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.entity.Entity;
-import xyz.nkomarn.protocol.packet.s2c.TimeUpdateS2CPacket;
+import xyz.nkomarn.protocol.packet.s2c.ClientboundSetTimePacket;
 import xyz.nkomarn.type.Chunk;
 import xyz.nkomarn.type.Location;
 import xyz.nkomarn.world.generator.WorldGenerator;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class World {
 
-    private final Location spawn = new Location(this, 0, 100, 0); // TODO implement for player spawning at some point
+    private final Location spawn = new Location(this, 0, 128, 0); // TODO implement for player spawning at some point
     // TODO entities list
 
     private final Composter server;
@@ -25,7 +25,7 @@ public class World {
 
     private final HashMap<Chunk.Key, Chunk> loadedChunks;
     private final HashMap<UUID, Entity> entities;
-
+    private final long seed;
     private long time = 0;
 
     public World(@NotNull Composter server, @NotNull Properties properties, @NotNull ExecutorService thread) {
@@ -34,10 +34,15 @@ public class World {
         this.thread = thread;
         this.loadedChunks = new HashMap<>();
         this.entities = new HashMap<>();
+        this.seed = ThreadLocalRandom.current().nextLong();
     }
 
     public UUID getUUID() {
         return properties.uuid;
+    }
+
+    public Properties getProperties() {
+        return properties;
     }
 
     public Chunk getChunkImmediately(int x, int z) {
@@ -81,21 +86,23 @@ public class World {
         return spawn;
     }
 
-    public HashMap<UUID, Entity> getEntities() {
-        return entities;
+    public Collection<Entity> getEntities() {
+        return entities.values();
     }
 
-    public void trackEntity(@NotNull Entity entity) {
+    public void addEntity(@NotNull Entity entity) {
         entities.put(entity.getUUID(), entity);
     }
 
     public void tick() {
         time += 1; // TODO change to just ++
 
-        if (server.getTicks() % 20 == 0) {
+        entities.values().removeIf(Entity::isRemoved);
+
+        if (server.currentTick() % 20 == 0) {
             server.getPlayerManager().getPlayers().stream()
                     .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
-                    .forEach(player -> player.getSession().sendPacket(new TimeUpdateS2CPacket(time)));
+                    .forEach(player -> player.getSession().sendPacket(new ClientboundSetTimePacket(time)));
         }
     }
 
@@ -104,17 +111,23 @@ public class World {
     public static class Properties {
 
         private final UUID uuid;
+        private final long seed;
         private final ChunkIO io;
         private final WorldGenerator generator;
 
-        public Properties(@NotNull UUID uuid, @NotNull ChunkIO io, @NotNull WorldGenerator generator) {
+        public Properties(@NotNull UUID uuid, long seed, @NotNull ChunkIO io, @NotNull WorldGenerator generator) {
             this.uuid = uuid;
+            this.seed = seed;
             this.io = io;
             this.generator = generator;
         }
 
         public @NotNull UUID getUUID() {
             return uuid;
+        }
+
+        public long getSeed() {
+            return seed;
         }
 
         public @NotNull ChunkIO getIO() {

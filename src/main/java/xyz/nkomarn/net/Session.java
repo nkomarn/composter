@@ -2,6 +2,7 @@ package xyz.nkomarn.net;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
 import xyz.nkomarn.protocol.Packet;
@@ -12,10 +13,10 @@ import java.util.Optional;
 
 public class Session {
 
+    public static final AttributeKey<Session> SESSION_KEY = AttributeKey.valueOf("session");
     private final Composter server;
     private final Channel channel;
-
-    private State state;
+    private ConnectionState connectionState;
     private Player player;
 
     //private final Queue<Packet> queue = new ArrayDeque<>();
@@ -23,7 +24,7 @@ public class Session {
     public Session(@NotNull Composter server, @NotNull Channel channel) {
         this.server = server;
         this.channel = channel;
-        this.state = State.HANDSHAKE;
+        this.connectionState = ConnectionState.HANDSHAKING;
     }
 
     public @NotNull Composter getServer() {
@@ -34,12 +35,12 @@ public class Session {
         return this.channel;
     }
 
-    public State getState() {
-        return this.state;
+    public ConnectionState connectionState() {
+        return connectionState;
     }
 
-    public void setState(final State state) {
-        this.state = state;
+    public void setState(final ConnectionState connectionState) {
+        this.connectionState = connectionState;
     }
 
     public Optional<Player> getPlayer() {
@@ -85,10 +86,4 @@ public class Session {
             // TODO timeout
         }
     }*/
-
-    public enum State {
-        HANDSHAKE,
-        LOGIN,
-        PLAY
-    }
 }

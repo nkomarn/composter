@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.protocol.Packet;
 
-public class PlayerPosLookC2SPacket extends Packet<PlayerPosLookC2SPacket> {
+public class PlayerPosLookC2SPacket extends ServerboundOnGroundPacket {
 
     private double x;
     private double y;
@@ -12,19 +12,17 @@ public class PlayerPosLookC2SPacket extends Packet<PlayerPosLookC2SPacket> {
     private double stance;
     private float yaw;
     private float pitch;
-    private boolean grounded;
 
     public PlayerPosLookC2SPacket() {
     }
 
-    public PlayerPosLookC2SPacket(double x, double y, double z, float yaw, float pitch, double stance, boolean grounded) {
+    public PlayerPosLookC2SPacket(double x, double y, double z, float yaw, float pitch, double stance) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
         this.stance = stance;
-        this.grounded = grounded;
     }
 
     public double getX() {
@@ -51,10 +49,6 @@ public class PlayerPosLookC2SPacket extends Packet<PlayerPosLookC2SPacket> {
         return stance;
     }
 
-    public boolean isGrounded() {
-        return grounded;
-    }
-
     @Override
     public int getId() {
         return 0x0D;
@@ -68,8 +62,8 @@ public class PlayerPosLookC2SPacket extends Packet<PlayerPosLookC2SPacket> {
         double z = buffer.readDouble();
         float yaw = buffer.readFloat();
         float pitch = buffer.readFloat();
-        boolean grounded = buffer.readBoolean();
+        super.decode(buffer);
 
-        return new PlayerPosLookC2SPacket(x, y, z, yaw, pitch, stance, grounded);
+        return new PlayerPosLookC2SPacket(x, y, z, yaw, pitch, stance);
     }
 }

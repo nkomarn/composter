@@ -2,11 +2,13 @@ package xyz.nkomarn.protocol;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.Composter;
+import xyz.nkomarn.net.ConnectionState;
 import xyz.nkomarn.net.Session;
-import xyz.nkomarn.protocol.packet.bi.ChatBiPacket;
+import xyz.nkomarn.protocol.packet.bi.BidirectionalChatPacket;
 import xyz.nkomarn.protocol.packet.c2s.LoginC2SPacket;
 import xyz.nkomarn.protocol.packet.c2s.PlayerPosC2SPacket;
 import xyz.nkomarn.protocol.packet.c2s.PlayerPosLookC2SPacket;
+import xyz.nkomarn.protocol.packet.c2s.ServerboundPlayerActionPacket;
 import xyz.nkomarn.protocol.packet.s2c.HandshakeS2CPacket;
 import xyz.nkomarn.type.Location;
 
@@ -26,7 +28,7 @@ public class PacketHandler {
     }
 
     public void handle(@NotNull Session session, @NotNull Packet<?> packet) {
-        Handler handler = State.valueOf(session.getState().name()).getHandlerMap().get(packet.getId());
+        Handler handler = State.valueOf(session.connectionState().name()).getHandlerMap().get(packet.getId());
 
         if (handler == null) {
             // TODO something idk maybe asdhjkhjsadkfhasdjfhdhjbdasfhjkasdhkfafasjfadskhfjhk :))))
@@ -41,14 +43,14 @@ public class PacketHandler {
         register(0x01, State.LOGIN, (session, packet) -> {
             LoginC2SPacket loginPacket = (LoginC2SPacket) packet;
             Composter server = session.getServer();
-            Session.State state = session.getState();
+            var state = session.connectionState();
 
             if (loginPacket.getProtocol() != 14) {
                 session.disconnect(server.getConfig().getString("messages.unsupported_protocol"));
                 return;
             }
 
-            if (state != Session.State.LOGIN) {
+            if (state != ConnectionState.LOGIN) {
                 session.disconnect(server.getConfig().getString("messages.already_logged_in"));
                 return;
             }
@@ -57,12 +59,12 @@ public class PacketHandler {
         });
 
         // Handshake
-        register(0x02, State.HANDSHAKE, (session, packet) -> {
-            Session.State state = session.getState();
+        register(0x02, State.HANDSHAKING, (session, packet) -> {
+            var state = session.connectionState();
 
-            if (state == Session.State.HANDSHAKE) {
+            if (state == ConnectionState.HANDSHAKING) {
                 session.sendPacket(new HandshakeS2CPacket("-"));
-                session.setState(Session.State.LOGIN);
+                session.setState(ConnectionState.LOGIN);
             } else {
                 session.disconnect(session.getServer().getConfig().getString("messages.already_handshook"));
             }
@@ -70,7 +72,7 @@ public class PacketHandler {
 
         // Chat message
         register(0x03, State.PLAY, (session, packet) -> {
-            ChatBiPacket chatPacket = (ChatBiPacket) packet;
+            BidirectionalChatPacket chatPacket = (BidirectionalChatPacket) packet;
             session.getPlayer().ifPresent(player -> session.getServer().getPlayerManager().onChat(player, chatPacket.getMessage()));
         });
 
@@ -110,8 +112,23 @@ public class PacketHandler {
             });
         });
 
+        register(0x13, State.PLAY, ((session, packet) -> {
+            var actionPacket = (ServerboundPlayerActionPacket) packet;
+            var player = session.getPlayer().orElseThrow();
+
+            switch (actionPacket.getAction()) {
+                case START_CROUCHING -> {
+                    player.setCrouching(true);
+                }
+
+                case STOP_CROUCHING -> {
+                    player.setCrouching(false);
+                }
+            }
+        }));
+
         // Server list ping (for beta 1.8 - release 1.6.4)
-        register(0xFE, State.HANDSHAKE, (session, packet) -> {
+        register(0xFE, State.HANDSHAKING, (session, packet) -> {
             Composter server = session.getServer();
             if (server.getConfig().getBoolean("motd.enabled")) {
                 session.disconnect(String.format("%s§%s§%s", server.getConfig().getString("motd.message"),
@@ -123,7 +140,7 @@ public class PacketHandler {
 
     public enum State {
 
-        HANDSHAKE(new HashMap<>()),
+        HANDSHAKING(new HashMap<>()),
         LOGIN(new HashMap<>()),
         PLAY(new HashMap<>());
 

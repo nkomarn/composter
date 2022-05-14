@@ -5,6 +5,7 @@ import xyz.nkomarn.Composter;
 import xyz.nkomarn.command.CommandExecutor;
 import xyz.nkomarn.command.CommandSource;
 import xyz.nkomarn.entity.Player;
+import xyz.nkomarn.protocol.packet.s2c.WindowItemsS2CPacket;
 import xyz.nkomarn.type.Location;
 
 import java.util.Arrays;
@@ -58,6 +59,23 @@ public class CommandManager {
                     ));
                 }
             }
+        });
+
+        register("give", (source, arguments) -> {
+            int[] items = new int[45];
+            Arrays.fill(items, Integer.parseInt(arguments[0]));
+            ((Player) source).getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items));
+
+            source.sendMessage("§dGAVE YOU ITEMS LOL");
+        });
+
+        register("say", (source, arguments) -> {
+            var message = String.join(" ", arguments);
+            server.getPlayerManager().broadcastMessage(String.format("§d[%s] %s", source.getName(), message));
+        });
+
+        register("seed", (source, arguments) -> {
+            source.sendMessage("The current world seed is §a[" + server.getWorldManager().getWorlds().stream().findFirst().orElseThrow().getProperties().getSeed() + "]");
         });
     }
 }

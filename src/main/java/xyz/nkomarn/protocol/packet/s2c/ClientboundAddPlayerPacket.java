@@ -3,10 +3,13 @@ package xyz.nkomarn.protocol.packet.s2c;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.entity.Player;
 import xyz.nkomarn.protocol.Packet;
 import xyz.nkomarn.util.ByteBufUtil;
 
-public class NamedEntitySpawnS2CPacket extends Packet<NamedEntitySpawnS2CPacket> {
+import static xyz.nkomarn.util.ByteBufUtil.toAbsolute;
+
+public class ClientboundAddPlayerPacket extends Packet<ClientboundAddPlayerPacket> {
 
     private int id;
     private String name;
@@ -17,10 +20,21 @@ public class NamedEntitySpawnS2CPacket extends Packet<NamedEntitySpawnS2CPacket>
     private byte pitch;
     private short item;
 
-    public NamedEntitySpawnS2CPacket() {
+    public ClientboundAddPlayerPacket() {
     }
 
-    public NamedEntitySpawnS2CPacket(int id, @NotNull String name, int x, int y, int z, byte rotation, byte pitch, short item) {
+    public ClientboundAddPlayerPacket(Player player) {
+        this.id = player.getId();
+        this.name = player.getUsername();
+        this.x = toAbsolute(player.getLocation().getX());
+        this.y = toAbsolute(player.getLocation().getY());
+        this.z = toAbsolute(player.getLocation().getZ());
+        this.rotation = (byte) 0;
+        this.pitch = (byte) 0;
+        this.item = (short) 0;
+    }
+
+    public ClientboundAddPlayerPacket(int id, String name, int x, int y, int z, byte rotation, byte pitch, short item) {
         this.id = id;
         this.name = name;
         this.x = x;
