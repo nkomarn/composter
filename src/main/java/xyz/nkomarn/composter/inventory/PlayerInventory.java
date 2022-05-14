@@ -1,8 +1,5 @@
 package xyz.nkomarn.composter.inventory;
 
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.nbt.CompoundTag;
-
 public class PlayerInventory implements Inventory {
 
     private final int[] items = new int[36];
@@ -30,11 +27,5 @@ public class PlayerInventory implements Inventory {
 
     @Override
     public void update() {
-
-    }
-
-    @Override
-    public @NotNull CompoundTag toNBT() {
-        return null;
     }
 }

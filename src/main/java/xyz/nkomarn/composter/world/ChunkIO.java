@@ -2,18 +2,11 @@ package xyz.nkomarn.composter.world;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.nbt.ByteArrayTag;
-import xyz.nkomarn.composter.nbt.CompoundTag;
-import xyz.nkomarn.composter.nbt.NBTInputStream;
-import xyz.nkomarn.composter.nbt.Tag;
 import xyz.nkomarn.composter.type.Chunk;
-import xyz.nkomarn.composter.world.region.RegionFile;
 import xyz.nkomarn.composter.world.region.RegionFileCache;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -32,6 +25,7 @@ public class ChunkIO {
     }
 
     public CompletableFuture<Chunk> read(int x, int z) {
+        /*
         CompletableFuture<Chunk> future = new CompletableFuture<>();
         thread.submit(() -> {
             try {
@@ -90,6 +84,9 @@ public class ChunkIO {
             }
         });
         return future;
+         */
+
+        return CompletableFuture.completedFuture(null);
     }
 
     public void write(final int x, final int z, final Chunk chunk) throws IOException {

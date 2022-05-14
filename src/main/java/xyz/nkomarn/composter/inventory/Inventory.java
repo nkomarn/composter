@@ -1,8 +1,5 @@
 package xyz.nkomarn.composter.inventory;
 
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.nbt.CompoundTag;
-
 public interface Inventory {
 
     int getSize();
@@ -14,6 +11,4 @@ public interface Inventory {
     int[] getItems();
 
     void update();
-
-    @NotNull CompoundTag toNBT();
 }
