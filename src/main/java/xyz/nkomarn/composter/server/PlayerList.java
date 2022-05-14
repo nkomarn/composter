@@ -23,7 +23,7 @@ public class PlayerList {
     }
 
     public void broadcastPacket(Packet<?> packet) {
-        onlinePlayers.values().forEach(player -> player.getSession().sendPacket(packet));
+        onlinePlayers.values().forEach(player -> player.connection().sendPacket(packet));
     }
 
     public void playerJoined(Player player) {

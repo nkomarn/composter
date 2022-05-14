@@ -41,7 +41,7 @@ public class PlayerManager {
 
         if (players.containsKey(username.toLowerCase())) {
             String playerName = username.toLowerCase();
-            players.get(playerName).getSession().disconnect("Logged in from another location.");
+            players.get(playerName).connection().disconnect("Logged in from another location.");
             players.remove(playerName);
         }
 
@@ -59,8 +59,8 @@ public class PlayerManager {
         player.syncChunks(true);
 
         Location worldSpawn = player.getWorld().getSpawn();
-        player.getSession().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
-        player.getSession().sendPacket(new PlayerPosLookS2CPacket(0, 128, 0, 0, 0, 67.240000009536743D, false));
+        player.connection().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
+        player.connection().sendPacket(new PlayerPosLookS2CPacket(0, 128, 0, 0, 0, 67.240000009536743D, false));
         broadcastMessage(Component.text(player.getUsername() + " joined the game.", NamedTextColor.YELLOW));
 
         player.sendMessage(Component.text("Welcome to Composter :)", NamedTextColor.GOLD));
@@ -88,10 +88,12 @@ public class PlayerManager {
     }
 
     public void onMove(@NotNull Player player, @NotNull Location oldLocation, @NotNull Location newLocation) {
+        /*
         if (!player.getWorld().isChunkLoaded(newLocation.getChunk())) {
             // player.updateLocation();
             return;
         }
+         */
 
         // TODO check for invalid move (so people can't teleport halfway across the world with no limitations)
         player.setLocation(newLocation);
@@ -105,7 +107,7 @@ public class PlayerManager {
         }
 
         for (var player : players.values()) {
-            player.getSession().sendPacket(new KeepAliveBiPacket());
+            player.connection().sendPacket(new KeepAliveBiPacket());
         }
     }
 }

@@ -1,5 +1,7 @@
 package xyz.nkomarn.composter.entity;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
@@ -23,20 +25,21 @@ public final class Player extends Entity implements CommandSource {
     private final Connection connection;
     private final String username;
     private final EntityTracker tracker;
-    private final Set<Chunk.Key> loadedChunks = new HashSet<>();
+    private final LongSet loadedChunks;
     private boolean crouching;
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
     //TODO crouching support
 
-    public Player(@NotNull Connection connection, @NotNull String username) {
+    public Player(Connection connection, String username) {
         super(Composter.SPAWN.getWorld());
         this.connection = connection;
         this.username = username;
         this.tracker = new EntityTracker(this);
+        this.loadedChunks = new LongOpenHashSet();
     }
 
-    public Connection getSession() {
+    public Connection connection() {
         return connection;
     }
 
@@ -88,7 +91,8 @@ public final class Player extends Entity implements CommandSource {
                 location.getYaw(),
                 location.getPitch(),
                 DEFAULT_STANCE,
-                isTouchingGround()
+                false
+                // isTouchingGround()
         ));
     }
 
@@ -101,47 +105,42 @@ public final class Player extends Entity implements CommandSource {
         // TODO tracker.tick();
     }
 
-    public synchronized void syncChunks(boolean sync) {
-        final Set<Chunk.Key> previousChunks = new HashSet<>(loadedChunks);
-        final int centralX = ((int) this.location.getX()) / 16;
-        final int centralZ = ((int) this.location.getZ()) / 16;
-        final int viewDistance = 3; // customizable in config
+    public void syncChunks(boolean sync) {
+        // calculate which chunks need to be loaded.
+        // make sure all of those chunks are loaded (check the loaded set for keys)
+        // if any extra chunk is loaded, send unload packet for them!
 
-        for (int x = (centralX - viewDistance); x <= (centralX + viewDistance); x++) {
-            for (int z = (centralZ - viewDistance); z <= (centralZ + viewDistance); z++) {
-                Chunk.Key key = new Chunk.Key(x, z);
+        var currentChunkX = location.getBlockX() >> 4;
+        var currentChunkZ = location.getBlockZ() >> 4;
+        var viewDistance = 10;
 
-                if (!loadedChunks.contains(key)) {
-                    loadedChunks.add(key);
+        var currentlyLoaded = new LongOpenHashSet(loadedChunks);
 
-                    if (sync) { // TODO hacky af but itll do for now
-                        try {
-                            Chunk chunk = world.getChunk(x, z).get();
-                            this.connection.sendPacket(new PreChunkS2CPacket(x, z, true));
-                            this.connection.sendPacket(new MapChunkS2CPacket(x * 16, (short) 0, z * 16, chunk.serializeTileData()));
-                        } catch (InterruptedException | ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        final int finalX = x;
-                        final int finalZ = z;
+        for (var x = (currentChunkX - viewDistance); x < (currentChunkX + viewDistance); x++) {
+            for (var z = (currentChunkZ - viewDistance); z < (currentChunkZ + viewDistance); z++) {
+                var chunkKey = Chunk.key(x, z);
 
-                        world.getChunk(x, z).thenAccept(chunk -> {
-                            this.connection.sendPacket(new PreChunkS2CPacket(finalX, finalZ, true));
-                            this.connection.sendPacket(new MapChunkS2CPacket(finalX * 16, (short) 0, finalZ * 16, chunk.serializeTileData()));
-                        });
-                    }
+                if (currentlyLoaded.contains(chunkKey)) {
+                    currentlyLoaded.remove(chunkKey);
+                    continue;
                 }
 
-                previousChunks.remove(key);
+                connection.sendPacket(new PreChunkS2CPacket(x, z, true));
+                connection.sendPacket(new MapChunkS2CPacket(world.getChunk(x, z)));
+                loadedChunks.add(chunkKey);
             }
         }
 
-        for (Chunk.Key key : previousChunks) {
-            this.connection.sendPacket(new PreChunkS2CPacket(key.getX(), key.getZ(), false));
-            loadedChunks.remove(key);
-        }
+        /* FIXME occasionally causes chunk errors
+        currentlyLoaded.removeIf(key -> {
+            var chunk = world.getLoadedChunk(key);
 
-        previousChunks.clear();
+            if (chunk != null) {
+                connection.sendPacket(new PreChunkS2CPacket(chunk.getX(), chunk.getZ(), false));
+            }
+
+            return true;
+        });
+         */
     }
 }

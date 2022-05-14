@@ -72,7 +72,7 @@ public class CommandManager {
         register("give", (source, arguments) -> {
             int[] items = new int[45];
             Arrays.fill(items, Integer.parseInt(arguments[0]));
-            ((Player) source).getSession().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items));
+            ((Player) source).connection().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items));
 
             source.sendMessage(Component.text("GAVE YOU ITEMS LOL", NamedTextColor.LIGHT_PURPLE));
         });

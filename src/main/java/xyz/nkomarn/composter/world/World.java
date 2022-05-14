@@ -1,6 +1,11 @@
 package xyz.nkomarn.composter.world;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
@@ -23,7 +28,7 @@ public class World {
     private final Properties properties;
     private final ExecutorService thread;
 
-    private final HashMap<Chunk.Key, Chunk> loadedChunks;
+    private final Long2ObjectMap<Chunk> loadedChunks;
     private final HashMap<UUID, Entity> entities;
     private final long seed;
     private long time = 0;
@@ -32,7 +37,7 @@ public class World {
         this.server = server;
         this.properties = properties;
         this.thread = thread;
-        this.loadedChunks = new HashMap<>();
+        this.loadedChunks = new Long2ObjectOpenHashMap<>();
         this.entities = new HashMap<>();
         this.seed = ThreadLocalRandom.current().nextLong();
     }
@@ -45,41 +50,36 @@ public class World {
         return properties;
     }
 
-    public Chunk getChunkImmediately(int x, int z) {
-        try {
-            return getChunk(x, z).get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-            return null;
+    @Nullable
+    public Chunk getLoadedChunk(long key) {
+        return loadedChunks.get(key);
+    }
+
+    public Chunk getChunk(int x, int z) {
+        var chunk = loadedChunks.get(Chunk.key(x, z));
+
+        if (chunk == null) {
+            chunk = properties.getGenerator().generate(x, z);
+            loadedChunks.put(chunk.key(), chunk);
+            /*
+            properties.getIO().read(x, z).thenAccept(futureChunk -> {
+                if (futureChunk != null) {
+                    future.complete(futureChunk);
+                    return;
+                }
+
+                Chunk newChunk = properties.getGenerator().generate(x, z);
+                loadedChunks.put(key, newChunk);
+                future.complete(newChunk);
+            });
+             */
         }
+
+        return chunk;
     }
 
-    public CompletableFuture<Chunk> getChunk(int x, int z) {
-        CompletableFuture<Chunk> future = new CompletableFuture<>();
-        thread.submit(() -> {
-            Chunk.Key key = new Chunk.Key(x, z);
-            Chunk chunk = loadedChunks.get(key);
-
-            if (chunk == null) {
-                properties.getIO().read(x, z).thenAccept(futureChunk -> {
-                    if (futureChunk != null) {
-                        future.complete(futureChunk);
-                        return;
-                    }
-
-                    Chunk newChunk = properties.getGenerator().generate(x, z);
-                    loadedChunks.put(key, newChunk);
-                    future.complete(newChunk);
-                });
-            } else {
-                future.complete(chunk);
-            }
-        });
-        return future;
-    }
-
-    public boolean isChunkLoaded(@NotNull Chunk.Key chunk) {
-        return loadedChunks.containsKey(chunk);
+    public boolean isChunkLoaded(int x, int z) {
+        return loadedChunks.containsKey(Chunk.key(x, z));
     }
 
     public Location getSpawn() {
@@ -102,7 +102,7 @@ public class World {
         if (server.currentTick() % 20 == 0) {
             server.getPlayerManager().getPlayers().stream()
                     .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
-                    .forEach(player -> player.getSession().sendPacket(new ClientboundSetTimePacket(time)));
+                    .forEach(player -> player.connection().sendPacket(new ClientboundSetTimePacket(time)));
         }
     }
 

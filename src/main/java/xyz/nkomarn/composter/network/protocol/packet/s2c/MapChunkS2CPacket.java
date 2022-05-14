@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.network.protocol.Packet;
+import xyz.nkomarn.composter.type.Chunk;
 
 import java.util.zip.Deflater;
 
@@ -17,11 +18,11 @@ public class MapChunkS2CPacket extends Packet<MapChunkS2CPacket> {
     public MapChunkS2CPacket() {
     }
 
-    public MapChunkS2CPacket(int x, short y, int z, byte[] data) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.data = data;
+    public MapChunkS2CPacket(Chunk chunk) {
+        this.x = chunk.getX() * 16;
+        this.y = (short) 0;
+        this.z = chunk.getZ() * 16;
+        this.data = chunk.serializeTileData();
     }
 
     @Override

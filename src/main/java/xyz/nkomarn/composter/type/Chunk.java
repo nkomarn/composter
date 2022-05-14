@@ -8,6 +8,7 @@ import java.util.Arrays;
 public class Chunk {
 
     private final int x, z;
+    private final long key;
     private final byte[] blocks, metadata, skyLight, blockLight;
     private final int arraySize = 32768;
     private int lastX, lastY, lastZ;
@@ -15,6 +16,8 @@ public class Chunk {
     public Chunk(final int x, final int z) {
         this.x = x;
         this.z = z;
+        this.key = key(x, z);
+
         this.blocks = new byte[16 * 16 * 128];
         this.metadata = new byte[arraySize];
         this.skyLight = new byte[arraySize];
@@ -25,6 +28,13 @@ public class Chunk {
         Arrays.fill(blockLight, (byte) 15);
     }
 
+    public static long key(int x, int z) {
+        return (long) x & 4294967295L | ((long) z & 4294967295L) << 32;
+    }
+
+    public long key() {
+        return key;
+    }
 
     public int getX() {
         return this.x;
@@ -66,11 +76,13 @@ public class Chunk {
         return 15;
     }
 
-    public void setLastBlock(int x, int y, int z){
-        lastX = x; lastY = y; lastZ = z;
+    public void setLastBlock(int x, int y, int z) {
+        lastX = x;
+        lastY = y;
+        lastZ = z;
     }
 
-    public int[] getLastBlock(){
+    public int[] getLastBlock() {
         return new int[]{lastX, lastY, lastZ};
     }
 
@@ -99,53 +111,10 @@ public class Chunk {
     }
 
     public boolean isEmpty(int blockX, int blockY, int blockZ) {
-        if(getType(blockX, blockY, blockZ) == 0){
+        if (getType(blockX, blockY, blockZ) == 0) {
             return true;
-        }else{
+        } else {
             return false;
-        }
-    }
-
-    // Used for getting chunk by coordinates in HashMap
-    public static final class Key {
-        private final int x, z;
-
-        public Key(int x, int z) {
-            this.x = x;
-            this.z = z;
-        }
-
-        public int getX() {
-            return x;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + x;
-            result = prime * result + z;
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Key other = (Key) obj;
-            if (x != other.x)
-                return false;
-            if (z != other.z)
-                return false;
-            return true;
         }
     }
 

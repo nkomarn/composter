@@ -60,10 +60,6 @@ public class Location {
         return this.world;
     }
 
-    public Chunk.Key getChunk() {
-       return new Chunk.Key((int) Math.floor(x / 16), (int) Math.floor(z / 16));
-    }
-
     @Override
     public String toString() {
         return "Location{" +

@@ -43,7 +43,7 @@ public class EntityTracker {
 
     private void trackNewEntity(Entity entity) {
         if (entity instanceof Player otherPlayer) {
-            player.getSession().sendPacket(new ClientboundAddPlayerPacket(otherPlayer));
+            player.connection().sendPacket(new ClientboundAddPlayerPacket(otherPlayer));
         }
 
         trackedEntities.add(entity.getId());
@@ -52,11 +52,11 @@ public class EntityTracker {
 
     private void untrackEntity(Entity entity) {
         trackedEntities.remove(entity.getId());
-        player.getSession().sendPacket(new ClientboundRemoveEntityPacket(entity));
+        player.connection().sendPacket(new ClientboundRemoveEntityPacket(entity));
         LOGGER.info("{} untracked entity with id {}.", player.getUsername(), entity.getId());
     }
 
     public void updateLocation(Entity entity) {
-        player.getSession().sendPacket(new ClientboundTeleportEntityPacket(entity));
+        player.connection().sendPacket(new ClientboundTeleportEntityPacket(entity));
     }
 }
