@@ -2,10 +2,8 @@ package xyz.nkomarn.composter.network.protocol;
 
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.network.ConnectionState;
-import xyz.nkomarn.composter.network.Session;
+import xyz.nkomarn.composter.network.Connection;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.HandshakeS2CPacket;
 import xyz.nkomarn.composter.type.Location;
 
@@ -24,15 +22,15 @@ public class PacketHandler {
         state.getHandlerMap().put(id, handler);
     }
 
-    public void handle(@NotNull Session session, @NotNull Packet<?> packet) {
-        Handler handler = State.valueOf(session.connectionState().name()).getHandlerMap().get(packet.getId());
+    public void handle(@NotNull Connection connection, @NotNull Packet<?> packet) {
+        Handler handler = State.valueOf(connection.state().name()).getHandlerMap().get(packet.getId());
 
         if (handler == null) {
             // TODO something idk maybe asdhjkhjsadkfhasdjfhdhjbdasfhjkasdhkfafasjfadskhfjhk :))))
             return;
         }
 
-        handler.handle(session, packet);
+        handler.handle(connection, packet);
     }
 
     static {
@@ -40,7 +38,7 @@ public class PacketHandler {
         register(0x01, State.LOGIN, (session, packet) -> {
             LoginC2SPacket loginPacket = (LoginC2SPacket) packet;
             Composter server = session.getServer();
-            var state = session.connectionState();
+            var state = session.state();
 
             if (loginPacket.getProtocol() != 14) {
                 session.disconnect(server.getConfig().getString("messages.unsupported_protocol"));
@@ -57,7 +55,7 @@ public class PacketHandler {
 
         // Handshake
         register(0x02, State.HANDSHAKING, (session, packet) -> {
-            var state = session.connectionState();
+            var state = session.state();
 
             if (state == ConnectionState.HANDSHAKING) {
                 session.sendPacket(new HandshakeS2CPacket("-"));
@@ -124,6 +122,12 @@ public class PacketHandler {
             }
         }));
 
+        // Client disconnection
+        register(0xFF, State.PLAY, (connection, packet) -> {
+            System.out.println("disconnect packet");
+            connection.close();
+        });
+
         // Server list ping (for beta 1.8 - release 1.6.4)
         register(0xFE, State.HANDSHAKING, (session, packet) -> {
             Composter server = session.getServer();
@@ -155,6 +159,6 @@ public class PacketHandler {
     @FunctionalInterface
     public interface Handler {
 
-        void handle(@NotNull Session session, @NotNull Packet<?> packet);
+        void handle(@NotNull Connection connection, @NotNull Packet<?> packet);
     }
 }

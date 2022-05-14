@@ -11,6 +11,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import xyz.nkomarn.composter.network.pipeline.ChannelHandler;
+import xyz.nkomarn.composter.network.pipeline.Decoder;
+import xyz.nkomarn.composter.network.pipeline.Encoder;
 import xyz.nkomarn.composter.server.NetworkManager;
 
 public class Bootstrap {
@@ -37,7 +40,7 @@ public class Bootstrap {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast(new Decoder(networkManager.getProtocol()))
+                                    .addLast(new Decoder())
                                     .addLast(new Encoder())
                                     .addLast(new ChannelHandler(networkManager.getServer()));
                         }

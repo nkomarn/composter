@@ -1,8 +1,7 @@
-package xyz.nkomarn.composter.network;
+package xyz.nkomarn.composter.network.protocol;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.Nullable;
-import xyz.nkomarn.composter.network.protocol.Packet;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.EnumMap;

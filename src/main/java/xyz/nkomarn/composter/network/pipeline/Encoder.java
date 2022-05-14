@@ -1,4 +1,4 @@
-package xyz.nkomarn.composter.network;
+package xyz.nkomarn.composter.network.pipeline;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;

@@ -1,8 +1,6 @@
 package xyz.nkomarn.composter.network.protocol;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import xyz.nkomarn.composter.network.ConnectionState;
-import xyz.nkomarn.composter.network.Direction;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
@@ -11,32 +9,6 @@ import xyz.nkomarn.composter.network.protocol.packet.s2c.*;
 import java.lang.reflect.InvocationTargetException;
 
 public class Protocol {
-
-    /*
-    @Nullable
-    public Packet<?> getPacketById(int id, @NotNull Direction direction) {
-        if (!direction.getPacketMap().containsKey(id)) {
-            return null;
-            // throw new IllegalStateException("A packet for ID " + id + " does not exist."); TODO bring this back after all packets are implemented
-        }
-
-        try {
-            Class<? extends Packet<?>> packetClass = direction.getPacketMap().get(id);
-            return packetClass.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-     */
-
-    private static void register(ConnectionState state, Direction direction, Class<? extends Packet<?>> clazz) {
-        try {
-            state.getPacketMap().computeIfAbsent(direction, a -> new Int2ObjectOpenHashMap<>()).put(clazz.getDeclaredConstructor().newInstance().getId(), clazz);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            e.printStackTrace();
-        }
-    }
 
     static {
         /*
@@ -87,6 +59,20 @@ public class Protocol {
         register(ConnectionState.HANDSHAKING, Direction.SERVERBOUND, ServerListPingC2SPacket.class); // 0xFE
         register(ConnectionState.HANDSHAKING, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
         register(ConnectionState.LOGIN, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
-        register(ConnectionState.PLAY, Direction.CLIENTBOUND, DisconnectS2CPacket.class); // 0xFF
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, DisconnectS2CPacket.class); //
+
+        /*
+         * Client disconnect notification.
+         * TODO: support all connection states.
+         */
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundDisconnectPacket.class); // 0xFF
+    }
+
+    private static void register(ConnectionState state, Direction direction, Class<? extends Packet<?>> clazz) {
+        try {
+            state.getPacketMap().computeIfAbsent(direction, a -> new Int2ObjectOpenHashMap<>()).put(clazz.getDeclaredConstructor().newInstance().getId(), clazz);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
     }
 }

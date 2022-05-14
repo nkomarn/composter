@@ -1,4 +1,4 @@
-package xyz.nkomarn.composter.network;
+package xyz.nkomarn.composter.network.protocol;
 
 public enum Direction {
 

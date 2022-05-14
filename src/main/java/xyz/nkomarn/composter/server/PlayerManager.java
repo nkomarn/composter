@@ -4,8 +4,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.network.ConnectionState;
-import xyz.nkomarn.composter.network.Session;
+import xyz.nkomarn.composter.network.protocol.ConnectionState;
+import xyz.nkomarn.composter.network.Connection;
 import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.*;
 import xyz.nkomarn.composter.type.Location;
@@ -33,9 +33,9 @@ public class PlayerManager {
         server.sendMessage(message);
     }
 
-    public void onLogin(@NotNull Session session, @NotNull String username) {
-        if (session.connectionState() != ConnectionState.LOGIN) {
-            session.disconnect("Invalid connection state.");
+    public void onLogin(@NotNull Connection connection, @NotNull String username) {
+        if (connection.state() != ConnectionState.LOGIN) {
+            connection.disconnect("Invalid connection state.");
             return;
         }
 
@@ -45,11 +45,11 @@ public class PlayerManager {
             players.remove(playerName);
         }
 
-        Player player = new Player(session, username);
-        session.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0)); // TODO use actual coordinates
+        Player player = new Player(connection, username);
+        connection.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0)); // TODO use actual coordinates
         players.put(username.toLowerCase(), player);
-        session.setPlayer(player);
-        session.setState(ConnectionState.PLAY);
+        connection.setPlayer(player);
+        connection.setState(ConnectionState.PLAY);
 
         onJoin(player);
     }
