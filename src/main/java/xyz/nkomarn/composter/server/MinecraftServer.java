@@ -1,40 +1,30 @@
 package xyz.nkomarn.composter.server;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.flattener.ComponentFlattener;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import xyz.nkomarn.composter.command.CommandSource;
+import xyz.nkomarn.composter.network.NetworkController;
+import xyz.nkomarn.composter.tick.Tickable;
 
-public class MinecraftServer implements Tickable, CommandSource {
+public class MinecraftServer implements Tickable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("Server");
-    private static final PlainTextComponentSerializer SERIALIZER = PlainTextComponentSerializer.builder()
-            .flattener(ComponentFlattener.basic())
-            .build();
+    private final NetworkController networkController;
     private final PlayerList playerList;
 
     public MinecraftServer() {
+        this.networkController = new NetworkController(this);
         this.playerList = new PlayerList(this);
     }
 
-    @Override
-    public String getName() {
-        return "Server";
-    }
-
-    @Override
-    public void sendMessage(@NotNull Component message) {
-        /*
-         * TODO: Console color support.
-         */
-        LOGGER.info(SERIALIZER.serialize(message));
-    }
-
+    @NotNull
     public PlayerList playerList() {
         return playerList;
+    }
+
+    public void startServer() {
+        try {
+            networkController.bind(25565);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

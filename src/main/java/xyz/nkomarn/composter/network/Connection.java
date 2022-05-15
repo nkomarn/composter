@@ -1,69 +1,67 @@
 package xyz.nkomarn.composter.network;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.util.AttributeKey;
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.network.protocol.ConnectionState;
-import xyz.nkomarn.composter.network.protocol.Packet;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.DisconnectS2CPacket;
+import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 import xyz.nkomarn.composter.entity.Player;
-
-import java.util.Optional;
+import xyz.nkomarn.composter.network.protocol.ConnectionState;
+import xyz.nkomarn.composter.network.protocol.handler.DefaultPacketHandler;
+import xyz.nkomarn.composter.network.protocol.handler.PacketHandler;
+import xyz.nkomarn.composter.network.protocol.packet.Packet;
+import xyz.nkomarn.composter.network.protocol.packet.clientbound.ClientboundDisconnectPacket;
+import xyz.nkomarn.composter.server.MinecraftServer;
 
 public class Connection {
 
-    public static final AttributeKey<Connection> SESSION_KEY = AttributeKey.valueOf("session");
-    private final Composter server;
+    private final MinecraftServer server;
     private final Channel channel;
+    private final PacketHandler packetHandler;
     private ConnectionState state;
     private Player player;
 
-    public Connection(@NotNull Composter server, @NotNull Channel channel) {
+    public Connection(MinecraftServer server, Channel channel) {
         this.server = server;
         this.channel = channel;
+        this.packetHandler = new DefaultPacketHandler(server, this);
         this.state = ConnectionState.HANDSHAKING;
-    }
-
-    public @NotNull Composter getServer() {
-        return server;
     }
 
     public ConnectionState state() {
         return state;
     }
 
-    public void setState(final ConnectionState connectionState) {
-        this.state = connectionState;
+    public PacketHandler packetHandler() {
+        return packetHandler;
     }
 
-    public Optional<Player> getPlayer() {
-        return Optional.ofNullable(player);
+    public void setState(ConnectionState state) {
+        this.state = state;
     }
 
-    public void setPlayer(final Player player) {
+    @Nullable
+    public Player player() {
+        return player;
+    }
+
+    public void bindPlayer(Player player) {
         this.player = player;
     }
 
-    public void sendPacket(@NotNull Packet<?> packet) {
-        channel.writeAndFlush(packet); // TODO send
+    public void sendPacket(Packet packet) {
+        channel.writeAndFlush(packet);
     }
 
+    public void disconnect(Component reason) {
+        sendPacket(new ClientboundDisconnectPacket(reason));
+    }
 
-    public void disconnect(final String message) {
-        channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
+    public void handleDisconnection() {
+        if (player != null) {
+            server.playerList().playerDisconnected(player);
+        }
     }
 
     public void close() {
-        channel.close();
-    }
-
-    public void handlePacket(@NotNull Packet<?> packet) {
-        server.getNetworkManager().getHandler().handle(this, packet);
-        /*PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
-        if (handler != null) {
-            handler.handle(this, this.player, packet);
-        }*/
+        channel.closeFuture();
     }
 }
