@@ -92,6 +92,7 @@ public class PacketHandler {
                                     "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
                             )
             );
+            System.out.println(uuid.toString());
             if (Arrays.equals(token, rsa.getToken())) {
                 session.sendPacket(new LoginSuccessS2CPacket(uuid, response.name));
                 session.setState(ConnectionState.PLAY);
