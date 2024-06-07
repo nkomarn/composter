@@ -56,7 +56,7 @@ public class PlayerManager {
 
     public void onJoin(@NotNull Player player) {
         player.setLocation(player.getWorld().getSpawn());
-        player.syncChunks(true);
+        player.updateVisibleChunks();
 
         Location worldSpawn = player.getWorld().getSpawn();
         player.connection().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));

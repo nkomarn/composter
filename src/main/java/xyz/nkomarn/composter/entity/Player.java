@@ -1,7 +1,5 @@
 package xyz.nkomarn.composter.entity;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
@@ -18,14 +16,13 @@ import xyz.nkomarn.composter.world.World;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public final class Player extends Entity implements CommandSource {
-
+    private static final int VIEW_DISTANCE = 16;
     private final Connection connection;
     private final String username;
     private final EntityTracker tracker;
-    private final LongSet loadedChunks;
+    private final Set<Chunk.Key> visibleChunks;
     private boolean crouching;
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
@@ -36,7 +33,7 @@ public final class Player extends Entity implements CommandSource {
         this.connection = connection;
         this.username = username;
         this.tracker = new EntityTracker(this);
-        this.loadedChunks = new LongOpenHashSet();
+        this.visibleChunks = new HashSet<>();
     }
 
     public Connection connection() {
@@ -71,7 +68,7 @@ public final class Player extends Entity implements CommandSource {
 
     public void teleport(@NotNull Location location) {
         this.location = location;
-        syncChunks(true);
+        updateVisibleChunks();
         // updateLocation();
     }
 
@@ -96,51 +93,63 @@ public final class Player extends Entity implements CommandSource {
         ));
     }
 
-    // @Override - override once entities are implemented (should players be ticked differently?)
+    @Override
     public void tick() {
+        super.tick();
         tracker.tick();
-        syncChunks(false);
-        // this.session.sendPacket(new KeepAliveBiPacket()); // don't send every tick but for now im lazy so keep this
 
-        // TODO tracker.tick();
+        /*
+         * if this player has moved, update their visible chunks.
+         */
+        // if (tracker.hasChangedBlock()) {
+            updateVisibleChunks();
+        // }
+
+        // this.session.sendPacket(new KeepAliveBiPacket());
     }
 
-    public void syncChunks(boolean sync) {
-        // calculate which chunks need to be loaded.
-        // make sure all of those chunks are loaded (check the loaded set for keys)
-        // if any extra chunk is loaded, send unload packet for them!
-
+    public void updateVisibleChunks() {
         var currentChunkX = location.getBlockX() >> 4;
         var currentChunkZ = location.getBlockZ() >> 4;
-        var viewDistance = 10;
 
-        var currentlyLoaded = new LongOpenHashSet(loadedChunks);
+        /*
+         * send chunk packets for chunks that the player should
+         * be able to see from their current position.
+         */
+        var pendingUnload = new HashSet<>(visibleChunks);
 
-        for (var x = (currentChunkX - viewDistance); x < (currentChunkX + viewDistance); x++) {
-            for (var z = (currentChunkZ - viewDistance); z < (currentChunkZ + viewDistance); z++) {
-                var chunkKey = Chunk.key(x, z);
+        for (var x = (currentChunkX - VIEW_DISTANCE); x < (currentChunkX + VIEW_DISTANCE); x++) {
+            for (var z = (currentChunkZ - VIEW_DISTANCE); z < (currentChunkZ + VIEW_DISTANCE); z++) {
+                var key = new Chunk.Key(x, z);
 
-                if (currentlyLoaded.contains(chunkKey)) {
-                    currentlyLoaded.remove(chunkKey);
+                /*
+                 * if the chunk is currently visible, don't
+                 * send another chunk data packet to the client.
+                 */
+                if (visibleChunks.contains(key)) {
+                    pendingUnload.remove(key);
                     continue;
                 }
 
+                /*
+                 * if the chunk hasn't been loaded on the server
+                 * side, don't send it to the client yet.
+                 */
+                var chunk = world.getLoadedChunk(key);
+                if (chunk == null) continue;
+
                 connection.sendPacket(new PreChunkS2CPacket(x, z, true));
-                connection.sendPacket(new MapChunkS2CPacket(world.getChunk(x, z)));
-                loadedChunks.add(chunkKey);
+                connection.sendPacket(new MapChunkS2CPacket(chunk));
+                visibleChunks.add(key);
             }
         }
 
-        /* FIXME occasionally causes chunk errors
-        currentlyLoaded.removeIf(key -> {
-            var chunk = world.getLoadedChunk(key);
-
-            if (chunk != null) {
-                connection.sendPacket(new PreChunkS2CPacket(chunk.getX(), chunk.getZ(), false));
-            }
-
-            return true;
-        });
+        /*
+         * unload chunks that are no longer visible.
          */
+        pendingUnload.forEach(key -> {
+            visibleChunks.remove(key);
+            connection.sendPacket(new PreChunkS2CPacket(key.x(), key.z(), false));
+        });
     }
 }

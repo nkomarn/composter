@@ -12,7 +12,6 @@ import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundRemoveEntity
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundTeleportEntityPacket;
 
 public class EntityTracker {
-
     private static final Logger LOGGER = LoggerFactory.getLogger("Entity Tracker");
     private final Player player;
     private final IntSet trackedEntities;

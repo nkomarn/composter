@@ -146,4 +146,10 @@ public class Chunk {
 
         return dest;
     }
+
+    public record Key(int x, int z) {
+        public long compact() {
+            return (long) x & 4294967295L | ((long) z & 4294967295L) << 32;
+        }
+    }
 }
