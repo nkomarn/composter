@@ -1,20 +1,20 @@
-package xyz.nkomarn.composter.network.protocol.packet.s2c;
+package xyz.nkomarn.composter.network.protocol.packet.play;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.network.protocol.Packet;
 
-public class PreChunkS2CPacket extends Packet<PreChunkS2CPacket> {
+public class ClientboundChunkOperationPacket extends Packet<ClientboundChunkOperationPacket> {
 
     private int x;
     private int z;
     private boolean mode;
 
-    public PreChunkS2CPacket() {
+    public ClientboundChunkOperationPacket() {
     }
 
-    public PreChunkS2CPacket(int x, int z, boolean mode) {
+    public ClientboundChunkOperationPacket(int x, int z, boolean mode) {
         this.x = x;
         this.z = z;
         this.mode = mode;

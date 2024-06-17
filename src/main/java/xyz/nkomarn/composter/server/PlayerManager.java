@@ -55,12 +55,12 @@ public class PlayerManager {
     }
 
     public void onJoin(@NotNull Player player) {
-        player.setLocation(player.getWorld().getSpawn());
+        player.setPos(player.getWorld().getSpawn());
         player.updateVisibleChunks();
 
-        Location worldSpawn = player.getWorld().getSpawn();
-        player.connection().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getBlockX(), worldSpawn.getBlockY(), worldSpawn.getBlockZ()));
-        player.connection().sendPacket(new PlayerPosLookS2CPacket(0, 128, 0, 0, 0, 67.240000009536743D, false));
+        var worldSpawn = player.getWorld().getSpawn();
+        player.connection().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getX(), worldSpawn.getY(), worldSpawn.getZ()));
+        player.connection().sendPacket(new PlayerPosLookS2CPacket(worldSpawn.getX(), worldSpawn.getY(), worldSpawn.getZ(), 0, 0, 67.240000009536743D, false));
         broadcastMessage(Component.text(player.getUsername() + " joined the game.", NamedTextColor.YELLOW));
 
         player.sendMessage(Component.text("Welcome to Composter :)", NamedTextColor.GOLD));

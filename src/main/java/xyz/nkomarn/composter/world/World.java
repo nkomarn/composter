@@ -2,8 +2,11 @@ package xyz.nkomarn.composter.world;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import kyta.composter.world.BlockPos;
 import kyta.composter.world.ChunkPos;
-import kyta.composter.world.ChunkPosKt;
+import kyta.composter.world.PosKt;
+import kyta.composter.world.block.BlockState;
+import kyta.composter.world.block.BlocksKt;
 import kyta.composter.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,7 +14,6 @@ import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.entity.Player;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
-import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.world.generator.WorldGenerator;
 
 import java.io.IOException;
@@ -26,10 +28,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class World {
     private static final int SIMULATION_DISTANCE = 8;
+    private static final int MAX_WORLD_HEIGHT = 127;
     private static final int MAX_CHUNK_ACTIONS_PER_TICK = 8;
-    private final Location spawn = new Location(this, 0, 128, 0); // TODO implement for player spawning at some point
-    // TODO entities list
 
+    private BlockPos spawnPos = new BlockPos(0, MAX_WORLD_HEIGHT, 0);
     private final Composter server;
     private final Properties properties;
     private final Executor thread;
@@ -60,6 +62,21 @@ public class World {
         return properties;
     }
 
+    /**
+     * requires the chunk to be currently loaded.
+     */
+    @NotNull
+    public BlockState getBlock(BlockPos pos) {
+        var chunkPos = new ChunkPos(pos);
+        var chunk = getLoadedChunk(chunkPos);
+
+        if (chunk == null) {
+            return BlocksKt.getDefaultState(BlocksKt.getAIR());
+        }
+
+        return chunk.getBlock(pos);
+    }
+
     @Nullable
     public Chunk getLoadedChunk(ChunkPos key) {
         return loadedChunks.get(key.getCompact());
@@ -73,7 +90,7 @@ public class World {
     @NotNull
     public CompletableFuture<Chunk> getChunk(int x, int z) {
         var pos = new ChunkPos(x, z);
-        var chunk = loadedChunks.get(ChunkPosKt.asCompactChunkKey(x, z));
+        var chunk = loadedChunks.get(PosKt.asCompactChunkKey(x, z));
 
         if (chunk != null) {
             return CompletableFuture.completedFuture(chunk);
@@ -102,11 +119,11 @@ public class World {
     }
 
     public boolean isChunkLoaded(int x, int z) {
-        return loadedChunks.containsKey(ChunkPosKt.asCompactChunkKey(x, z));
+        return loadedChunks.containsKey(PosKt.asCompactChunkKey(x, z));
     }
 
-    public Location getSpawn() {
-        return spawn;
+    public BlockPos getSpawn() {
+        return spawnPos;
     }
 
     public Collection<Entity> getEntities() {
@@ -147,7 +164,7 @@ public class World {
 
             for (var x = (chunkX - SIMULATION_DISTANCE); x < (chunkX + SIMULATION_DISTANCE); x++) {
                 for (var z = (chunkZ - SIMULATION_DISTANCE); z < (chunkZ + SIMULATION_DISTANCE); z++) {
-                    if (false && chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
+                    if (chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
                         break;
                     }
 
@@ -167,6 +184,21 @@ public class World {
             for (var z = -1; z < 1; z++) {
                 getChunk(x, z).join();
             }
+        }
+
+        /*
+         * find the lowest suitable spawn block.
+         */
+        for (var y = MAX_WORLD_HEIGHT; y > 0; y--) {
+            var pos = new BlockPos(0, y, 0);
+
+            if (getBlock(pos).getBlock() == BlocksKt.getAIR()) {
+                continue;
+            }
+
+            spawnPos = pos;
+            server.getLogger().info("the default world spawn is now ({}, {}, {})", pos.getX(), pos.getY(), pos.getZ());
+            break;
         }
     }
 

@@ -1,51 +1,42 @@
-package xyz.nkomarn.composter.entity;
+package xyz.nkomarn.composter.entity
 
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.type.Location;
-import xyz.nkomarn.composter.world.World;
+import kyta.composter.Tickable
+import xyz.nkomarn.composter.type.Location
+import xyz.nkomarn.composter.world.World
+import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
+open class Entity(val world: World): Tickable {
+    val id = ENTITY_ID_COUNTER.getAndIncrement()
+    val uuid = UUID.randomUUID()
 
-public abstract class Entity {
+    var x = 0
+    var y = 0
+    var z = 0
 
+    @kotlin.jvm.JvmField
+    protected var location: Location
+    var isRemoved: Boolean = false
+        private set
 
-    private static final AtomicInteger ENTITY_COUNTER = new AtomicInteger();
-
-    private final int id;
-    protected World world;
-    protected Location location;
-    protected UUID uuid;
-    private boolean removed;
-
-    public Entity(@NotNull World world) {
-        this.id = ENTITY_COUNTER.getAndIncrement();
-        this.world = world;
-        this.location = new Location(world, 0, 15, 0);
-        this.uuid = UUID.randomUUID();
+    init {
+        this.id = ENTITY_ID_COUNTER.getAndIncrement()
+        this.location = Location(world, 0.0, 15.0, 0.0)
         // TODO add entity to world entities
     }
 
-    public int getId() {
-        return id;
+    open fun getLocation(): Location? {
+        return location
     }
 
-    public UUID getUUID() {
-        return uuid;
+    fun markRemoved() {
+        this.isRemoved = true
     }
 
-    public Location getLocation() {
-        return location;
+    override fun tick(currentTick: Long) {
     }
 
-    public boolean isRemoved() {
-        return removed;
-    }
-
-    public void markRemoved() {
-        this.removed = true;
-    }
-
-    public void tick() {
+    companion object {
+        private val ENTITY_ID_COUNTER = AtomicInteger()
     }
 }

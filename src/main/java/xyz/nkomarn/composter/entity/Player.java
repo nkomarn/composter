@@ -1,5 +1,6 @@
 package xyz.nkomarn.composter.entity;
 
+import kyta.composter.world.BlockPos;
 import kyta.composter.world.ChunkPos;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
@@ -8,9 +9,8 @@ import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.tracker.EntityTracker;
 import xyz.nkomarn.composter.network.Connection;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.MapChunkS2CPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.PlayerPosLookS2CPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.PreChunkS2CPacket;
+import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkDataPacket;
+import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkOperationPacket;
 import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.world.World;
 
@@ -56,6 +56,11 @@ public final class Player extends Entity implements CommandSource {
         this.location = location;
     }
 
+    @Deprecated
+    public void setPos(BlockPos pos) {
+        this.location = new Location(world, pos.getX(), pos.getY(), pos.getZ());
+    }
+
     @Override
     public String getName() {
         return getUsername();
@@ -78,19 +83,6 @@ public final class Player extends Entity implements CommandSource {
 
     public void setCrouching(boolean crouching) {
         this.crouching = crouching;
-    }
-
-    public void updateLocation() {
-        connection.sendPacket(new PlayerPosLookS2CPacket(
-                location.getX(),
-                location.getY(),
-                location.getZ(),
-                location.getYaw(),
-                location.getPitch(),
-                DEFAULT_STANCE,
-                false
-                // isTouchingGround()
-        ));
     }
 
     @Override
@@ -138,8 +130,8 @@ public final class Player extends Entity implements CommandSource {
                 var chunk = world.getLoadedChunk(pos);
                 if (chunk == null) continue;
 
-                connection.sendPacket(new PreChunkS2CPacket(x, z, true));
-                connection.sendPacket(new MapChunkS2CPacket(chunk));
+                connection.sendPacket(new ClientboundChunkOperationPacket(x, z, true));
+                connection.sendPacket(new ClientboundChunkDataPacket(chunk));
                 visibleChunks.add(pos);
             }
         }
@@ -149,7 +141,7 @@ public final class Player extends Entity implements CommandSource {
          */
         pendingUnload.forEach(pos -> {
             visibleChunks.remove(pos);
-            connection.sendPacket(new PreChunkS2CPacket(pos.getX(), pos.getZ(), false));
+            connection.sendPacket(new ClientboundChunkOperationPacket(pos.getX(), pos.getZ(), false));
         });
     }
 }

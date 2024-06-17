@@ -1,4 +1,4 @@
-package xyz.nkomarn.composter.network.protocol.packet.s2c
+package xyz.nkomarn.composter.network.protocol.packet.play
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -7,7 +7,7 @@ import kyta.composter.world.chunk.LightData.Companion.DEFAULT_LIGHT_VALUE
 import xyz.nkomarn.composter.network.protocol.Packet
 import java.util.zip.Deflater
 
-class MapChunkS2CPacket : Packet<MapChunkS2CPacket?> {
+class ClientboundChunkDataPacket : Packet<ClientboundChunkDataPacket?> {
     private var x = 0
     private var z = 0
     private var y: Short = 0

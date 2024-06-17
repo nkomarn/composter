@@ -1,6 +1,8 @@
 package xyz.nkomarn.composter.network.protocol;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkDataPacket;
+import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkOperationPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
@@ -48,8 +50,8 @@ public class Protocol {
         // register(Direction.CLIENTBOUND, EntityS2CPacket.class); // 0x1E
         // register(Direction.CLIENTBOUND, EntityTeleportS2CPacket.class); // 0x22
 
-        register(ConnectionState.PLAY, Direction.CLIENTBOUND, PreChunkS2CPacket.class); // 0x32
-        register(ConnectionState.PLAY, Direction.CLIENTBOUND, MapChunkS2CPacket.class); // 0x33
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, ClientboundChunkOperationPacket.class); // 0x32
+        register(ConnectionState.PLAY, Direction.CLIENTBOUND, ClientboundChunkDataPacket.class); // 0x33
 
         // register(Direction.CLIENTBOUND, EffectS2CPacket.class); // 0x33
 
