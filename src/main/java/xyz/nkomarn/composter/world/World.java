@@ -2,13 +2,15 @@ package xyz.nkomarn.composter.world;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import kyta.composter.world.ChunkPos;
+import kyta.composter.world.ChunkPosKt;
+import kyta.composter.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.entity.Player;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
-import xyz.nkomarn.composter.type.Chunk;
 import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.world.generator.WorldGenerator;
 
@@ -19,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class World {
@@ -30,15 +32,15 @@ public class World {
 
     private final Composter server;
     private final Properties properties;
-    private final ExecutorService thread;
+    private final Executor thread;
     private final Long2ObjectMap<Chunk> loadedChunks;
     private final HashMap<UUID, Entity> entities;
     private final long seed;
     private int chunkActionsThisTick;
     private long time = 0;
-    private final Set<Chunk.Key> pendingChunks;
+    private final Set<ChunkPos> pendingChunks;
 
-    public World(@NotNull Composter server, @NotNull Properties properties, @NotNull ExecutorService thread) {
+    public World(@NotNull Composter server, @NotNull Properties properties, @NotNull Executor thread) {
         this.server = server;
         this.properties = properties;
         this.thread = thread;
@@ -59,8 +61,8 @@ public class World {
     }
 
     @Nullable
-    public Chunk getLoadedChunk(Chunk.Key key) {
-        return loadedChunks.get(key.compact());
+    public Chunk getLoadedChunk(ChunkPos key) {
+        return loadedChunks.get(key.getCompact());
     }
 
     @Nullable
@@ -70,8 +72,8 @@ public class World {
 
     @NotNull
     public CompletableFuture<Chunk> getChunk(int x, int z) {
-        var key = new Chunk.Key(x, z);
-        var chunk = loadedChunks.get(Chunk.key(x, z));
+        var pos = new ChunkPos(x, z);
+        var chunk = loadedChunks.get(ChunkPosKt.asCompactChunkKey(x, z));
 
         if (chunk != null) {
             return CompletableFuture.completedFuture(chunk);
@@ -94,13 +96,13 @@ public class World {
                 throw new RuntimeException(e);
             }
 
-            loadedChunks.put(newChunk.key(), newChunk);
+            loadedChunks.put(newChunk.getPos().getCompact(), newChunk);
             return newChunk;
         }, properties.getIO().getExecutor());
     }
 
     public boolean isChunkLoaded(int x, int z) {
-        return loadedChunks.containsKey(Chunk.key(x, z));
+        return loadedChunks.containsKey(ChunkPosKt.asCompactChunkKey(x, z));
     }
 
     public Location getSpawn() {
@@ -145,14 +147,14 @@ public class World {
 
             for (var x = (chunkX - SIMULATION_DISTANCE); x < (chunkX + SIMULATION_DISTANCE); x++) {
                 for (var z = (chunkZ - SIMULATION_DISTANCE); z < (chunkZ + SIMULATION_DISTANCE); z++) {
-                    if (chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
+                    if (false && chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
                         break;
                     }
 
-                    var key = new Chunk.Key(x, z);
-                    if (!pendingChunks.contains(key) && !isChunkLoaded(x, z)) {
-                        pendingChunks.add(key);
-                        getChunk(x, z).thenRun(() -> pendingChunks.remove(key)); // schedule chunk load
+                    var pos = new ChunkPos(x, z);
+                    if (!pendingChunks.contains(pos) && !isChunkLoaded(x, z)) {
+                        pendingChunks.add(pos);
+                        getChunk(x, z).thenRun(() -> pendingChunks.remove(pos)); // schedule chunk load
                         chunkActionsThisTick++;
                     }
                 }

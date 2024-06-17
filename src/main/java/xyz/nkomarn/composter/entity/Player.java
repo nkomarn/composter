@@ -1,5 +1,6 @@
 package xyz.nkomarn.composter.entity;
 
+import kyta.composter.world.ChunkPos;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
@@ -10,7 +11,6 @@ import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.MapChunkS2CPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.PlayerPosLookS2CPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.PreChunkS2CPacket;
-import xyz.nkomarn.composter.type.Chunk;
 import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.world.World;
 
@@ -22,7 +22,7 @@ public final class Player extends Entity implements CommandSource {
     private final Connection connection;
     private final String username;
     private final EntityTracker tracker;
-    private final Set<Chunk.Key> visibleChunks;
+    private final Set<ChunkPos> visibleChunks;
     private boolean crouching;
 
     private static final double DEFAULT_STANCE = 67.240000009536743;
@@ -120,14 +120,14 @@ public final class Player extends Entity implements CommandSource {
 
         for (var x = (currentChunkX - VIEW_DISTANCE); x < (currentChunkX + VIEW_DISTANCE); x++) {
             for (var z = (currentChunkZ - VIEW_DISTANCE); z < (currentChunkZ + VIEW_DISTANCE); z++) {
-                var key = new Chunk.Key(x, z);
+                var pos = new ChunkPos(x, z);
 
                 /*
                  * if the chunk is currently visible, don't
                  * send another chunk data packet to the client.
                  */
-                if (visibleChunks.contains(key)) {
-                    pendingUnload.remove(key);
+                if (visibleChunks.contains(pos)) {
+                    pendingUnload.remove(pos);
                     continue;
                 }
 
@@ -135,21 +135,21 @@ public final class Player extends Entity implements CommandSource {
                  * if the chunk hasn't been loaded on the server
                  * side, don't send it to the client yet.
                  */
-                var chunk = world.getLoadedChunk(key);
+                var chunk = world.getLoadedChunk(pos);
                 if (chunk == null) continue;
 
                 connection.sendPacket(new PreChunkS2CPacket(x, z, true));
                 connection.sendPacket(new MapChunkS2CPacket(chunk));
-                visibleChunks.add(key);
+                visibleChunks.add(pos);
             }
         }
 
         /*
          * unload chunks that are no longer visible.
          */
-        pendingUnload.forEach(key -> {
-            visibleChunks.remove(key);
-            connection.sendPacket(new PreChunkS2CPacket(key.x(), key.z(), false));
+        pendingUnload.forEach(pos -> {
+            visibleChunks.remove(pos);
+            connection.sendPacket(new PreChunkS2CPacket(pos.getX(), pos.getZ(), false));
         });
     }
 }

@@ -4,12 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.world.ChunkIO;
 import xyz.nkomarn.composter.world.World;
-import xyz.nkomarn.composter.world.generator.BetaGenerator;
+import xyz.nkomarn.composter.world.generator.FlatGenerator;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WorldManager {
@@ -18,13 +17,13 @@ public class WorldManager {
     private final Path directory;
 
     private final HashMap<UUID, World> worlds;
-    private final ExecutorService chunkThread;
+    private final Executor chunkThread;
 
     public WorldManager(@NotNull Composter server, @NotNull Path directory) {
         this.server = server;
         this.directory = directory;
         this.worlds = new HashMap<>();
-        this.chunkThread = Executors.newVirtualThreadPerTaskExecutor();// TODO configurable
+        this.chunkThread = Runnable::run; // Executors.newVirtualThreadPerTaskExecutor();// TODO configurable
     }
 
     public void load() {
@@ -36,7 +35,7 @@ public class WorldManager {
                 UUID.randomUUID(),
                 seed,
                 new ChunkIO(server, directory.resolve("world"), chunkThread),
-                new BetaGenerator(server, seed)),
+                FlatGenerator.INSTANCE),
                 //new FlatGenerator(),
                 chunkThread
         );

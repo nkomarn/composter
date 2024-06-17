@@ -1,33 +1,33 @@
-package xyz.nkomarn.composter.world.generator;
+package xyz.nkomarn.composter.world.generator
 
-import xyz.nkomarn.composter.type.Chunk;
-import xyz.nkomarn.composter.world.noise.OpenSimplexNoise;
+import kyta.composter.world.BlockPos
+import kyta.composter.world.ChunkPos
+import kyta.composter.world.block.AIR
+import kyta.composter.world.block.BEDROCK
+import kyta.composter.world.block.DIRT
+import kyta.composter.world.block.GRASS_BLOCK
+import kyta.composter.world.block.defaultState
+import kyta.composter.world.chunk.Chunk
 
-public class FlatGenerator implements WorldGenerator {
+object FlatGenerator : WorldGenerator {
+    override fun generate(xx: Int, zz: Int): Chunk {
+        val chunk = Chunk(ChunkPos(xx, zz))
 
-    @Override
-    public Chunk generate(final int xx, final int zz) {
-        Chunk chunk = new Chunk(xx, zz);
-        OpenSimplexNoise noise = new OpenSimplexNoise();
+        for (x in 0..15) {
+            for (y in 0..127) {
+                for (z in 0..15) {
+                    val state = when {
+                        y == 1 -> BEDROCK
+                        y == 5 -> GRASS_BLOCK
+                        y < 5 -> DIRT
+                        else -> AIR
+                    }.defaultState
 
-        for (int x = 0; x < 16; x++) {
-            for (int y = 0; y < 128; y++) {
-                for (int z = 0; z < 16; z++) {
-                    //float f = (float)noise.eval(x /10.0f,  z/10.0f);
-                    //int yeh = (int) ((f*3.0f) + y);
-
-                    if (y < 5) chunk.setBlock(x, y, z, 2);
-                    // This is just a custom flat world generator, nothing fancy
-                    else chunk.setBlock(x, y, z, 0);
-
-                    chunk.setMetaData(x, y, z, 0);
-                    chunk.setSkyLight(x, y, z, 13);
-                    chunk.setBlockLight(x, y, z, 13);
-
-                    //System.out.println(String.format("Generated block %s, %s, %s", x, y, z));
+                    chunk.setBlock(BlockPos(x, y, z), state)
                 }
             }
         }
-        return chunk;
+
+        return chunk
     }
 }

@@ -1,7 +1,6 @@
 package xyz.nkomarn.composter.entity;
 
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.type.Chunk;
 import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.world.World;
 

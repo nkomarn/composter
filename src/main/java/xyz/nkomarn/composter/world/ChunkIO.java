@@ -1,23 +1,23 @@
 package xyz.nkomarn.composter.world;
 
+import kyta.composter.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.type.Chunk;
 import xyz.nkomarn.composter.world.region.RegionFileCache;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 public class ChunkIO {
 
     private final Composter server;
     private final Path directory;
     private final RegionFileCache cache;
-    private final ExecutorService thread;
+    private final Executor thread;
 
-    public ChunkIO(@NotNull Composter server, @NotNull Path directory, @NotNull ExecutorService thread) {
+    public ChunkIO(@NotNull Composter server, @NotNull Path directory, @NotNull Executor thread) {
         this.server = server;
         this.directory = directory;
         this.cache = new RegionFileCache();
@@ -25,7 +25,7 @@ public class ChunkIO {
     }
 
     @NotNull
-    public ExecutorService getExecutor() {
+    public Executor getExecutor() {
         return thread;
     }
 
