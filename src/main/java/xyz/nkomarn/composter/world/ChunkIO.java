@@ -24,6 +24,11 @@ public class ChunkIO {
         this.thread = thread;
     }
 
+    @NotNull
+    public ExecutorService getExecutor() {
+        return thread;
+    }
+
     public CompletableFuture<Chunk> read(int x, int z) {
         /*
         CompletableFuture<Chunk> future = new CompletableFuture<>();

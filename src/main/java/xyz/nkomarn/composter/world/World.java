@@ -15,17 +15,16 @@ import xyz.nkomarn.composter.world.generator.WorldGenerator;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class World {
     private static final int SIMULATION_DISTANCE = 8;
     private static final int MAX_CHUNK_ACTIONS_PER_TICK = 8;
-    private static final Executor WORLD_GEN_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor(); // todo; set thread count bounds
     private final Location spawn = new Location(this, 0, 128, 0); // TODO implement for player spawning at some point
     // TODO entities list
 
@@ -37,7 +36,7 @@ public class World {
     private final long seed;
     private int chunkActionsThisTick;
     private long time = 0;
-
+    private final Set<Chunk.Key> pendingChunks;
 
     public World(@NotNull Composter server, @NotNull Properties properties, @NotNull ExecutorService thread) {
         this.server = server;
@@ -46,6 +45,7 @@ public class World {
         this.loadedChunks = new Long2ObjectOpenHashMap<>();
         this.entities = new HashMap<>();
         this.seed = ThreadLocalRandom.current().nextLong();
+        this.pendingChunks = ConcurrentHashMap.newKeySet();
 
         createSpawnChunks();
     }
@@ -96,7 +96,7 @@ public class World {
 
             loadedChunks.put(newChunk.key(), newChunk);
             return newChunk;
-        }, WORLD_GEN_EXECUTOR);
+        }, properties.getIO().getExecutor());
     }
 
     public boolean isChunkLoaded(int x, int z) {
@@ -149,8 +149,10 @@ public class World {
                         break;
                     }
 
-                    if (!isChunkLoaded(x, z)) {
-                        getChunk(x, z).join(); // schedule chunk load
+                    var key = new Chunk.Key(x, z);
+                    if (!pendingChunks.contains(key) && !isChunkLoaded(x, z)) {
+                        pendingChunks.add(key);
+                        getChunk(x, z).thenRun(() -> pendingChunks.remove(key)); // schedule chunk load
                         chunkActionsThisTick++;
                     }
                 }

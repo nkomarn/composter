@@ -24,7 +24,7 @@ public class WorldManager {
         this.server = server;
         this.directory = directory;
         this.worlds = new HashMap<>();
-        this.chunkThread = Executors.newFixedThreadPool(3); // TODO configurable
+        this.chunkThread = Executors.newVirtualThreadPerTaskExecutor();// TODO configurable
     }
 
     public void load() {
