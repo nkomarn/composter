@@ -43,7 +43,7 @@ public class Protocol {
         // register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerC2SPacket.class); // 0x0A
         register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundOnGroundPacket.class); // 0x0A
         register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosC2SPacket.class); // 0x0B
-        register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerLookC2SPacket.class); // 0x0C
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundPlayerLookPacket.class); // 0x0C
         register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosLookC2SPacket.class); // 0x0D
 
         // register(Direction.CLIENTBOUND, NamedEntitySpawnS2CPacket.class); // 0x14

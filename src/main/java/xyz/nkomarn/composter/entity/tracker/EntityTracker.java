@@ -1,12 +1,13 @@
 package xyz.nkomarn.composter.entity.tracker;
 
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.entity.Player;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundAddEntityPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundAddPlayerPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundRemoveEntityPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundTeleportEntityPacket;
@@ -14,25 +15,29 @@ import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundTeleportEnti
 public class EntityTracker {
     private static final Logger LOGGER = LoggerFactory.getLogger("Entity Tracker");
     private final Player player;
-    private final IntSet trackedEntities;
+    private final Int2ObjectMap<Entity> trackedEntities;
 
     public EntityTracker(@NotNull Player player) {
         this.player = player;
-        this.trackedEntities = new IntOpenHashSet();
+        this.trackedEntities = new Int2ObjectOpenHashMap<>();
     }
 
     public void tick() {
+        trackedEntities.values().removeIf(entity -> {
+           if (entity.isRemoved()) {
+               untrackEntity(entity);
+               return true;
+           }
+
+           return false;
+        });
+
         for (var entity : player.getWorld().getEntities()) {
             if (entity.getId() == player.getId()) {
                 continue;
             }
 
-            if (entity.isRemoved()) {
-                untrackEntity(entity);
-                continue;
-            }
-
-            if (!trackedEntities.contains(entity.getId())) {
+            if (!trackedEntities.containsKey(entity.getId())) {
                 trackNewEntity(entity);
             }
 
@@ -43,16 +48,18 @@ public class EntityTracker {
     private void trackNewEntity(Entity entity) {
         if (entity instanceof Player otherPlayer) {
             player.connection().sendPacket(new ClientboundAddPlayerPacket(otherPlayer));
+        } else {
+            player.connection().sendPacket(new ClientboundAddEntityPacket(entity));
         }
 
-        trackedEntities.add(entity.getId());
-        LOGGER.info("{} is now tracking entity with id {}.", player.getUsername(), entity.getId());
+        trackedEntities.put(entity.getId(), entity);
+        LOGGER.info("{} began tracking {} (entity #{}).", player.getUsername(), entity.getClass().getSimpleName(), entity.getId());
     }
 
     private void untrackEntity(Entity entity) {
         trackedEntities.remove(entity.getId());
         player.connection().sendPacket(new ClientboundRemoveEntityPacket(entity));
-        LOGGER.info("{} untracked entity with id {}.", player.getUsername(), entity.getId());
+        LOGGER.info("{} untracked {}} (entity #{}).", player.getUsername(), entity.getClass().getSimpleName(), entity.getId());
     }
 
     public void updateLocation(Entity entity) {

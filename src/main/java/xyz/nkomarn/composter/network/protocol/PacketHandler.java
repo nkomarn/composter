@@ -1,11 +1,16 @@
 package xyz.nkomarn.composter.network.protocol;
 
+import kyta.composter.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.network.Connection;
-import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.LoginC2SPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.PlayerPosC2SPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.PlayerPosLookC2SPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundChatPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundPlayerActionPacket;
+import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundPlayerLookPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.HandshakeS2CPacket;
-import xyz.nkomarn.composter.type.Location;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -50,7 +55,9 @@ public class PacketHandler {
                 return;
             }
 
-            session.getServer().getPlayerManager().onLogin(session, loginPacket.getUsername());
+            session.getServer().executeOnMain(() -> {
+                session.getServer().getPlayerManager().onLogin(session, loginPacket.getUsername());
+            });
         });
 
         // Handshake
@@ -75,17 +82,25 @@ public class PacketHandler {
         register(0x0B, State.PLAY, (session, packet) -> {
             PlayerPosC2SPacket posPacket = (PlayerPosC2SPacket) packet;
             session.getPlayer().ifPresent(player -> {
-                Location oldLocation = player.getLocation();
-                Location newLocation = new Location(
-                        oldLocation.getWorld(), // TODO use actual world
-                        posPacket.getX(),
-                        posPacket.getY(),
-                        posPacket.getZ(),
-                        oldLocation.getYaw(),
-                        oldLocation.getPitch()
-                );
+                var currentPos = player.getPos();
+                var newPos = new Vec3d(posPacket.getX(), posPacket.getY(), posPacket.getZ());
 
-                session.getServer().getPlayerManager().onMove(player, oldLocation, newLocation);
+                /* todo; handle these values appropriately */
+                var pitch = player.getPitch();
+                var yaw = player.getYaw();
+
+                session.getServer().getPlayerManager().onMove(player, currentPos, newPos, pitch, yaw);
+            });
+        });
+
+        register(0x0C, State.PLAY, (session, packet) -> {
+            var lookPacket = (ServerboundPlayerLookPacket) packet;
+            session.getPlayer().ifPresent(player -> {
+                var currentPos = player.getPos();
+
+                session.getServer().executeOnMain(() -> {
+                    session.getServer().getPlayerManager().onMove(player, currentPos, currentPos, lookPacket.getPitch(), lookPacket.getYaw());
+                });
             });
         });
 
@@ -93,17 +108,12 @@ public class PacketHandler {
         register(0x0D, State.PLAY, (session, packet) -> {
             PlayerPosLookC2SPacket posLookPacket = (PlayerPosLookC2SPacket) packet;
             session.getPlayer().ifPresent(player -> {
-                Location oldLocation = player.getLocation();
-                Location newLocation = new Location(
-                        oldLocation.getWorld(), // TODO use actual world
-                        posLookPacket.getX(),
-                        posLookPacket.getY(),
-                        posLookPacket.getZ(),
-                        posLookPacket.getYaw(),
-                        posLookPacket.getPitch()
-                );
+                var currentPos = player.getPos();
+                var newPos = new Vec3d(posLookPacket.getX(), posLookPacket.getY(), posLookPacket.getZ());
 
-                session.getServer().getPlayerManager().onMove(player, oldLocation, newLocation);
+                session.getServer().executeOnMain(() -> {
+                    session.getServer().getPlayerManager().onMove(player, currentPos, newPos, posLookPacket.getPitch(), posLookPacket.getYaw());
+                });
             });
         });
 

@@ -1,5 +1,6 @@
 package xyz.nkomarn.composter.server;
 
+import kyta.composter.Tickable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.flattener.ComponentFlattener;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -38,7 +39,6 @@ public class MinecraftServer implements Tickable, CommandSource {
     }
 
     @Override
-    public void tick() {
-
+    public void tick(long currentTick) {
     }
 }

@@ -1,17 +1,14 @@
 package xyz.nkomarn.composter.entity;
 
-import kyta.composter.world.BlockPos;
 import kyta.composter.world.ChunkPos;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.tracker.EntityTracker;
 import xyz.nkomarn.composter.network.Connection;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkDataPacket;
 import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkOperationPacket;
-import xyz.nkomarn.composter.type.Location;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.world.World;
 
 import java.util.HashSet;
@@ -19,6 +16,7 @@ import java.util.Set;
 
 public final class Player extends Entity implements CommandSource {
     private static final int VIEW_DISTANCE = 16;
+
     private final Connection connection;
     private final String username;
     private final EntityTracker tracker;
@@ -28,8 +26,8 @@ public final class Player extends Entity implements CommandSource {
     private static final double DEFAULT_STANCE = 67.240000009536743;
     //TODO crouching support
 
-    public Player(Connection connection, String username) {
-        super(Composter.SPAWN.getWorld());
+    public Player(World world, Connection connection, String username) {
+        super(world);
         this.connection = connection;
         this.username = username;
         this.tracker = new EntityTracker(this);
@@ -44,23 +42,6 @@ public final class Player extends Entity implements CommandSource {
         return username;
     }
 
-    public World getWorld() {
-        return world;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    public void setLocation(@NotNull Location location) {
-        this.location = location;
-    }
-
-    @Deprecated
-    public void setPos(BlockPos pos) {
-        this.location = new Location(world, pos.getX(), pos.getY(), pos.getZ());
-    }
-
     @Override
     public String getName() {
         return getUsername();
@@ -71,11 +52,13 @@ public final class Player extends Entity implements CommandSource {
         connection.sendPacket(new ClientboundChatPacket(message));
     }
 
+    /*
     public void teleport(@NotNull Location location) {
         this.location = location;
         updateVisibleChunks();
         // updateLocation();
     }
+     */
 
     public boolean isCrouching() {
         return crouching;
@@ -86,23 +69,25 @@ public final class Player extends Entity implements CommandSource {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void tick(long currentTick) {
+        super.tick(currentTick);
         tracker.tick();
 
         /*
          * if this player has moved, update their visible chunks.
          */
         // if (tracker.hasChangedBlock()) {
-            updateVisibleChunks();
+        updateVisibleChunks();
         // }
 
         // this.session.sendPacket(new KeepAliveBiPacket());
     }
 
     public void updateVisibleChunks() {
-        var currentChunkX = location.getBlockX() >> 4;
-        var currentChunkZ = location.getBlockZ() >> 4;
+        var currentBlock = getBlockPos();
+        var currentChunk = new ChunkPos(currentBlock);
+        int currentChunkX = currentChunk.getX();
+        int currentChunkZ = currentChunk.getZ();
 
         /*
          * send chunk packets for chunks that the player should
@@ -127,7 +112,7 @@ public final class Player extends Entity implements CommandSource {
                  * if the chunk hasn't been loaded on the server
                  * side, don't send it to the client yet.
                  */
-                var chunk = world.getLoadedChunk(pos);
+                var chunk = getWorld().getLoadedChunk(pos);
                 if (chunk == null) continue;
 
                 connection.sendPacket(new ClientboundChunkOperationPacket(x, z, true));

@@ -22,11 +22,13 @@ public class ClientboundTeleportEntityPacket extends Packet<ClientboundTeleportE
 
     public ClientboundTeleportEntityPacket(Entity entity) {
         this.id = entity.getId();
-        this.x = toAbsolute(entity.getLocation().getX());
-        this.y = toAbsolute(entity.getLocation().getY());
-        this.z = toAbsolute(entity.getLocation().getZ());
-        this.yaw = (byte) (entity.getLocation().getYaw() * 256.0f / 360.0f);
-        this.pitch = (byte) (entity.getLocation().getPitch() * 256.0f / 360.0f);
+
+        var pos = entity.getPos();
+        this.x = toAbsolute(pos.getX());
+        this.y = toAbsolute(pos.getY());
+        this.z = toAbsolute(pos.getZ());
+        this.yaw = (byte) (entity.getYaw() * 256F / 360F);
+        this.pitch = (byte) (entity.getPitch() * 256F / 360F);
     }
 
 

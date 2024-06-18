@@ -1,32 +1,48 @@
 package xyz.nkomarn.composter.entity
 
 import kyta.composter.Tickable
-import xyz.nkomarn.composter.type.Location
+import kyta.composter.entity.data.SynchronizedEntityData
+import kyta.composter.math.Vec3d
+import kyta.composter.world.BlockPos
+import kyta.composter.world.GlobalPos
 import xyz.nkomarn.composter.world.World
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 open class Entity(val world: World): Tickable {
     val id = ENTITY_ID_COUNTER.getAndIncrement()
-    val uuid = UUID.randomUUID()
+    val uuid: UUID = UUID.randomUUID()
+    val synchronizedData = SynchronizedEntityData()
 
-    var x = 0
-    var y = 0
-    var z = 0
+    var x = 0.0
+    var y = 0.0
+    var z = 0.0
+    var pitch = 0F
+    var yaw = 0F
 
-    @kotlin.jvm.JvmField
-    protected var location: Location
+    var pos: Vec3d
+        get() = Vec3d(x, y, z)
+        set(value) {
+            x = value.x
+            y = value.y
+            z = value.z
+
+//             println("entity #$id moved -> ($x, $y, $z)")
+        }
+
     var isRemoved: Boolean = false
         private set
 
-    init {
-        this.id = ENTITY_ID_COUNTER.getAndIncrement()
-        this.location = Location(world, 0.0, 15.0, 0.0)
-        // TODO add entity to world entities
+    fun getBlockPos(): BlockPos {
+        return BlockPos(pos)
     }
 
-    open fun getLocation(): Location? {
-        return location
+    open fun getGlobalPos(): GlobalPos {
+        return GlobalPos(world, getBlockPos())
+    }
+
+    fun teleport(pos: GlobalPos) {
+        // todo; handle cross-world movement
     }
 
     fun markRemoved() {

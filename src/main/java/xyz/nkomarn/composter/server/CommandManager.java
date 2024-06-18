@@ -11,7 +11,6 @@ import xyz.nkomarn.composter.command.CommandExecutor;
 import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.Player;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.WindowItemsS2CPacket;
-import xyz.nkomarn.composter.type.Location;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,6 +52,7 @@ public class CommandManager {
             source.sendMessage(Component.text("This software is early alpha!", NamedTextColor.GRAY));
         });
 
+        /* todo; cross-world tp
         register("tp", (source, args) -> {
             if (args.length < 3) {
                 source.sendMessage(Component.text("Usage: /tp <x> <y> <z>", NamedTextColor.RED));
@@ -68,6 +68,7 @@ public class CommandManager {
                 }
             }
         });
+         */
 
         register("give", (source, arguments) -> {
             int[] items = new int[45];
@@ -93,6 +94,15 @@ public class CommandManager {
                     .replaceText(config);
 
             source.sendMessage(message);
+        });
+
+        register("debug", (source, arguments) -> {
+            int[] items = new int[45];
+            for (var i = 0; i < items.length; i++) {
+                items[i] = i + 1;
+            }
+
+            ((Player) source).connection().sendPacket(new WindowItemsS2CPacket(0, (short) 45, items));
         });
     }
 }

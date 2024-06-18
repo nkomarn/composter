@@ -10,16 +10,16 @@ import xyz.nkomarn.composter.server.CommandManager;
 import xyz.nkomarn.composter.server.NetworkManager;
 import xyz.nkomarn.composter.server.PlayerManager;
 import xyz.nkomarn.composter.server.WorldManager;
-import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.util.configuration.Config;
 
 import java.nio.file.Paths;
+import java.util.Deque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public final class Composter implements CommandSource {
-
     private final Config config = new Config();
     private final Logger logger;
 
@@ -30,26 +30,36 @@ public final class Composter implements CommandSource {
 
     private long currentTick = 0;
     private final ScheduledExecutorService tickLoop;
-
-    public static Location SPAWN;
+    private Deque<Runnable> mainThreadTasks;
 
     public Composter(final int port) throws InterruptedException {
         this.logger = LogManager.getLogger("Server");
-        this.logger.info("Starting Composter.");
+        this.logger.info("Starting Composter..");
 
         this.commandManager = new CommandManager(this);
         this.playerManager = new PlayerManager(this);
         this.networkManager = new NetworkManager(this);
         this.worldManager = new WorldManager(this, Paths.get("worlds"));
         this.worldManager.load();
-
-        SPAWN = new Location(worldManager.getWorlds().iterator().next(), 0, 128, 0);
-
+        this.mainThreadTasks = new ConcurrentLinkedDeque<>();
         this.tickLoop = Executors.newSingleThreadScheduledExecutor();
         this.tickLoop.scheduleAtFixedRate(() -> {
             currentTick++;
-            playerManager.tick();
-            worldManager.tick();
+
+            var tickStart = System.currentTimeMillis();
+            playerManager.tick(currentTick);
+            worldManager.tick(currentTick);
+
+            /* process tasks that are waiting */
+            while (!mainThreadTasks.isEmpty()) {
+                try {
+                    mainThreadTasks.pop().run();
+                } catch (Throwable x) {
+                    logger.error("Encountered an error while processing main thread task.", x);
+                }
+            }
+
+            logger.debug("tick #{} ended in {}ms.", currentTick, (System.currentTimeMillis() - tickStart));
         }, 0, 50, TimeUnit.MILLISECONDS);
 
         networkManager.bind(port);
@@ -84,16 +94,17 @@ public final class Composter implements CommandSource {
         return worldManager;
     }
 
-    public long currentTick() {
-        return currentTick;
-    }
-
     @Override
     public void sendMessage(@NotNull Component message) {
         /*
          * TODO: Console color support.
          */
         getLogger().info(PlainTextComponentSerializer.plainText().serialize(message));
+    }
+
+    public void executeOnMain(Runnable task) {
+//         logger.info("queued task from {} thread..", Thread.currentThread().getName());
+        mainThreadTasks.add(task);
     }
 
     public static void main(String[] args) throws InterruptedException {

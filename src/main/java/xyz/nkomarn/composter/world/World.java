@@ -2,6 +2,8 @@ package xyz.nkomarn.composter.world;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import kyta.composter.Tickable;
+import kyta.composter.math.Vec3d;
 import kyta.composter.world.BlockPos;
 import kyta.composter.world.ChunkPos;
 import kyta.composter.world.PosKt;
@@ -12,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
+import xyz.nkomarn.composter.entity.Pig;
 import xyz.nkomarn.composter.entity.Player;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
 import xyz.nkomarn.composter.world.generator.WorldGenerator;
@@ -26,13 +29,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class World {
+public class World implements Tickable {
     private static final int SIMULATION_DISTANCE = 8;
     private static final int MAX_WORLD_HEIGHT = 127;
     private static final int MAX_CHUNK_ACTIONS_PER_TICK = 8;
 
     private BlockPos spawnPos = new BlockPos(0, MAX_WORLD_HEIGHT, 0);
-    private final Composter server;
+    public final Composter server;
     private final Properties properties;
     private final Executor thread;
     private final Long2ObjectMap<Chunk> loadedChunks;
@@ -52,6 +55,11 @@ public class World {
         this.pendingChunks = ConcurrentHashMap.newKeySet();
 
         createSpawnChunks();
+
+        // spawn a pig
+        var pig = new Pig(this);
+        pig.setPos(new Vec3d(spawnPos.up()));
+        addEntity(pig);
     }
 
     public UUID getUUID() {
@@ -89,7 +97,6 @@ public class World {
 
     @NotNull
     public CompletableFuture<Chunk> getChunk(int x, int z) {
-        var pos = new ChunkPos(x, z);
         var chunk = loadedChunks.get(PosKt.asCompactChunkKey(x, z));
 
         if (chunk != null) {
@@ -126,20 +133,27 @@ public class World {
         return spawnPos;
     }
 
+    @Nullable
+    public Entity getEntity(int id) {
+        return entities.values().stream().filter(entity -> entity.getId() == id).findFirst().orElse(null);
+    }
+
     public Collection<Entity> getEntities() {
         return entities.values();
     }
 
     public void addEntity(@NotNull Entity entity) {
-        entities.put(entity.getUUID(), entity);
+        entities.put(entity.getUuid(), entity);
     }
 
-    public void tick() {
+    @Override
+    public void tick(long currentTick) {
         time += 1; // TODO change to just ++
 
         entities.values().removeIf(Entity::isRemoved);
+        entities.values().forEach(entity -> entity.tick(currentTick));
 
-        if (server.currentTick() % 20 == 0) {
+        if (currentTick % 20 == 0) {
             server.getPlayerManager().getPlayers().stream()
                     .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
                     .forEach(player -> player.connection().sendPacket(new ClientboundSetTimePacket(time)));
@@ -159,11 +173,10 @@ public class World {
                 continue;
             }
 
-            var chunkX = player.getLocation().getBlockX() >> 4;
-            var chunkZ = player.getLocation().getBlockZ() >> 4;
+            var chunkPos = new ChunkPos(player.getBlockPos());
 
-            for (var x = (chunkX - SIMULATION_DISTANCE); x < (chunkX + SIMULATION_DISTANCE); x++) {
-                for (var z = (chunkZ - SIMULATION_DISTANCE); z < (chunkZ + SIMULATION_DISTANCE); z++) {
+            for (var x = (chunkPos.getX() - SIMULATION_DISTANCE); x < (chunkPos.getX() + SIMULATION_DISTANCE); x++) {
+                for (var z = (chunkPos.getZ() - SIMULATION_DISTANCE); z < (chunkPos.getZ() + SIMULATION_DISTANCE); z++) {
                     if (chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
                         break;
                     }
@@ -180,8 +193,8 @@ public class World {
     }
 
     private void createSpawnChunks() {
-        for (var x = -1; x < 1; x++) {
-            for (var z = -1; z < 1; z++) {
+        for (var x = -2; x < 2; x++) {
+            for (var z = -2; z < 2; z++) {
                 getChunk(x, z).join();
             }
         }
@@ -189,17 +202,18 @@ public class World {
         /*
          * find the lowest suitable spawn block.
          */
-        for (var y = MAX_WORLD_HEIGHT; y > 0; y--) {
-            var pos = new BlockPos(0, y, 0);
-
-            if (getBlock(pos).getBlock() == BlocksKt.getAIR()) {
-                continue;
+        var pos = new BlockPos(0, MAX_WORLD_HEIGHT, 0);
+        while (pos.getY() > 0) {
+            var block = getBlock(pos).getBlock();
+            if (block != BlocksKt.getAIR()) {
+                break;
             }
 
-            spawnPos = pos;
-            server.getLogger().info("the default world spawn is now ({}, {}, {})", pos.getX(), pos.getY(), pos.getZ());
-            break;
+            pos = pos.down();
         }
+
+        spawnPos = pos;
+        server.getLogger().info("the default world spawn is now ({}, {}, {})", spawnPos.getX(), spawnPos.getY(), spawnPos.getZ());
     }
 
     // TODO save chunks, etc

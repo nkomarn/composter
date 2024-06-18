@@ -23,13 +23,17 @@ public class ChannelHandler extends SimpleChannelInboundHandler<Packet<?>> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         ctx.channel().attr(Connection.SESSION_KEY).set(new Connection(server, ctx.channel()));
-        LOGGER.info("New session opened: " + ctx.channel().toString());
+        LOGGER.info("New session -> {}", ctx.channel().remoteAddress());
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        channelConnection(ctx).getPlayer().ifPresent(player -> server.getPlayerManager().onDisconnect(player));
-        LOGGER.info(String.format("Session closed- channel: %s.", ctx.channel().toString()));
+        channelConnection(ctx).getPlayer().ifPresent(player -> {
+            server.executeOnMain(() -> {
+                server.getPlayerManager().onDisconnect(player);
+            });
+        });
+        LOGGER.info("Session closed <- {}", ctx.channel().remoteAddress());
         // ctx.channel().close();
     }
 

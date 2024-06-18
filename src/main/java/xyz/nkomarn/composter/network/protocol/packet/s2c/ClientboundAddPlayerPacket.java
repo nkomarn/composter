@@ -26,11 +26,13 @@ public class ClientboundAddPlayerPacket extends Packet<ClientboundAddPlayerPacke
     public ClientboundAddPlayerPacket(Player player) {
         this.id = player.getId();
         this.name = player.getUsername();
-        this.x = toAbsolute(player.getLocation().getX());
-        this.y = toAbsolute(player.getLocation().getY());
-        this.z = toAbsolute(player.getLocation().getZ());
+
+        var pos = player.getPos();
+        this.x = toAbsolute(player.getX());
+        this.y = toAbsolute(player.getY());
+        this.z = toAbsolute(player.getZ());
         this.rotation = (byte) 0;
-        this.pitch = (byte) 0;
+        this.pitch = (byte) player.getPitch();
         this.item = (short) 0;
     }
 

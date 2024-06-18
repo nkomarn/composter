@@ -1,27 +1,30 @@
 package xyz.nkomarn.composter.server;
 
+import kyta.composter.Tickable;
+import kyta.composter.math.Vec3d;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.network.protocol.ConnectionState;
-import xyz.nkomarn.composter.network.Connection;
-import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.*;
-import xyz.nkomarn.composter.type.Location;
 import xyz.nkomarn.composter.entity.Player;
+import xyz.nkomarn.composter.network.Connection;
+import xyz.nkomarn.composter.network.protocol.ConnectionState;
+import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.LoginS2CPacket;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.PlayerPosLookS2CPacket;
+import xyz.nkomarn.composter.network.protocol.packet.s2c.SpawnPositionS2CPacket;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class PlayerManager {
-
+public class PlayerManager implements Tickable {
     private final Composter server;
-    private final HashMap<String, Player> players;
+    private final Map<String, Player> players;
 
     public PlayerManager(@NotNull Composter server) {
         this.server = server;
-        this.players = new HashMap<>();
+        this.players = new ConcurrentHashMap<>();
     }
 
     public Collection<Player> getPlayers() {
@@ -45,8 +48,8 @@ public class PlayerManager {
             players.remove(playerName);
         }
 
-        Player player = new Player(connection, username);
-        connection.sendPacket(new LoginS2CPacket(1298, 971768181197178410L, (byte) 0)); // TODO use actual coordinates
+        Player player = new Player(server.getWorldManager().getWorlds().stream().findFirst().get(), connection, username);
+        connection.sendPacket(new LoginS2CPacket(player.getId(), 971768181197178410L, (byte) 0)); // TODO use actual coordinates
         players.put(username.toLowerCase(), player);
         connection.setPlayer(player);
         connection.setState(ConnectionState.PLAY);
@@ -55,7 +58,7 @@ public class PlayerManager {
     }
 
     public void onJoin(@NotNull Player player) {
-        player.setPos(player.getWorld().getSpawn());
+        player.setPos(new Vec3d(player.getWorld().getSpawn()));
         player.updateVisibleChunks();
 
         var worldSpawn = player.getWorld().getSpawn();
@@ -66,6 +69,10 @@ public class PlayerManager {
         player.sendMessage(Component.text("Welcome to Composter :)", NamedTextColor.GOLD));
         player.sendMessage(Component.text("Composter is still in early development.", NamedTextColor.RED));
         player.sendMessage(Component.text("Many features are incomplete!", NamedTextColor.RED));
+        player.sendMessage(Component.empty());
+
+        var pos = player.getBlockPos();
+        player.sendMessage(Component.text(String.format("You are currently at (%s, %s, %s)", pos.getX(), pos.getY(), pos.getZ())));
 
         player.getWorld().addEntity(player);
     }
@@ -87,7 +94,7 @@ public class PlayerManager {
         broadcastMessage(Component.text(String.format("<%s> %s", player.getUsername(), message)));
     }
 
-    public void onMove(@NotNull Player player, @NotNull Location oldLocation, @NotNull Location newLocation) {
+    public void onMove(@NotNull Player player, @NotNull Vec3d oldPos, @NotNull Vec3d newPos, float pitch, float yaw) {
         /*
         if (!player.getWorld().isChunkLoaded(newLocation.getChunk())) {
             // player.updateLocation();
@@ -96,13 +103,14 @@ public class PlayerManager {
          */
 
         // TODO check for invalid move (so people can't teleport halfway across the world with no limitations)
-        player.setLocation(newLocation);
+        player.setPos(newPos);
+        player.setPitch(pitch);
+        player.setYaw(yaw);
     }
 
-    public void tick() {
-        players.values().forEach(Player::tick);
-
-        if (server.currentTick() % 300 != 0) {
+    @Override
+    public void tick(long currentTick) {
+        if (currentTick % 300 != 0) {
             return; // send out keep-alive every 10 seconds
         }
 

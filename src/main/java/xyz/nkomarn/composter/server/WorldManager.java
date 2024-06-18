@@ -1,5 +1,6 @@
 package xyz.nkomarn.composter.server;
 
+import kyta.composter.Tickable;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.world.ChunkIO;
@@ -11,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class WorldManager {
+public class WorldManager implements Tickable {
 
     private final Composter server;
     private final Path directory;
@@ -50,7 +51,8 @@ public class WorldManager {
         return worlds.values();
     }
 
-    public void tick() {
-        this.worlds.values().forEach(World::tick);
+    @Override
+    public void tick(long currentTick) {
+        worlds.values().forEach(world -> world.tick(currentTick));
     }
 }

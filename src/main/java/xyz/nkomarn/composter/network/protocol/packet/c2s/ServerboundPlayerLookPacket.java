@@ -4,16 +4,16 @@ import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.network.protocol.Packet;
 
-public class PlayerLookC2SPacket extends Packet<PlayerLookC2SPacket> {
+public class ServerboundPlayerLookPacket extends Packet<ServerboundPlayerLookPacket> {
 
     private float yaw;
     private float pitch;
     private boolean grounded;
 
-    public PlayerLookC2SPacket() {
+    public ServerboundPlayerLookPacket() {
     }
 
-    public PlayerLookC2SPacket(float yaw, float pitch, boolean grounded) {
+    public ServerboundPlayerLookPacket(float yaw, float pitch, boolean grounded) {
         this.yaw = yaw;
         this.pitch = pitch;
         this.grounded = grounded;
@@ -37,7 +37,7 @@ public class PlayerLookC2SPacket extends Packet<PlayerLookC2SPacket> {
     }
 
     @Override
-    public PlayerLookC2SPacket decode(@NotNull ByteBuf buffer) {
-        return new PlayerLookC2SPacket(buffer.readFloat(), buffer.readFloat(), buffer.readBoolean());
+    public ServerboundPlayerLookPacket decode(@NotNull ByteBuf buffer) {
+        return new ServerboundPlayerLookPacket(buffer.readFloat(), buffer.readFloat(), buffer.readBoolean());
     }
 }
