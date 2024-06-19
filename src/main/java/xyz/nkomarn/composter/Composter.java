@@ -44,19 +44,23 @@ public final class Composter implements CommandSource {
         this.mainThreadTasks = new ConcurrentLinkedDeque<>();
         this.tickLoop = Executors.newSingleThreadScheduledExecutor();
         this.tickLoop.scheduleAtFixedRate(() -> {
+            var tickStart = System.currentTimeMillis();
             currentTick++;
 
-            var tickStart = System.currentTimeMillis();
-            playerManager.tick(currentTick);
-            worldManager.tick(currentTick);
+            try {
+                playerManager.tick(currentTick);
+                worldManager.tick(currentTick);
 
-            /* process tasks that are waiting */
-            while (!mainThreadTasks.isEmpty()) {
-                try {
-                    mainThreadTasks.pop().run();
-                } catch (Throwable x) {
-                    logger.error("Encountered an error while processing main thread task.", x);
+                /* process tasks that are waiting */
+                while (!mainThreadTasks.isEmpty()) {
+                    try {
+                        mainThreadTasks.pop().run();
+                    } catch (Throwable x) {
+                        logger.error("Encountered an error while processing main thread task.", x);
+                    }
                 }
+            } catch (Throwable x) {
+                logger.error("An error occurred while ticking the server (tick #{})", currentTick, x);
             }
 
             logger.debug("tick #{} ended in {}ms.", currentTick, (System.currentTimeMillis() - tickStart));

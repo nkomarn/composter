@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.network.protocol.Packet;
 
-import static xyz.nkomarn.composter.util.ByteBufUtil.toAbsolute;
+import static xyz.nkomarn.composter.util.ByteBufUtil.toAbsoluteInteger;
 
 public class ClientboundTeleportEntityPacket extends Packet<ClientboundTeleportEntityPacket> {
 
@@ -24,21 +24,13 @@ public class ClientboundTeleportEntityPacket extends Packet<ClientboundTeleportE
         this.id = entity.getId();
 
         var pos = entity.getPos();
-        this.x = toAbsolute(pos.getX());
-        this.y = toAbsolute(pos.getY());
-        this.z = toAbsolute(pos.getZ());
+        this.x = toAbsoluteInteger(pos.getX());
+        this.y = toAbsoluteInteger(pos.getY());
+        this.z = toAbsoluteInteger(pos.getZ());
         this.yaw = (byte) (entity.getYaw() * 256F / 360F);
         this.pitch = (byte) (entity.getPitch() * 256F / 360F);
-    }
 
-
-    public ClientboundTeleportEntityPacket(int id, int x, int y, int z, byte yaw, byte pitch) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.yaw = yaw;
-        this.pitch = pitch;
+        System.out.printf("(%s, %s, %s)\n", x, y, z);
     }
 
     @Override

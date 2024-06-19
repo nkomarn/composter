@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.network.protocol.Packet;
 
-import static xyz.nkomarn.composter.util.ByteBufUtil.toAbsolute;
+import static xyz.nkomarn.composter.util.ByteBufUtil.toAbsoluteInteger;
 
 public class ClientboundAddEntityPacket extends Packet<ClientboundAddEntityPacket> {
     private int id;
@@ -23,9 +23,9 @@ public class ClientboundAddEntityPacket extends Packet<ClientboundAddEntityPacke
     public ClientboundAddEntityPacket(Entity entity) {
         this.id = entity.getId();
         this.entityType = 90;
-        this.x = toAbsolute(entity.getX());
-        this.y = toAbsolute(entity.getY());
-        this.z = toAbsolute(entity.getZ());
+        this.x = toAbsoluteInteger(entity.getX());
+        this.y = toAbsoluteInteger(entity.getY());
+        this.z = toAbsoluteInteger(entity.getZ());
         this.yaw = (byte) entity.getYaw();
         this.pitch = (byte) entity.getPitch();
     }

@@ -1,6 +1,7 @@
 package xyz.nkomarn.composter.network.protocol;
 
 import kyta.composter.math.Vec3d;
+import kyta.composter.world.block.BlocksKt;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.network.Connection;
@@ -10,10 +11,12 @@ import xyz.nkomarn.composter.network.protocol.packet.c2s.PlayerPosLookC2SPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundPlayerActionPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.ServerboundPlayerLookPacket;
+import xyz.nkomarn.composter.network.protocol.packet.play.ServerboundDigPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.HandshakeS2CPacket;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class PacketHandler {
 
@@ -85,21 +88,19 @@ public class PacketHandler {
                 var currentPos = player.getPos();
                 var newPos = new Vec3d(posPacket.getX(), posPacket.getY(), posPacket.getZ());
 
-                /* todo; handle these values appropriately */
-                var pitch = player.getPitch();
-                var yaw = player.getYaw();
-
-                session.getServer().getPlayerManager().onMove(player, currentPos, newPos, pitch, yaw);
+                session.getServer().executeOnMain(() -> {
+                    session.getServer().getPlayerManager().onMove(player, currentPos, newPos);
+                    player.setOnGround(posPacket.isOnGround());
+                });
             });
         });
 
         register(0x0C, State.PLAY, (session, packet) -> {
             var lookPacket = (ServerboundPlayerLookPacket) packet;
             session.getPlayer().ifPresent(player -> {
-                var currentPos = player.getPos();
-
                 session.getServer().executeOnMain(() -> {
-                    session.getServer().getPlayerManager().onMove(player, currentPos, currentPos, lookPacket.getPitch(), lookPacket.getYaw());
+                    session.getServer().getPlayerManager().onLook(player, lookPacket.getYaw(), lookPacket.getPitch());
+                    player.setOnGround(lookPacket.isGrounded());
                 });
             });
         });
@@ -112,7 +113,9 @@ public class PacketHandler {
                 var newPos = new Vec3d(posLookPacket.getX(), posLookPacket.getY(), posLookPacket.getZ());
 
                 session.getServer().executeOnMain(() -> {
-                    session.getServer().getPlayerManager().onMove(player, currentPos, newPos, posLookPacket.getPitch(), posLookPacket.getYaw());
+                    session.getServer().getPlayerManager().onMove(player, currentPos, newPos);
+                    session.getServer().getPlayerManager().onLook(player, posLookPacket.getYaw(), posLookPacket.getPitch());
+                    player.setOnGround(posLookPacket.isOnGround());
                 });
             });
         });
@@ -132,11 +135,46 @@ public class PacketHandler {
             }
         }));
 
-        // Client disconnection
-        register(0xFF, State.PLAY, (connection, packet) -> {
-            System.out.println("disconnect packet");
-            connection.close();
+        register(0x0E, State.PLAY, (connection, packet) -> {
+            var digPacket = (ServerboundDigPacket) packet;
+
+            if (connection.getPlayer().isEmpty()) return;
+            var player = connection.getPlayer().get();
+
+            /* special case */
+            if (digPacket.getAction() == ServerboundDigPacket.Action.DROP_ITEM) {
+                // todo; drop the item
+                return;
+            }
+
+            /* the vanilla client can only reach 4.5 blocks */
+            var reach = player.getPos().distanceSqrt(new Vec3d(digPacket.getBlockPos()));
+            if (false && reach >= 4.5) { // todo; double check distance calculations
+                connection.disconnect("Attempted to reach >4.5 blocks (" + reach + ")");
+                return;
+            }
+
+            var timeStamp = System.currentTimeMillis();
+
+            connection.getServer().executeOnMain(() -> {
+                if (digPacket.getAction() == ServerboundDigPacket.Action.START) {
+                    player.setLastDigStartTime(timeStamp);
+                    return;
+                }
+
+                if (digPacket.getAction() == ServerboundDigPacket.Action.FINISH) {
+                    if (false && System.currentTimeMillis() - player.getLastDigStartTime() < TimeUnit.SECONDS.toMillis(2)) { // todo; variable dig time per block material type
+                        connection.disconnect("Attempted to break a block too quickly. ):");
+                        return;
+                    }
+
+                    player.getWorld().setBlock(digPacket.getBlockPos(), BlocksKt.getDefaultState(BlocksKt.getAIR()));
+                }
+            });
         });
+
+        // Client disconnection
+        register(0xFF, State.PLAY, (connection, packet) -> connection.close());
 
         // Server list ping (for beta 1.8 - release 1.6.4)
         register(0xFE, State.HANDSHAKING, (session, packet) -> {

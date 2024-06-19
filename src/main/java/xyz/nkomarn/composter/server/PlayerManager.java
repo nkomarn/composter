@@ -2,6 +2,8 @@ package xyz.nkomarn.composter.server;
 
 import kyta.composter.Tickable;
 import kyta.composter.math.Vec3d;
+import kyta.composter.world.BlockPos;
+import kyta.composter.world.ChunkPos;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
@@ -58,12 +60,13 @@ public class PlayerManager implements Tickable {
     }
 
     public void onJoin(@NotNull Player player) {
-        player.setPos(new Vec3d(player.getWorld().getSpawn()));
-        player.updateVisibleChunks();
+        var worldSpawn = player.getWorld().getSpawn().up().up().up();
 
-        var worldSpawn = player.getWorld().getSpawn();
+        player.setPos(new Vec3d(worldSpawn));
+//         player.updateVisibleChunks();
+
         player.connection().sendPacket(new SpawnPositionS2CPacket(worldSpawn.getX(), worldSpawn.getY(), worldSpawn.getZ()));
-        player.connection().sendPacket(new PlayerPosLookS2CPacket(worldSpawn.getX(), worldSpawn.getY(), worldSpawn.getZ(), 0, 0, 67.240000009536743D, false));
+        player.connection().sendPacket(new PlayerPosLookS2CPacket(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), player.getStance(), player.isOnGround()));
         broadcastMessage(Component.text(player.getUsername() + " joined the game.", NamedTextColor.YELLOW));
 
         player.sendMessage(Component.text("Welcome to Composter :)", NamedTextColor.GOLD));
@@ -94,7 +97,41 @@ public class PlayerManager implements Tickable {
         broadcastMessage(Component.text(String.format("<%s> %s", player.getUsername(), message)));
     }
 
-    public void onMove(@NotNull Player player, @NotNull Vec3d oldPos, @NotNull Vec3d newPos, float pitch, float yaw) {
+    public void onLook(@NotNull Player player, float yaw, float pitch) {
+        player.setYaw(yaw);
+        player.setPitch(pitch);
+    }
+
+    public void onMove(@NotNull Player player, @NotNull Vec3d oldPos, @NotNull Vec3d newPos) {
+        if (oldPos.distanceSqrt(newPos) >= 100) {
+            player.connection().disconnect(String.format(
+                    "Invalid movement: (%s, %s, %s) -> (%s, %s, %s)",
+                    oldPos.getX(), oldPos.getY(), oldPos.getZ(),
+                    newPos.getX(), newPos.getY(), newPos.getZ()
+            ));
+            return;
+        }
+
+        /*
+         * don't let players move into unloaded areas.
+         */
+        var chunkPos = new ChunkPos(new BlockPos(newPos));
+        if (!player.getWorld().isChunkLoaded(chunkPos)) {
+            player.connection().sendPacket(
+                    new PlayerPosLookS2CPacket(
+                            oldPos.getX(),
+                            oldPos.getY(),
+                            oldPos.getZ(),
+                            player.getYaw(),
+                            player.getPitch(),
+                            player.getStance(),
+                            player.isOnGround()
+                    ));
+
+            return;
+        }
+
+
         /*
         if (!player.getWorld().isChunkLoaded(newLocation.getChunk())) {
             // player.updateLocation();
@@ -102,10 +139,7 @@ public class PlayerManager implements Tickable {
         }
          */
 
-        // TODO check for invalid move (so people can't teleport halfway across the world with no limitations)
         player.setPos(newPos);
-        player.setPitch(pitch);
-        player.setYaw(yaw);
     }
 
     @Override

@@ -16,14 +16,16 @@ import java.util.Set;
 
 public final class Player extends Entity implements CommandSource {
     private static final int VIEW_DISTANCE = 16;
+    public static final double DEFAULT_STANCE = 67.240000009536743;
 
     private final Connection connection;
     private final String username;
     private final EntityTracker tracker;
     private final Set<ChunkPos> visibleChunks;
     private boolean crouching;
+    private boolean onGround;
+    private long lastDigStartTime;
 
-    private static final double DEFAULT_STANCE = 67.240000009536743;
     //TODO crouching support
 
     public Player(World world, Connection connection, String username) {
@@ -68,10 +70,30 @@ public final class Player extends Entity implements CommandSource {
         this.crouching = crouching;
     }
 
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
+    }
+
+    public double getStance() {
+        return DEFAULT_STANCE;
+    }
+
+    public long getLastDigStartTime() {
+        return lastDigStartTime;
+    }
+
+    public void setLastDigStartTime(long lastDigStartTime) {
+        this.lastDigStartTime = lastDigStartTime;
+    }
+
     @Override
     public void tick(long currentTick) {
         super.tick(currentTick);
-        tracker.tick();
+        tracker.tick(currentTick);
 
         /*
          * if this player has moved, update their visible chunks.

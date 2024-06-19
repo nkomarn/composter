@@ -34,7 +34,7 @@ public class Bootstrap {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class) // TODO use Epoll if possible!
-                    .childOption(ChannelOption.TCP_NODELAY, true)
+//                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
 
                         @Override

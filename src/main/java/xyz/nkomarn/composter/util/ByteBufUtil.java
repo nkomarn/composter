@@ -28,7 +28,13 @@ public class ByteBufUtil {
         return buffer;
     }
 
+    /*
     public static int toAbsolute(double value) {
         return (int)(Math.abs(value) * 32.0);
+    }
+     */
+
+    public static int toAbsoluteInteger(double value) {
+        return (int)(value * 32.0);
     }
 }

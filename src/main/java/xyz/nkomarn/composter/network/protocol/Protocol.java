@@ -3,6 +3,7 @@ package xyz.nkomarn.composter.network.protocol;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkDataPacket;
 import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkOperationPacket;
+import xyz.nkomarn.composter.network.protocol.packet.play.ServerboundDigPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
 import xyz.nkomarn.composter.network.protocol.packet.bi.KeepAliveBiPacket;
 import xyz.nkomarn.composter.network.protocol.packet.c2s.*;
@@ -45,6 +46,8 @@ public class Protocol {
         register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosC2SPacket.class); // 0x0B
         register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundPlayerLookPacket.class); // 0x0C
         register(ConnectionState.PLAY, Direction.SERVERBOUND, PlayerPosLookC2SPacket.class); // 0x0D
+
+        register(ConnectionState.PLAY, Direction.SERVERBOUND, ServerboundDigPacket.class); // 0x0D
 
         // register(Direction.CLIENTBOUND, NamedEntitySpawnS2CPacket.class); // 0x14
         // register(Direction.CLIENTBOUND, EntityS2CPacket.class); // 0x1E

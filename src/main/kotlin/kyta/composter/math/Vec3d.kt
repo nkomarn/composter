@@ -19,6 +19,10 @@ data class Vec3d(
         return Vec3d(this.x + x, this.y + y, this.z + z)
     }
 
+    fun distanceSqrt(pos: Vec3d): Double {
+        return (x - pos.x) * (x - pos.x) + (y - pos.y) * (y - pos.y) + (z - pos.z) * (z - pos.z)
+    }
+
     companion object {
         val ZERO = Vec3d(0.0, 0.0, 0.0)
     }

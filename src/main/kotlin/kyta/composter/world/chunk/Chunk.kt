@@ -13,11 +13,19 @@ class Chunk(val pos: ChunkPos) {
     val light = LightData()
 
     fun getBlock(pos: BlockPos): BlockState {
-        return states[pos.arrayIndex] ?: AIR.defaultState
+        return getBlockRaw(pos.x and 15, pos.y, pos.z and 15)
+    }
+
+    fun getBlockRaw(x: Int, y: Int, z: Int): BlockState {
+        return states[arrayIndex(x, y, z)] ?: AIR.defaultState
     }
 
     fun setBlock(pos: BlockPos, state: BlockState?) {
-        states[pos.arrayIndex] = state ?: AIR.defaultState
+        setBlockRaw(pos.x and 15, pos.y, pos.z and 15, state)
+    }
+
+    fun setBlockRaw(x: Int, y: Int, z: Int, state: BlockState?) {
+        states[arrayIndex(x, y, z)] = state ?: AIR.defaultState
     }
 
     companion object {
@@ -30,11 +38,13 @@ class LightData {
     val block: Array<Int?> = arrayOfNulls(BLOCKS_PER_CHUNK)
 
     fun getSkyLight(pos: BlockPos): Int {
-        return sky[pos.arrayIndex] ?: DEFAULT_LIGHT_VALUE
+        return DEFAULT_LIGHT_VALUE
+        // return sky[pos.arrayIndex] ?: DEFAULT_LIGHT_VALUE
     }
 
     fun getBlockLight(pos: BlockPos): Int {
-        return block[pos.arrayIndex] ?: DEFAULT_LIGHT_VALUE
+        return DEFAULT_LIGHT_VALUE
+        // return block[pos.arrayIndex] ?: DEFAULT_LIGHT_VALUE
     }
 
     companion object {
@@ -42,5 +52,8 @@ class LightData {
     }
 }
 
-private val BlockPos.arrayIndex
-    get() = (min(16, x) * 16 + min(16, z)) * 128 + min(128, y)
+fun arrayIndex(x: Int, y: Int, z: Int): Int {
+    return (min(16, x) * 16 + min(16, z)) * 128 + min(128, y)
+
+    // return x and 15, y and 15, z and 15
+}

@@ -1,7 +1,5 @@
 package xyz.nkomarn.composter.world;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import kyta.composter.Tickable;
 import kyta.composter.math.Vec3d;
 import kyta.composter.world.BlockPos;
@@ -16,12 +14,15 @@ import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.entity.Pig;
 import xyz.nkomarn.composter.entity.Player;
+import xyz.nkomarn.composter.network.protocol.Packet;
+import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundUpdateBlockPacket;
 import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
 import xyz.nkomarn.composter.world.generator.WorldGenerator;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +39,7 @@ public class World implements Tickable {
     public final Composter server;
     private final Properties properties;
     private final Executor thread;
-    private final Long2ObjectMap<Chunk> loadedChunks;
+    private final Map<Long, Chunk> loadedChunks;
     private final HashMap<UUID, Entity> entities;
     private final long seed;
     private int chunkActionsThisTick;
@@ -49,7 +50,7 @@ public class World implements Tickable {
         this.server = server;
         this.properties = properties;
         this.thread = thread;
-        this.loadedChunks = new Long2ObjectOpenHashMap<>();
+        this.loadedChunks = new ConcurrentHashMap<>();
         this.entities = new HashMap<>();
         this.seed = ThreadLocalRandom.current().nextLong();
         this.pendingChunks = ConcurrentHashMap.newKeySet();
@@ -59,7 +60,7 @@ public class World implements Tickable {
         // spawn a pig
         var pig = new Pig(this);
         pig.setPos(new Vec3d(spawnPos.up()));
-        addEntity(pig);
+//         addEntity(pig);
     }
 
     public UUID getUUID() {
@@ -85,14 +86,34 @@ public class World implements Tickable {
         return chunk.getBlock(pos);
     }
 
+    public void setBlock(BlockPos pos, BlockState state) {
+        var chunkPos = new ChunkPos(pos);
+        var chunk = getLoadedChunk(chunkPos);
+
+        System.out.println(pos);
+
+        if (chunk != null) {
+            chunk.setBlock(pos, state);
+            broadcast(new ClientboundUpdateBlockPacket(pos, state));
+        }
+    }
+
     @Nullable
     public Chunk getLoadedChunk(ChunkPos key) {
-        return loadedChunks.get(key.getCompact());
+        return loadedChunks.getOrDefault(key.getCompact(), null);
     }
 
     @Nullable
     public Chunk getLoadedChunk(long key) {
-        return loadedChunks.get(key);
+        return loadedChunks.getOrDefault(key, null);
+    }
+
+    public void broadcast(Packet<?> packet) {
+        for (var entity : entities.values()) {
+            if (entity instanceof Player player) {
+                player.connection().sendPacket(packet);
+            }
+        }
     }
 
     @NotNull
@@ -123,6 +144,10 @@ public class World implements Tickable {
             loadedChunks.put(newChunk.getPos().getCompact(), newChunk);
             return newChunk;
         }, properties.getIO().getExecutor());
+    }
+
+    public boolean isChunkLoaded(ChunkPos pos) {
+        return loadedChunks.containsKey(PosKt.asCompactChunkKey(pos.getX(), pos.getZ()));
     }
 
     public boolean isChunkLoaded(int x, int z) {
@@ -177,7 +202,7 @@ public class World implements Tickable {
 
             for (var x = (chunkPos.getX() - SIMULATION_DISTANCE); x < (chunkPos.getX() + SIMULATION_DISTANCE); x++) {
                 for (var z = (chunkPos.getZ() - SIMULATION_DISTANCE); z < (chunkPos.getZ() + SIMULATION_DISTANCE); z++) {
-                    if (chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
+                    if (false && chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {
                         break;
                     }
 

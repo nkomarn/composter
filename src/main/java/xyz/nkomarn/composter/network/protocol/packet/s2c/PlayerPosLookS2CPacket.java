@@ -37,8 +37,8 @@ public class PlayerPosLookS2CPacket extends Packet<PlayerPosLookS2CPacket> {
     public @NotNull ByteBuf encode() {
         return Unpooled.buffer()
                 .writeDouble(x)
-                .writeDouble(stance)
                 .writeDouble(y)
+                .writeDouble(stance)
                 .writeDouble(z)
                 .writeFloat(yaw)
                 .writeFloat(pitch)

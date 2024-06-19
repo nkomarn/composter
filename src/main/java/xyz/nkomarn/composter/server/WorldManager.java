@@ -10,6 +10,7 @@ import xyz.nkomarn.composter.world.generator.FlatGenerator;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WorldManager implements Tickable {
@@ -24,7 +25,7 @@ public class WorldManager implements Tickable {
         this.server = server;
         this.directory = directory;
         this.worlds = new HashMap<>();
-        this.chunkThread = Runnable::run; // Executors.newVirtualThreadPerTaskExecutor();// TODO configurable
+        this.chunkThread = Runnable::run; // Executors.newVirtualThreadPerTaskExecutor();// TODO configurable - Runnable::run;
     }
 
     public void load() {

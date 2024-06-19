@@ -1,6 +1,5 @@
 package xyz.nkomarn.composter.world.generator
 
-import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.block.AIR
 import kyta.composter.world.block.BEDROCK
@@ -14,16 +13,16 @@ object FlatGenerator : WorldGenerator {
         val chunk = Chunk(ChunkPos(xx, zz))
 
         for (x in 0..15) {
-            for (y in 0..127) {
+            for (y in 0..62) {
                 for (z in 0..15) {
                     val state = when {
-                        y == 1 -> BEDROCK
-                        y == 5 -> GRASS_BLOCK
-                        y < 5 -> DIRT
+                        y <= 5 -> BEDROCK
+                        y == 62 -> GRASS_BLOCK
+                        y < 62 -> DIRT
                         else -> AIR
                     }.defaultState
 
-                    chunk.setBlock(BlockPos(x, y, z), state)
+                    chunk.setBlockRaw(x, y, z, state)
                 }
             }
         }
