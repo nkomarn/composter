@@ -1,69 +1,55 @@
-package xyz.nkomarn.composter.network;
+package kyta.composter.network
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.util.AttributeKey;
-import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.network.protocol.ConnectionState;
-import xyz.nkomarn.composter.network.protocol.Packet;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.DisconnectS2CPacket;
-import xyz.nkomarn.composter.entity.Player;
+import io.netty.channel.Channel
+import io.netty.channel.ChannelFutureListener
+import io.netty.util.AttributeKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kyta.composter.protocol.ConnectionState
+import kyta.composter.protocol.Packet
+import kyta.composter.protocol.PacketHandler
+import kyta.composter.protocol.packet.GenericDisconnectPacket
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import xyz.nkomarn.composter.entity.Player
+import kyta.composter.server.MinecraftServer
+import kotlin.coroutines.CoroutineContext
 
-import java.util.Optional;
+data class Connection(
+    private val server: MinecraftServer,
+    private val channel: Channel,
+    var state: ConnectionState,
+) : CoroutineScope {
+    override val coroutineContext = Dispatchers.Unconfined
+    lateinit var packetHandler: PacketHandler
+    lateinit var player: Player
 
-public class Connection {
-
-    public static final AttributeKey<Connection> SESSION_KEY = AttributeKey.valueOf("session");
-    private final Composter server;
-    private final Channel channel;
-    private ConnectionState state;
-    private Player player;
-
-    public Connection(@NotNull Composter server, @NotNull Channel channel) {
-        this.server = server;
-        this.channel = channel;
-        this.state = ConnectionState.HANDSHAKING;
+    fun sendPacket(packet: Packet) {
+        channel.writeAndFlush(packet).sync()
     }
 
-    public @NotNull Composter getServer() {
-        return server;
+    @Deprecated("Replaced by modern component API.")
+    fun disconnect(message: String) {
+        disconnect(Component.text(message))
     }
 
-    public ConnectionState state() {
-        return state;
+    fun disconnect(message: Component) {
+        // todo - net refactor
+        val string = LegacyComponentSerializer.legacySection().serialize(message)
+        channel.writeAndFlush(GenericDisconnectPacket(string)).addListener(ChannelFutureListener.CLOSE)
     }
 
-    public void setState(final ConnectionState connectionState) {
-        this.state = connectionState;
+    fun close() {
+        channel.close()
     }
 
-    public Optional<Player> getPlayer() {
-        return Optional.ofNullable(player);
+    fun handleDisconnection() {
+        if (this::player.isInitialized) {
+            server.playerList.playerDisconnected(player)
+        }
     }
 
-    public void setPlayer(final Player player) {
-        this.player = player;
-    }
-
-    public void sendPacket(@NotNull Packet<?> packet) {
-        channel.writeAndFlush(packet); // TODO send
-    }
-
-
-    public void disconnect(final String message) {
-        channel.writeAndFlush(new DisconnectS2CPacket(message)).addListener(ChannelFutureListener.CLOSE);
-    }
-
-    public void close() {
-        channel.close();
-    }
-
-    public void handlePacket(@NotNull Packet<?> packet) {
-        server.getNetworkManager().getHandler().handle(this, packet);
-        /*PacketHandler<Packet> handler = HandlerHandler.getHandler((Class<Packet>) packet.getClass());
-        if (handler != null) {
-            handler.handle(this, this.player, packet);
-        }*/
+    companion object {
+        val KEY_PLAYER_CONNECTION: AttributeKey<Connection> = AttributeKey.valueOf("player_connection")
     }
 }

@@ -29,8 +29,6 @@ public class ClientboundTeleportEntityPacket extends Packet<ClientboundTeleportE
         this.z = toAbsoluteInteger(pos.getZ());
         this.yaw = (byte) (entity.getYaw() * 256F / 360F);
         this.pitch = (byte) (entity.getPitch() * 256F / 360F);
-
-        System.out.printf("(%s, %s, %s)\n", x, y, z);
     }
 
     @Override

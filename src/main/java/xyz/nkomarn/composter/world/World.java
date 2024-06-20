@@ -2,6 +2,7 @@ package xyz.nkomarn.composter.world;
 
 import kyta.composter.Tickable;
 import kyta.composter.math.Vec3d;
+import kyta.composter.protocol.packet.play.ClientboundSetTimePacket;
 import kyta.composter.world.BlockPos;
 import kyta.composter.world.ChunkPos;
 import kyta.composter.world.PosKt;
@@ -10,13 +11,12 @@ import kyta.composter.world.block.BlocksKt;
 import kyta.composter.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.entity.Entity;
 import xyz.nkomarn.composter.entity.Pig;
 import xyz.nkomarn.composter.entity.Player;
 import xyz.nkomarn.composter.network.protocol.Packet;
 import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundUpdateBlockPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundSetTimePacket;
+import kyta.composter.server.MinecraftServer;
 import xyz.nkomarn.composter.world.generator.WorldGenerator;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ public class World implements Tickable {
     private static final int MAX_CHUNK_ACTIONS_PER_TICK = 8;
 
     private BlockPos spawnPos = new BlockPos(0, MAX_WORLD_HEIGHT, 0);
-    public final Composter server;
+    public final MinecraftServer server;
     private final Properties properties;
     private final Executor thread;
     private final Map<Long, Chunk> loadedChunks;
@@ -46,7 +46,7 @@ public class World implements Tickable {
     private long time = 0;
     private final Set<ChunkPos> pendingChunks;
 
-    public World(@NotNull Composter server, @NotNull Properties properties, @NotNull Executor thread) {
+    public World(@NotNull MinecraftServer server, @NotNull Properties properties, @NotNull Executor thread) {
         this.server = server;
         this.properties = properties;
         this.thread = thread;
@@ -59,8 +59,8 @@ public class World implements Tickable {
 
         // spawn a pig
         var pig = new Pig(this);
-        pig.setPos(new Vec3d(spawnPos.up()));
-//         addEntity(pig);
+        pig.setPos(new Vec3d(spawnPos.up(1)));
+        addEntity(pig);
     }
 
     public UUID getUUID() {
@@ -90,8 +90,6 @@ public class World implements Tickable {
         var chunkPos = new ChunkPos(pos);
         var chunk = getLoadedChunk(chunkPos);
 
-        System.out.println(pos);
-
         if (chunk != null) {
             chunk.setBlock(pos, state);
             broadcast(new ClientboundUpdateBlockPacket(pos, state));
@@ -111,7 +109,7 @@ public class World implements Tickable {
     public void broadcast(Packet<?> packet) {
         for (var entity : entities.values()) {
             if (entity instanceof Player player) {
-                player.connection().sendPacket(packet);
+                // player.connection().sendPacket(packet); // todo - net refactor
             }
         }
     }
@@ -179,9 +177,9 @@ public class World implements Tickable {
         entities.values().forEach(entity -> entity.tick(currentTick));
 
         if (currentTick % 20 == 0) {
-            server.getPlayerManager().getPlayers().stream()
+            server.getPlayerList().onlinePlayers().stream()
                     .filter(player -> player.getWorld().getUUID().equals(properties.uuid))
-                    .forEach(player -> player.connection().sendPacket(new ClientboundSetTimePacket(time)));
+                    .forEach(player -> player.connection.sendPacket(new ClientboundSetTimePacket(time)));
         }
 
         tickChunks();
@@ -218,8 +216,8 @@ public class World implements Tickable {
     }
 
     private void createSpawnChunks() {
-        for (var x = -2; x < 2; x++) {
-            for (var z = -2; z < 2; z++) {
+        for (var x = -7; x < 7; x++) {
+            for (var z = -7; z < 7; z++) {
                 getChunk(x, z).join();
             }
         }
@@ -234,10 +232,10 @@ public class World implements Tickable {
                 break;
             }
 
-            pos = pos.down();
+            pos = pos.down(1);
         }
 
-        spawnPos = pos;
+        spawnPos = pos.up(3);
         server.getLogger().info("the default world spawn is now ({}, {}, {})", spawnPos.getX(), spawnPos.getY(), spawnPos.getZ());
     }
 

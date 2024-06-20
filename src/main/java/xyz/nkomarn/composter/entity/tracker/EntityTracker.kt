@@ -1,71 +1,53 @@
-package xyz.nkomarn.composter.entity.tracker;
+package xyz.nkomarn.composter.entity.tracker
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import kyta.composter.Tickable;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import xyz.nkomarn.composter.entity.Entity;
-import xyz.nkomarn.composter.entity.Player;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundAddEntityPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundAddPlayerPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundRemoveEntityPacket;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
+import kyta.composter.Tickable
+import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
+import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
+import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
+import org.slf4j.LoggerFactory
+import xyz.nkomarn.composter.entity.Entity
+import xyz.nkomarn.composter.entity.Player
 
-public class EntityTracker implements Tickable {
-    private static final Logger LOGGER = LoggerFactory.getLogger("Entity Tracker");
-    private final Player player;
-    private final Int2ObjectMap<TrackedEntity> trackedEntities;
+class EntityTracker(private val player: Player) : Tickable {
+    private val trackedEntities = Int2ObjectOpenHashMap<TrackedEntity>()
 
-    public EntityTracker(@NotNull Player player) {
-        this.player = player;
-        this.trackedEntities = new Int2ObjectOpenHashMap<>();
-    }
-
-    @Override
-    public void tick(long currentTick) {
+    override fun tick(currentTick: Long) {
         /* track any newly added entities */
-        for (var entity : player.getWorld().getEntities()) {
-            if (entity.getId() != player.getId() && !trackedEntities.containsKey(entity.getId())) {
-                trackNewEntity(entity);
+        for (entity in player.world.entities) {
+            if (entity.id != player.id && !trackedEntities.containsKey(entity.id)) {
+                trackNewEntity(entity)
             }
         }
 
         /* un-track old entities and tick all tracked entities */
-        var iterator = trackedEntities.values().iterator();
-
+        val iterator = trackedEntities.values.iterator()
         while (iterator.hasNext()) {
-            var trackedEntity = iterator.next();
-
-            if (trackedEntity.getEntity().isRemoved()) {
-                untrackEntity(trackedEntity.getEntity());
-                iterator.remove();
-                continue;
+            val trackedEntity = iterator.next()
+            if (trackedEntity.entity.isRemoved) {
+                untrackEntity(trackedEntity.entity)
+                iterator.remove()
+                continue
             }
-
-            trackedEntity.tick(currentTick);
+            trackedEntity.tick(currentTick)
         }
     }
 
-    private void trackNewEntity(Entity entity) {
-        if (entity instanceof Player otherPlayer) {
-            player.connection().sendPacket(new ClientboundAddPlayerPacket(otherPlayer));
-        } else {
-            player.connection().sendPacket(new ClientboundAddEntityPacket(entity));
-        }
+    private fun trackNewEntity(entity: Entity) {
+        val addEntityPacket = if (entity is Player) ClientboundAddPlayerPacket(entity) else ClientboundAddEntityPacket(entity)
+        player.connection.sendPacket(addEntityPacket)
 
-        var trackedEntity = new TrackedEntity(entity, packet -> {
-//             player.getWorld().server.getLogger().info("sending movement packet: {}", packet.getClass().getSimpleName());
-            player.connection().sendPacket(packet);
-            return null;
-        });
-
-        trackedEntities.put(entity.getId(), trackedEntity);
-        LOGGER.info("{} began tracking {} (entity #{}).", player.getUsername(), entity.getClass().getSimpleName(), entity.getId());
+        val trackedEntity = TrackedEntity(entity) { player.connection.sendPacket(it) }
+        trackedEntities.put(entity.id, trackedEntity)
+        LOGGER.info("{} began tracking {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
     }
 
-    private void untrackEntity(Entity entity) {
-        player.connection().sendPacket(new ClientboundRemoveEntityPacket(entity));
-        LOGGER.info("{} untracked {} (entity #{}).", player.getUsername(), entity.getClass().getSimpleName(), entity.getId());
+    private fun untrackEntity(entity: Entity) {
+        player.connection.sendPacket(ClientboundRemoveEntityPacket(entity))
+        LOGGER.info("{} untracked {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger("Entity Tracker")
     }
 }

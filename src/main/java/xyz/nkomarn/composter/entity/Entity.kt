@@ -1,6 +1,7 @@
 package xyz.nkomarn.composter.entity
 
 import kyta.composter.Tickable
+import kyta.composter.entity.EntityType
 import kyta.composter.entity.data.SynchronizedEntityData
 import kyta.composter.math.Vec3d
 import kyta.composter.world.BlockPos
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 open class Entity(val world: World): Tickable {
     val id = ENTITY_ID_COUNTER.getAndIncrement()
+    val type = EntityType.PIG
     val uuid: UUID = UUID.randomUUID()
     val synchronizedData = SynchronizedEntityData()
 

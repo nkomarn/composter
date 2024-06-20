@@ -12,7 +12,7 @@ class Pig(world: World) : Entity(world) {
     override fun tick(currentTick: Long) {
         super.tick(currentTick)
 
-        val nearbyPlayer = world.server.playerManager.players.firstOrNull()
+        val nearbyPlayer = world.server.playerList.onlinePlayers().firstOrNull()
             ?: return
 
         if (nearbyPlayer.getBlockPos().distanceSqrt(getBlockPos()) > 30) {

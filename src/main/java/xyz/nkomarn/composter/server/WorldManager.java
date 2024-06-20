@@ -1,8 +1,8 @@
 package xyz.nkomarn.composter.server;
 
 import kyta.composter.Tickable;
+import kyta.composter.server.MinecraftServer;
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.Composter;
 import xyz.nkomarn.composter.world.ChunkIO;
 import xyz.nkomarn.composter.world.World;
 import xyz.nkomarn.composter.world.generator.FlatGenerator;
@@ -10,22 +10,24 @@ import xyz.nkomarn.composter.world.generator.FlatGenerator;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WorldManager implements Tickable {
-
-    private final Composter server;
+    private final MinecraftServer server;
     private final Path directory;
 
     private final HashMap<UUID, World> worlds;
     private final Executor chunkThread;
 
-    public WorldManager(@NotNull Composter server, @NotNull Path directory) {
+    public WorldManager(@NotNull MinecraftServer server, @NotNull Path directory) {
         this.server = server;
         this.directory = directory;
         this.worlds = new HashMap<>();
         this.chunkThread = Runnable::run; // Executors.newVirtualThreadPerTaskExecutor();// TODO configurable - Runnable::run;
+    }
+
+    public World primaryWorld() {
+        return worlds.values().stream().findFirst().orElseThrow();
     }
 
     public void load() {

@@ -1,14 +1,14 @@
 package xyz.nkomarn.composter.entity;
 
+import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket;
+import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket;
+import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket.Mode;
 import kyta.composter.world.ChunkPos;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.tracker.EntityTracker;
-import xyz.nkomarn.composter.network.Connection;
-import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkDataPacket;
-import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundChunkOperationPacket;
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundChatPacket;
+import kyta.composter.network.Connection;
 import xyz.nkomarn.composter.world.World;
 
 import java.util.HashSet;
@@ -18,7 +18,7 @@ public final class Player extends Entity implements CommandSource {
     private static final int VIEW_DISTANCE = 16;
     public static final double DEFAULT_STANCE = 67.240000009536743;
 
-    private final Connection connection;
+    public final Connection connection;
     private final String username;
     private final EntityTracker tracker;
     private final Set<ChunkPos> visibleChunks;
@@ -36,10 +36,6 @@ public final class Player extends Entity implements CommandSource {
         this.visibleChunks = new HashSet<>();
     }
 
-    public Connection connection() {
-        return connection;
-    }
-
     public String getUsername() {
         return username;
     }
@@ -51,7 +47,7 @@ public final class Player extends Entity implements CommandSource {
 
     @Override
     public void sendMessage(@NotNull Component message) {
-        connection.sendPacket(new ClientboundChatPacket(message));
+        // connection.sendPacket(new ClientboundChatPacket(message)); // todo - net refactor
     }
 
     /*
@@ -137,8 +133,8 @@ public final class Player extends Entity implements CommandSource {
                 var chunk = getWorld().getLoadedChunk(pos);
                 if (chunk == null) continue;
 
-                connection.sendPacket(new ClientboundChunkOperationPacket(x, z, true));
-                connection.sendPacket(new ClientboundChunkDataPacket(chunk));
+                connection.sendPacket(new ClientboundChunkOperationPacket(pos, Mode.LOAD));
+                connection.sendPacket(new ClientboundChunkDataPacket(pos, chunk));
                 visibleChunks.add(pos);
             }
         }
@@ -148,7 +144,7 @@ public final class Player extends Entity implements CommandSource {
          */
         pendingUnload.forEach(pos -> {
             visibleChunks.remove(pos);
-            connection.sendPacket(new ClientboundChunkOperationPacket(pos.getX(), pos.getZ(), false));
+            connection.sendPacket(new ClientboundChunkOperationPacket(pos, Mode.UNLOAD));
         });
     }
 }

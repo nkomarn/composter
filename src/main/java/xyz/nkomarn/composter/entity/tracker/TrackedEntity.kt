@@ -2,19 +2,14 @@ package xyz.nkomarn.composter.entity.tracker
 
 import kyta.composter.Tickable
 import kyta.composter.math.Vec3d
+import kyta.composter.protocol.Packet
 import xyz.nkomarn.composter.entity.Entity
-import xyz.nkomarn.composter.network.protocol.Packet
-import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundEntityLookPacket
-import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundMoveEntityPacket
-import xyz.nkomarn.composter.network.protocol.packet.play.ClientboundMoveLookEntityPacket
-import xyz.nkomarn.composter.network.protocol.packet.s2c.ClientboundTeleportEntityPacket
-import xyz.nkomarn.composter.util.ByteBufUtil.toAbsoluteInteger
 import kotlin.math.abs
 import kotlin.math.max
 
 class TrackedEntity(
     val entity: Entity,
-    private val listener: (packet: Packet<*>) -> Unit,
+    private val listener: (packet: Packet) -> Unit,
 ): Tickable {
     private var lastPos = entity.pos
     private var lastPitch = entity.pitch
@@ -39,7 +34,8 @@ class TrackedEntity(
         lastYaw = entity.yaw
     }
 
-    private fun createPosUpdatePacket(oldPos: Vec3d, distanceMoved: Double, headMoved: Boolean, fullUpdate: Boolean): Packet<*>? {
+    private fun createPosUpdatePacket(oldPos: Vec3d, distanceMoved: Double, headMoved: Boolean, fullUpdate: Boolean): Packet? {
+        /*
         val deltaX = toAbsoluteInteger(entity.x - oldPos.x)
         val deltaY = toAbsoluteInteger(entity.y - oldPos.y)
         val deltaZ = toAbsoluteInteger(entity.z - oldPos.z)
@@ -60,6 +56,7 @@ class TrackedEntity(
         if (!zeroRelativeMovement) {
             return ClientboundMoveEntityPacket(entity, deltaX, deltaY, deltaZ)
         }
+         */
 
         return null
     }

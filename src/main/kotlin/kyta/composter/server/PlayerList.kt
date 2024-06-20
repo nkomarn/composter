@@ -1,48 +1,66 @@
-package xyz.nkomarn.composter.server;
+package kyta.composter.server
 
-import org.jetbrains.annotations.Unmodifiable;
-import xyz.nkomarn.composter.entity.Player;
-import xyz.nkomarn.composter.network.protocol.Packet;
+import kyta.composter.math.Vec3d
+import kyta.composter.protocol.Packet
+import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundSetSpawnPacket
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import xyz.nkomarn.composter.entity.Player
+import java.util.*
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+class PlayerList(server: MinecraftServer) {
+    private val onlinePlayers = mutableMapOf<String, Player>()
 
-public class PlayerList {
-
-    private final Map<String, Player> onlinePlayers;
-
-    public PlayerList(MinecraftServer server) {
-        this.onlinePlayers = new HashMap<>();
+    fun getPlayer(username: String): Player? {
+        return onlinePlayers[username.lowercase(Locale.getDefault())]
     }
 
-    @Unmodifiable
-    public Collection<Player> onlinePlayers() {
-        return Collections.unmodifiableCollection(onlinePlayers.values());
+    fun onlinePlayers(): Collection<Player> {
+        return Collections.unmodifiableCollection(onlinePlayers.values)
     }
 
-    public void broadcastPacket(Packet<?> packet) {
-        onlinePlayers.values().forEach(player -> player.connection().sendPacket(packet));
+    fun broadcastMessage(message: Component) {
+        broadcastPacket(ClientboundChatMessagePacket(message))
     }
 
-    public void playerJoined(Player player) {
-        var username = player.getUsername();
-
-        if (onlinePlayers.containsKey(username)) {
-            throw new IllegalStateException("Player \"" + username + "\" is already registered.");
-        }
-
-        onlinePlayers.put(username, player);
+    fun broadcastPacket(packet: Packet) {
+        onlinePlayers().forEach { it.connection.sendPacket(packet) }
     }
 
-    public void playerDisconnected(Player player) {
-        var username = player.getUsername();
+    fun playerJoined(player: Player) {
+        val username = player.username
+        check(!onlinePlayers.containsKey(username)) { "Player \"$username\" is already registered." }
+        onlinePlayers[username.lowercase()] = player
 
-        if (player.isRemoved()) {
-            throw new IllegalStateException("Player \"" + username + "\" was unregistered before being marked as removed.");
-        }
+        /* add the player into the world */
+        val worldSpawn = player.world.spawn.up(3)
+        player.pos = Vec3d(worldSpawn)
+        player.world.addEntity(player)
 
-        onlinePlayers.remove(username);
+//         player.updateVisibleChunks()
+        player.connection.sendPacket(ClientboundSetSpawnPacket(worldSpawn))
+
+        /* send the player's spawning position */
+        player.connection.sendPacket(
+            ClientboundSetAbsolutePlayerPositionPacket(
+                player.pos,
+                player.stance,
+                player.yaw,
+                player.pitch,
+                player.isOnGround,
+            )
+        )
+
+        broadcastMessage(Component.text(player.username + " joined the game.", NamedTextColor.YELLOW))
+    }
+
+    fun playerDisconnected(player: Player) {
+        player.markRemoved()
+
+        val username = player.username
+        onlinePlayers.remove(username.lowercase())
+        broadcastMessage(Component.text(player.username + " left the game.", NamedTextColor.YELLOW))
     }
 }
