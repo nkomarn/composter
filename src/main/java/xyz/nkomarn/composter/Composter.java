@@ -11,7 +11,7 @@ public final class Composter {
     private final MinecraftServer server;
     private long currentTick = 0;
 
-    public Composter() throws InterruptedException {
+    public Composter() {
         this.server = new MinecraftServer(this);
 
         ScheduledExecutorService tickLoop = Executors.newSingleThreadScheduledExecutor();
@@ -21,8 +21,6 @@ public final class Composter {
 
             try {
                 server.tick(currentTick);
-                // playerManager.tick(currentTick);
-                // worldManager.tick(currentTick);
             } catch (Throwable x) {
                 server.getLogger().error("an error occurred while ticking the server (tick #{})", currentTick, x);
             }
@@ -35,8 +33,7 @@ public final class Composter {
         server.startServer();
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        //int port = getConfig().getInteger("network.port");
+    public static void main(String[] args) {
         new Composter();
     }
 }

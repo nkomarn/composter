@@ -3,8 +3,13 @@ package xyz.nkomarn.composter.entity.tracker
 import kyta.composter.Tickable
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
+import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionRotationPacket
+import kyta.composter.protocol.packet.play.ClientboundSetEntityRotationPacket
+import kyta.composter.protocol.packet.play.ClientboundTeleportEntityPacket
 import xyz.nkomarn.composter.entity.Entity
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.max
 
 class TrackedEntity(
@@ -35,30 +40,32 @@ class TrackedEntity(
     }
 
     private fun createPosUpdatePacket(oldPos: Vec3d, distanceMoved: Double, headMoved: Boolean, fullUpdate: Boolean): Packet? {
-        /*
-        val deltaX = toAbsoluteInteger(entity.x - oldPos.x)
-        val deltaY = toAbsoluteInteger(entity.y - oldPos.y)
-        val deltaZ = toAbsoluteInteger(entity.z - oldPos.z)
+        val deltaX = entity.x - oldPos.x
+        val deltaY = entity.y - oldPos.y
+        val deltaZ = entity.z - oldPos.z
 
         if (fullUpdate || distanceMoved > MAX_RELATIVE_MOVE) {
-            return ClientboundTeleportEntityPacket(entity)
+            return ClientboundTeleportEntityPacket(entity.id, entity.pos, entity.yaw, entity.pitch)
         }
 
         if (headMoved) {
             return if (distanceMoved == 0.0) {
-                ClientboundEntityLookPacket(entity)
+                ClientboundSetEntityRotationPacket(entity.id, entity.yaw, entity.pitch)
             } else {
-                ClientboundMoveLookEntityPacket(entity, deltaX, deltaY, deltaZ)
+                ClientboundAdjustEntityPositionRotationPacket(entity.id, deltaX, deltaY, deltaZ, entity.yaw, entity.pitch)
             }
         }
 
-        val zeroRelativeMovement = deltaX == 0 && deltaY == 0 && deltaZ == 0
+        val zeroRelativeMovement = isIrrelevantMovement(deltaX) && isIrrelevantMovement(deltaY) && isIrrelevantMovement(deltaZ)
         if (!zeroRelativeMovement) {
-            return ClientboundMoveEntityPacket(entity, deltaX, deltaY, deltaZ)
+            return ClientboundAdjustEntityPositionPacket(entity.id, deltaX, deltaY, deltaZ)
         }
-         */
 
         return null
+    }
+
+    private fun isIrrelevantMovement(value: Double): Boolean {
+        return false && abs(value) < 0.01
     }
 
     private fun distanceMoved(currentPos: Vec3d): Double {

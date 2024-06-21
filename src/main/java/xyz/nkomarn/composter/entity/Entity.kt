@@ -6,7 +6,7 @@ import kyta.composter.entity.data.SynchronizedEntityData
 import kyta.composter.math.Vec3d
 import kyta.composter.world.BlockPos
 import kyta.composter.world.GlobalPos
-import xyz.nkomarn.composter.world.World
+import kyta.composter.world.World
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 

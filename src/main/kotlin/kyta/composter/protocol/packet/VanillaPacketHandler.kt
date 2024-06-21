@@ -9,21 +9,21 @@ import kyta.composter.protocol.packet.login.ClientboundLoginPacket
 import kyta.composter.protocol.packet.login.ServerboundLoginPacket
 import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.FlyingStatusPacket
+import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
-import kyta.composter.protocol.packet.play.ServerboundSetPlayerFlyingStatusPacket
-import kyta.composter.protocol.packet.play.ServerboundSetPlayerPositionPacket
-import kyta.composter.protocol.packet.play.ServerboundSetPlayerRotationPacket
 import kyta.composter.server.MinecraftServer
 import kyta.composter.withContext
 import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
+import kyta.composter.world.block.AIR
+import kyta.composter.world.block.defaultState
 import kyta.composter.world.dimension.DimensionType
 import net.kyori.adventure.text.Component
 import xyz.nkomarn.composter.entity.Player
-import java.util.concurrent.ThreadLocalRandom
 
 class VanillaPacketHandler(
     private val server: MinecraftServer,
@@ -68,7 +68,7 @@ class VanillaPacketHandler(
                 ClientboundLoginPacket(
                     player.id,
                     "composter",
-                    ThreadLocalRandom.current().nextLong(),
+                    player.world.properties.seed,
                     DimensionType.OVERWORLD,
                 )
             )
@@ -109,7 +109,7 @@ class VanillaPacketHandler(
         val chunkPos = ChunkPos(BlockPos(packet.pos))
         val player = connection.player
 
-        if (!player.world.isChunkLoaded(chunkPos)) {
+        if (!player.world.chunks.isLoaded(chunkPos)) {
             return connection.sendPacket(
                 ClientboundSetAbsolutePlayerPositionPacket(
                     player.pos,
@@ -150,6 +150,16 @@ class VanillaPacketHandler(
     override suspend fun handleAbsolutePlayerPosition(packet: ServerboundSetAbsolutePlayerPositionPacket) {
         handlePlayerPosition(packet)
         handlePlayerRotation(packet)
+    }
+
+    override suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket) = withContext(server) {
+        if (packet.action == ServerboundPlayerDigPacket.Action.FINISH) {
+            connection.player.world.setBlock(packet.blockPos, AIR.defaultState)
+        }
+    }
+
+    override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {
+        connection.player.entityTracker.broadcast(packet)
     }
 
     override suspend fun handleDisconnect(packet: GenericDisconnectPacket) {

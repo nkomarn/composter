@@ -1,20 +1,19 @@
 package xyz.nkomarn.composter.entity;
 
+import kyta.composter.network.Connection;
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket;
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket;
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket.Mode;
 import kyta.composter.world.ChunkPos;
+import kyta.composter.world.World;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.command.CommandSource;
 import xyz.nkomarn.composter.entity.tracker.EntityTracker;
-import kyta.composter.network.Connection;
-import xyz.nkomarn.composter.world.World;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public final class Player extends Entity implements CommandSource {
+public final class Player extends Entity {
     private static final int VIEW_DISTANCE = 16;
     public static final double DEFAULT_STANCE = 67.240000009536743;
 
@@ -40,16 +39,6 @@ public final class Player extends Entity implements CommandSource {
         return username;
     }
 
-    @Override
-    public String getName() {
-        return getUsername();
-    }
-
-    @Override
-    public void sendMessage(@NotNull Component message) {
-        // connection.sendPacket(new ClientboundChatPacket(message)); // todo - net refactor
-    }
-
     /*
     public void teleport(@NotNull Location location) {
         this.location = location;
@@ -57,6 +46,10 @@ public final class Player extends Entity implements CommandSource {
         // updateLocation();
     }
      */
+
+    public EntityTracker getEntityTracker() {
+        return tracker;
+    }
 
     public boolean isCrouching() {
         return crouching;
@@ -130,7 +123,7 @@ public final class Player extends Entity implements CommandSource {
                  * if the chunk hasn't been loaded on the server
                  * side, don't send it to the client yet.
                  */
-                var chunk = getWorld().getLoadedChunk(pos);
+                var chunk = getWorld().getChunks().getLoadedChunk(pos);
                 if (chunk == null) continue;
 
                 connection.sendPacket(new ClientboundChunkOperationPacket(pos, Mode.LOAD));

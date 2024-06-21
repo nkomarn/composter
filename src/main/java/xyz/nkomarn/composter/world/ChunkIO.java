@@ -14,18 +14,11 @@ public class ChunkIO {
     private final MinecraftServer server;
     private final Path directory;
     private final RegionFileCache cache;
-    private final Executor thread;
 
-    public ChunkIO(@NotNull MinecraftServer server, @NotNull Path directory, @NotNull Executor thread) {
+    public ChunkIO(@NotNull MinecraftServer server, @NotNull Path directory) {
         this.server = server;
         this.directory = directory;
         this.cache = new RegionFileCache();
-        this.thread = thread;
-    }
-
-    @NotNull
-    public Executor getExecutor() {
-        return thread;
     }
 
     public CompletableFuture<Chunk> read(int x, int z) {

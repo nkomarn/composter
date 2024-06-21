@@ -11,17 +11,24 @@ import kyta.composter.protocol.packet.login.ClientboundLoginPacket
 import kyta.composter.protocol.packet.login.ServerboundLoginPacket
 import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
+import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionRotationPacket
 import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundSetEntityRotationPacket
 import kyta.composter.protocol.packet.play.ClientboundSetSpawnPacket
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
+import kyta.composter.protocol.packet.play.ClientboundTeleportEntityPacket
+import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
 import kyta.composter.protocol.packet.play.FlyingStatusPacket
+import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerFlyingStatusPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerPositionPacket
@@ -41,6 +48,9 @@ interface PacketHandler {
     suspend fun handlePlayerPosition(packet: PositionPacket)
     suspend fun handlePlayerRotation(packet: RotationPacket)
     suspend fun handleAbsolutePlayerPosition(packet: ServerboundSetAbsolutePlayerPositionPacket)
+
+    suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket)
+    suspend fun handlePlayerAction(packet: GenericPlayerActionPacket)
 
     suspend fun handleDisconnect(packet: GenericDisconnectPacket)
 }
@@ -71,11 +81,19 @@ object Protocol {
         registerPacket(12, ServerboundSetPlayerRotationPacket::class, ServerboundSetPlayerRotationPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(13, ClientboundSetAbsolutePlayerPositionPacket::class, ClientboundSetAbsolutePlayerPositionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(13, ServerboundSetAbsolutePlayerPositionPacket::class, ServerboundSetAbsolutePlayerPositionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(14, ServerboundPlayerDigPacket::class, ServerboundPlayerDigPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(20, ClientboundAddPlayerPacket::class, ClientboundAddPlayerPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(24, ClientboundAddEntityPacket::class, ClientboundAddEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(29, ClientboundRemoveEntityPacket::class, ClientboundRemoveEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(31, ClientboundAdjustEntityPositionPacket::class, ClientboundAdjustEntityPositionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(32, ClientboundSetEntityRotationPacket::class, ClientboundSetEntityRotationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(33, ClientboundAdjustEntityPositionRotationPacket::class, ClientboundAdjustEntityPositionRotationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(34, ClientboundTeleportEntityPacket::class, ClientboundTeleportEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(50, ClientboundChunkOperationPacket::class, ClientboundChunkOperationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(51, ClientboundChunkDataPacket::class, ClientboundChunkDataPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(53, ClientboundUpdateBlockPacket::class, ClientboundUpdateBlockPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
 
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.CLIENTBOUND, *allStates)
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.SERVERBOUND, *allStates)
@@ -207,7 +225,11 @@ value class MinecraftPacketBuffer(internal val buf: ByteBuf) : ReadBuffer, Write
     }
 
     override fun readBlockPos(): BlockPos {
-        TODO("Not yet implemented")
+        return BlockPos(
+            buf.readInt(),
+            buf.readByte().toInt(),
+            buf.readInt(),
+        )
     }
 
     override fun writeByte(value: Number) {

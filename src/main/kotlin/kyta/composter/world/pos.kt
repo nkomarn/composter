@@ -2,7 +2,6 @@ package kyta.composter.world
 
 import kyta.composter.math.Vec3
 import kyta.composter.math.Vec3d
-import xyz.nkomarn.composter.world.World
 
 data class BlockPos(
     override val x: Int,

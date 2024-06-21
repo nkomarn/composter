@@ -2,6 +2,7 @@ package xyz.nkomarn.composter.entity.tracker
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import kyta.composter.Tickable
+import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
@@ -10,7 +11,23 @@ import xyz.nkomarn.composter.entity.Entity
 import xyz.nkomarn.composter.entity.Player
 
 class EntityTracker(private val player: Player) : Tickable {
+    private val logger = LoggerFactory.getLogger("tracker")
     private val trackedEntities = Int2ObjectOpenHashMap<TrackedEntity>()
+
+    fun broadcast(packet: Packet) {
+        // todo; this should probably work in reverse
+        // where players that track THIS player receive packets
+        trackedEntities.values
+            .map { it.entity }
+            .filterIsInstance<Player>().forEach {
+            it.connection.sendPacket(packet)
+        }
+    }
+
+    fun broadcastIncludingSelf(packet: Packet) {
+        broadcast(packet)
+        player.connection.sendPacket(packet)
+    }
 
     override fun tick(currentTick: Long) {
         /* track any newly added entities */
@@ -39,15 +56,11 @@ class EntityTracker(private val player: Player) : Tickable {
 
         val trackedEntity = TrackedEntity(entity) { player.connection.sendPacket(it) }
         trackedEntities.put(entity.id, trackedEntity)
-        LOGGER.info("{} began tracking {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
+        logger.info("{} began tracking {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
     }
 
     private fun untrackEntity(entity: Entity) {
         player.connection.sendPacket(ClientboundRemoveEntityPacket(entity))
-        LOGGER.info("{} untracked {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
-    }
-
-    companion object {
-        private val LOGGER = LoggerFactory.getLogger("Entity Tracker")
+        logger.info("{} untracked {} (entity #{}).", player.username, entity.javaClass.getSimpleName(), entity.id)
     }
 }
