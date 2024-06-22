@@ -1,6 +1,10 @@
 package xyz.nkomarn.composter.entity
 
+import kyta.composter.container.PlayerInventoryContainer
+import kyta.composter.entity.EntityType
 import kyta.composter.network.Connection
+import kyta.composter.protocol.Packet
+import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
@@ -13,8 +17,10 @@ class Player(
     world: World,
     val connection: Connection,
     val username: String,
-) : Entity(world) {
+) : Entity(world, EntityType.PLAYER) {
     private val visibleChunks = mutableSetOf<ChunkPos>()
+    override val dimensions = 0.6 to 1.8
+    val inventory = PlayerInventoryContainer()
     val entityTracker = EntityTracker(this)
     val stance = 67.240000009536743
     var isCrouching = false
@@ -23,6 +29,10 @@ class Player(
 
     fun swingArm() {
         entityTracker.broadcast(GenericPlayerActionPacket(id, GenericPlayerActionPacket.Action.SWING_ARM))
+    }
+
+    override fun createAddEntityPacket(): Packet {
+        return ClientboundAddPlayerPacket(this)
     }
 
     override fun tick(currentTick: Long) {

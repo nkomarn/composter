@@ -1,10 +1,11 @@
 package xyz.nkomarn.composter.entity
 
+import kyta.composter.entity.EntityType
 import kyta.composter.entity.data.DataDescriptor
 import kyta.composter.entity.data.DataType
 import kyta.composter.world.World
 
-class Pig(world: World) : Entity(world) {
+class Pig(world: World) : Entity(world, EntityType.PIG) {
     init {
 //         synchronizedData.register(DATA_SADDLED)
     }

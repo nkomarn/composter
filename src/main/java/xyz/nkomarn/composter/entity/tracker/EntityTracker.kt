@@ -51,8 +51,7 @@ class EntityTracker(private val player: Player) : Tickable {
     }
 
     private fun trackNewEntity(entity: Entity) {
-        val addEntityPacket = if (entity is Player) ClientboundAddPlayerPacket(entity) else ClientboundAddEntityPacket(entity)
-        player.connection.sendPacket(addEntityPacket)
+        player.connection.sendPacket(entity.createAddEntityPacket())
 
         val trackedEntity = TrackedEntity(entity) { player.connection.sendPacket(it) }
         trackedEntities.put(entity.id, trackedEntity)

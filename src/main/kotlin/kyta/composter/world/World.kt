@@ -2,6 +2,8 @@ package kyta.composter.world
 
 import kotlinx.coroutines.runBlocking
 import kyta.composter.Tickable
+import kyta.composter.entity.ItemEntity
+import kyta.composter.item.ItemStack
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
@@ -9,6 +11,8 @@ import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
 import kyta.composter.server.MinecraftServer
 import kyta.composter.world.block.AIR
 import kyta.composter.world.block.BlockState
+import kyta.composter.world.block.GRASS_BLOCK
+import kyta.composter.world.block.SANDSTONE
 import kyta.composter.world.block.defaultState
 import kyta.composter.world.chunk.ChunkController
 import kyta.composter.world.dimension.DimensionType
@@ -32,9 +36,14 @@ class World(
     init {
         createSpawnChunks()
 
+        ItemEntity(this, ItemStack(SANDSTONE.id, 24, 0)).let {
+            it.pos = Vec3d(properties.spawn.add(10, 90, 0))
+            addEntity(it)
+        }
+
         // spawn a pig
         val pig = Pig(this)
-        pig.pos = Vec3d(properties.spawn.up(1))
+        pig.pos = Vec3d(properties.spawn)
 //         addEntity(pig);
     }
 
@@ -95,7 +104,7 @@ class World(
             pos = pos.down(1)
         }
 
-        properties.spawn = pos.up(3)
+        properties.spawn = pos.up(1)
         server.logger.info(
             "the default world spawn is now ({}, {}, {})",
             properties.spawn.x,

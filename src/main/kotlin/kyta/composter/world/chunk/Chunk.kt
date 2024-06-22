@@ -13,7 +13,7 @@ class Chunk(val pos: ChunkPos) {
     val light = LightData()
 
     fun getBlock(pos: BlockPos): BlockState {
-        return getBlockRaw(pos.x and 15, pos.y, pos.z and 15)
+        return getBlockRaw(pos.x and 15, min(127, pos.y), pos.z and 15)
     }
 
     fun getBlockRaw(x: Int, y: Int, z: Int): BlockState {
@@ -21,7 +21,7 @@ class Chunk(val pos: ChunkPos) {
     }
 
     fun setBlock(pos: BlockPos, state: BlockState?) {
-        setBlockRaw(pos.x and 15, pos.y, pos.z and 15, state)
+        setBlockRaw(pos.x and 15, min(127, pos.y), pos.z and 15, state)
     }
 
     fun setBlockRaw(x: Int, y: Int, z: Int, state: BlockState?) {
@@ -48,7 +48,7 @@ class LightData {
     }
 
     companion object {
-        const val DEFAULT_LIGHT_VALUE = 15 // todo; default to zero once the lighting engine is implemented
+        const val DEFAULT_LIGHT_VALUE = 14 // todo; default to zero once the lighting engine is implemented
     }
 }
 

@@ -9,6 +9,7 @@ import kyta.composter.protocol.packet.handshaking.ClientboundHandshakePacket
 import kyta.composter.protocol.packet.handshaking.ServerboundHandshakePacket
 import kyta.composter.protocol.packet.login.ClientboundLoginPacket
 import kyta.composter.protocol.packet.login.ServerboundLoginPacket
+import kyta.composter.protocol.packet.play.ClientboundAddDroppedItemPacket
 import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionPacket
@@ -16,6 +17,7 @@ import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionRotati
 import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
+import kyta.composter.protocol.packet.play.ClientboundCollectDroppedItemPacket
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.ClientboundSetEntityRotationPacket
@@ -28,6 +30,7 @@ import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerFlyingStatusPacket
@@ -50,6 +53,7 @@ interface PacketHandler {
     suspend fun handleAbsolutePlayerPosition(packet: ServerboundSetAbsolutePlayerPositionPacket)
 
     suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket)
+    suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket)
     suspend fun handlePlayerAction(packet: GenericPlayerActionPacket)
 
     suspend fun handleDisconnect(packet: GenericDisconnectPacket)
@@ -85,6 +89,8 @@ object Protocol {
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(20, ClientboundAddPlayerPacket::class, ClientboundAddPlayerPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(21, ClientboundAddDroppedItemPacket::class, ClientboundAddDroppedItemPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(22, ClientboundCollectDroppedItemPacket::class, ClientboundCollectDroppedItemPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(24, ClientboundAddEntityPacket::class, ClientboundAddEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(29, ClientboundRemoveEntityPacket::class, ClientboundRemoveEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(31, ClientboundAdjustEntityPositionPacket::class, ClientboundAdjustEntityPositionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)

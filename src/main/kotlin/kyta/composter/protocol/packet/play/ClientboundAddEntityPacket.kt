@@ -2,6 +2,7 @@ package kyta.composter.protocol.packet.play
 
 import kyta.composter.asRotation
 import kyta.composter.entity.EntityType
+import kyta.composter.entity.ItemEntity
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.PacketSerializer
@@ -39,6 +40,43 @@ data class ClientboundAddEntityPacket(
     }
 }
 
+data class ClientboundAddDroppedItemPacket(
+    override val id: Int,
+    val item: Int,
+    val count: Int,
+    val metadata: Int,
+    override val pos: Vec3d,
+    override val yaw: Float,
+    override val pitch: Float,
+    val roll: Float,
+) : AddEntityPacket {
+    constructor(entity: ItemEntity) : this(
+        entity.id,
+        entity.itemStack.id,
+        entity.itemStack.count,
+        entity.itemStack.metadata,
+        entity.pos,
+        entity.yaw,
+        entity.pitch,
+        0F, // todo
+    )
+
+    companion object : PacketSerializer<ClientboundAddDroppedItemPacket> {
+        override fun serialize(packet: ClientboundAddDroppedItemPacket, buffer: WriteBuffer) {
+            buffer.writeInt(packet.id)
+            buffer.writeShort(packet.item)
+            buffer.writeByte(packet.count)
+            buffer.writeShort(packet.metadata)
+            buffer.writeAbsoluteInt(packet.pos.x)
+            buffer.writeAbsoluteInt(packet.pos.y)
+            buffer.writeAbsoluteInt(packet.pos.z)
+            buffer.writeByte(packet.yaw.asRotation())
+            buffer.writeByte(packet.pitch.asRotation())
+            buffer.writeByte(packet.roll.asRotation())
+        }
+    }
+}
+
 data class ClientboundAddPlayerPacket(
     override val id: Int,
     val username: String,
@@ -46,7 +84,7 @@ data class ClientboundAddPlayerPacket(
     override val yaw: Float,
     override val pitch: Float,
     // todo; placeholder for currently held item
-): AddEntityPacket {
+) : AddEntityPacket {
     constructor(player: Player) : this(player.id, player.username, player.pos, player.yaw, player.pitch)
 
     companion object : PacketSerializer<ClientboundAddPlayerPacket> {

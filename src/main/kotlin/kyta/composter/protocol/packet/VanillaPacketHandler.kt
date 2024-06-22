@@ -13,6 +13,7 @@ import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
 import kyta.composter.server.MinecraftServer
@@ -155,8 +156,13 @@ class VanillaPacketHandler(
 
     override suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket) = withContext(server) {
         if (packet.action == ServerboundPlayerDigPacket.Action.FINISH) {
+            server.playerList.broadcastMessage(Component.text("destroyed block (${packet.blockPos.x}, ${packet.blockPos.y}, ${packet.blockPos.z})"))
             connection.player.world.setBlock(packet.blockPos, AIR.defaultState)
         }
+    }
+
+    override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) {
+        TODO("Not yet implemented")
     }
 
     override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {

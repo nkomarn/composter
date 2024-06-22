@@ -8,7 +8,10 @@ interface Container {
     var dirty: Boolean
 
     fun getItem(slot: Int): ItemStack
-    fun setItem(slot: Int, item: ItemStack)
+    fun setItem(slot: Int, stack: ItemStack)
+
+    /* returns the remainder */
+    fun addItem(stack: ItemStack): Int
 }
 
 open class BasicContainer(override val size: Int): Container {
@@ -25,5 +28,9 @@ open class BasicContainer(override val size: Int): Container {
         check(slot in 0..<size)
         contents[slot] = item
         dirty = true
+    }
+
+    override fun addItem(stack: ItemStack): Int {
+        return 0 // todo
     }
 }
