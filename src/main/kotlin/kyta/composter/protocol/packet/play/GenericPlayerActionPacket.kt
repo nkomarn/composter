@@ -10,10 +10,6 @@ data class GenericPlayerActionPacket(
     val id: Int,
     val action: Action,
 ) : ServerboundPacket {
-    init {
-        println(this)
-    }
-
     override suspend fun handle(handler: PacketHandler) = handler.handlePlayerAction(this)
 
     companion object : PacketSerializer<GenericPlayerActionPacket> {

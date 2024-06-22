@@ -105,7 +105,7 @@ object Protocol {
     private fun registerPacket(
         id: Int,
         type: KClass<out Packet>,
-        serializer: PacketSerializer<out Packet>,
+        serializer: PacketSerializer<Packet>,
         direction: FlowDirection,
         vararg states: ConnectionState,
     ) {

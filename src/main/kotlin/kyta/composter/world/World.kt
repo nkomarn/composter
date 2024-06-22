@@ -90,7 +90,7 @@ class World(
         var pos = BlockPos(0, MAX_WORLD_HEIGHT, 0)
         while (pos.y > 0) {
             val block = getBlock(pos).block
-            if (block == AIR) break
+            if (block != AIR) break
 
             pos = pos.down(1)
         }

@@ -37,7 +37,6 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
 
     fun playerJoined(player: Player) {
         val username = player.username
-        check(!onlinePlayers.containsKey(username)) { "Player \"$username\" is already registered." }
         onlinePlayers[username.lowercase()] = player
 
         /* add the player into the world */

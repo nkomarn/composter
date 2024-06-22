@@ -48,7 +48,7 @@ class LightData {
     }
 
     companion object {
-        const val DEFAULT_LIGHT_VALUE = 14 // todo; default to zero once the lighting engine is implemented
+        const val DEFAULT_LIGHT_VALUE = 15 // todo; default to zero once the lighting engine is implemented
     }
 }
 

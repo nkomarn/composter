@@ -58,7 +58,7 @@ class VanillaPacketHandler(
                 ?.disconnect("You logged in from another location")
 
             val player = Player(
-                server.worldManager.primaryWorld(),
+                server.worldManager.primaryWorld,
                 connection,
                 packet.username,
             )
@@ -81,6 +81,7 @@ class VanillaPacketHandler(
     }
 
     override suspend fun handleChatMessage(packet: ServerboundChatMessagePacket) {
+        if (packet.message.isBlank()) return
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
     }
 
@@ -159,7 +160,10 @@ class VanillaPacketHandler(
     }
 
     override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {
-        connection.player.entityTracker.broadcast(packet)
+        when (packet.action) {
+            GenericPlayerActionPacket.Action.SWING_ARM -> connection.player.swingArm()
+            else -> return
+        }
     }
 
     override suspend fun handleDisconnect(packet: GenericDisconnectPacket) {

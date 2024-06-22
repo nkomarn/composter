@@ -54,8 +54,8 @@ data class ClientboundChunkDataPacket(val pos: ChunkPos, val data: Chunk) : Pack
             }
 
             chunk.light.block.asSequence().chunked(2).forEach { (first, second) ->
-                val value1 = first ?: DEFAULT_LIGHT_VALUE
-                val value2 = second ?: DEFAULT_LIGHT_VALUE
+                val value1 = first ?: DEFAULT_LIGHT_VALUE - 1
+                val value2 = second ?: DEFAULT_LIGHT_VALUE - 1
                 output.add(((value2 shl 4) or value1).toByte())
             }
 
