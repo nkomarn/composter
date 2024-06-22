@@ -1,32 +1,24 @@
 package xyz.nkomarn.composter.world;
 
+import kyta.composter.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
-import xyz.nkomarn.composter.Composter;
-import xyz.nkomarn.composter.type.Chunk;
+import kyta.composter.server.MinecraftServer;
 import xyz.nkomarn.composter.world.region.RegionFileCache;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 public class ChunkIO {
-
-    private final Composter server;
+    private final MinecraftServer server;
     private final Path directory;
     private final RegionFileCache cache;
-    private final ExecutorService thread;
 
-    public ChunkIO(@NotNull Composter server, @NotNull Path directory, @NotNull ExecutorService thread) {
+    public ChunkIO(@NotNull MinecraftServer server, @NotNull Path directory) {
         this.server = server;
         this.directory = directory;
         this.cache = new RegionFileCache();
-        this.thread = thread;
-    }
-
-    @NotNull
-    public ExecutorService getExecutor() {
-        return thread;
     }
 
     public CompletableFuture<Chunk> read(int x, int z) {
