@@ -54,7 +54,7 @@ data class ClientboundAddDroppedItemPacket(
         entity.id,
         entity.itemStack.id,
         entity.itemStack.count,
-        entity.itemStack.metadata,
+        entity.itemStack.metadataValue,
         entity.pos,
         entity.yaw,
         entity.pitch,

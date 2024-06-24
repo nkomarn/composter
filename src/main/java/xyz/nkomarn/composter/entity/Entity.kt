@@ -27,8 +27,16 @@ open class Entity(
     var x = 0.0
     var y = 0.0
     var z = 0.0
+
     var pitch = 0F
+        set(value) {
+            field = value % 360F
+        }
+
     var yaw = 0F
+        set(value) {
+            field = value % 360F
+        }
 
     var pos: Vec3d
         get() = Vec3d(x, y, z)

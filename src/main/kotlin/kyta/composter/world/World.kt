@@ -35,16 +35,6 @@ class World(
 
     init {
         createSpawnChunks()
-
-        ItemEntity(this, ItemStack(SANDSTONE.id, 24, 0)).let {
-            it.pos = Vec3d(properties.spawn.add(10, 90, 0))
-            addEntity(it)
-        }
-
-        // spawn a pig
-        val pig = Pig(this)
-        pig.pos = Vec3d(properties.spawn)
-//         addEntity(pig);
     }
 
     /**

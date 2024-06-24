@@ -20,6 +20,7 @@ import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
 import kyta.composter.protocol.packet.play.ClientboundCollectDroppedItemPacket
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
 import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
 import kyta.composter.protocol.packet.play.ClientboundSetEntityRotationPacket
 import kyta.composter.protocol.packet.play.ClientboundSetSpawnPacket
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
@@ -30,9 +31,12 @@ import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundCloseMenuPacket
+import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
 import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ServerboundSetHeldSlotPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerFlyingStatusPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerRotationPacket
@@ -55,6 +59,10 @@ interface PacketHandler {
     suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket)
     suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket)
     suspend fun handlePlayerAction(packet: GenericPlayerActionPacket)
+
+    suspend fun handleHeldSlotChange(packet: ServerboundSetHeldSlotPacket)
+    suspend fun handleMenuInteraction(packet: ServerboundMenuInteractionPacket)
+    suspend fun handleMenuClose(packet: ServerboundCloseMenuPacket)
 
     suspend fun handleDisconnect(packet: GenericDisconnectPacket)
 }
@@ -86,6 +94,8 @@ object Protocol {
         registerPacket(13, ClientboundSetAbsolutePlayerPositionPacket::class, ClientboundSetAbsolutePlayerPositionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(13, ServerboundSetAbsolutePlayerPositionPacket::class, ServerboundSetAbsolutePlayerPositionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(14, ServerboundPlayerDigPacket::class, ServerboundPlayerDigPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(15, ServerboundPlaceBlockPacket::class, ServerboundPlaceBlockPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(16, ServerboundSetHeldSlotPacket::class, ServerboundSetHeldSlotPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(20, ClientboundAddPlayerPacket::class, ClientboundAddPlayerPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
@@ -100,6 +110,9 @@ object Protocol {
         registerPacket(50, ClientboundChunkOperationPacket::class, ClientboundChunkOperationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(51, ClientboundChunkDataPacket::class, ClientboundChunkDataPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(53, ClientboundUpdateBlockPacket::class, ClientboundUpdateBlockPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(101, ServerboundCloseMenuPacket::class, ServerboundCloseMenuPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(102, ServerboundMenuInteractionPacket::class, ServerboundMenuInteractionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(104, ClientboundSetContainerContentPacket::class, ClientboundSetContainerContentPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
 
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.CLIENTBOUND, *allStates)
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.SERVERBOUND, *allStates)

@@ -1,5 +1,10 @@
 package kyta.composter.protocol.packet
 
+import kyta.composter.entity.ItemEntity
+import kyta.composter.item.ItemStack
+import kyta.composter.item.isEmpty
+import kyta.composter.item.shrink
+import kyta.composter.math.Vec3d
 import kyta.composter.network.Connection
 import kyta.composter.protocol.ConnectionState
 import kyta.composter.protocol.PacketHandler
@@ -13,14 +18,20 @@ import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
+import kyta.composter.protocol.packet.play.ServerboundCloseMenuPacket
+import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
 import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ServerboundSetHeldSlotPacket
 import kyta.composter.server.MinecraftServer
 import kyta.composter.withContext
 import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.block.AIR
+import kyta.composter.world.block.Block
+import kyta.composter.world.block.BlockState
+import kyta.composter.world.block.STONE
 import kyta.composter.world.block.defaultState
 import kyta.composter.world.dimension.DimensionType
 import net.kyori.adventure.text.Component
@@ -83,6 +94,7 @@ class VanillaPacketHandler(
 
     override suspend fun handleChatMessage(packet: ServerboundChatMessagePacket) {
         if (packet.message.isBlank()) return
+        connection.player.inventory.addItem(ItemStack(STONE.id, 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
     }
 
@@ -156,13 +168,38 @@ class VanillaPacketHandler(
 
     override suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket) = withContext(server) {
         if (packet.action == ServerboundPlayerDigPacket.Action.FINISH) {
-            server.playerList.broadcastMessage(Component.text("destroyed block (${packet.blockPos.x}, ${packet.blockPos.y}, ${packet.blockPos.z})"))
-            connection.player.world.setBlock(packet.blockPos, AIR.defaultState)
+            val world = connection.player.world
+            val block = world.getBlock(packet.blockPos)
+
+            world.setBlock(packet.blockPos, AIR.defaultState)
+            ItemEntity(world, ItemStack(block.block.id, 1, block.metadataValue)).let {
+                it.pos = Vec3d(packet.blockPos).add(0.5, 0.25, 0.5)
+                world.addEntity(it)
+            }
         }
     }
 
     override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) {
-        TODO("Not yet implemented")
+        println(packet)
+        val player = connection.player
+        val selectedItem = player.inventory.getItem(player.selectedHotbarSlot)
+        if (selectedItem.isEmpty) return
+
+        // connection.player.sendMessage(Component.text("trying to place item id $selectedItem"))
+
+        /**
+         * todo; some considerations:
+         * - check block collisions to make sure there is not an entity/block in the target block
+         * - make sure the player can actually reach the target block (4 block reach radius?)
+         * - get the block from the registry based on id instead of making a new instance
+         */
+        selectedItem.shrink(1)
+
+        val offset = packet.face.offset
+        player.world.setBlock(
+            packet.blockPos.add(offset.x.toInt(), offset.y.toInt(), offset.z.toInt()),
+            BlockState(Block(selectedItem.id), selectedItem.metadataValue),
+        )
     }
 
     override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {
@@ -170,6 +207,27 @@ class VanillaPacketHandler(
             GenericPlayerActionPacket.Action.SWING_ARM -> connection.player.swingArm()
             else -> return
         }
+    }
+
+    override suspend fun handleHeldSlotChange(packet: ServerboundSetHeldSlotPacket) = withContext(server) {
+        connection.player.selectedHotbarSlot = packet.slot
+    }
+
+    override suspend fun handleMenuInteraction(packet: ServerboundMenuInteractionPacket) = withContext(server) {
+        val currentMenu = connection.player.currentMenu
+            ?: return@withContext
+
+        val state = currentMenu.incrementState()
+        if (state != packet.stateId) {
+            connection.player.world.server.logger.warn("menu state mismatch for ${connection.player.username} (${state}, ${packet.stateId})")
+            return@withContext
+        }
+
+        currentMenu.interact(connection.player, packet)
+    }
+
+    override suspend fun handleMenuClose(packet: ServerboundCloseMenuPacket) = withContext(server) {
+        connection.player.currentMenu = null
     }
 
     override suspend fun handleDisconnect(packet: GenericDisconnectPacket) {

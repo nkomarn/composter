@@ -1,5 +1,6 @@
 package kyta.composter.protocol.packet.play
 
+import kyta.composter.math.Vec3d
 import kyta.composter.protocol.PacketHandler
 import kyta.composter.protocol.PacketSerializer
 import kyta.composter.protocol.ReadBuffer
@@ -26,22 +27,25 @@ data class ServerboundPlaceBlockPacket(
                 4 -> BlockFace.EAST
                 5 -> BlockFace.WEST
 
-                else -> throw IllegalStateException()
+                /* special case where the item is being "used" rather than placed */
+                else -> null
             }
 
             val blockId = buffer.readByte().toInt()
-            val amount = if (blockId != 0) buffer.readByte().toInt() else 0
-            val metadata = if (blockId != 0) buffer.readByte().toInt() else 0
-            return ServerboundPlaceBlockPacket(pos, direction, blockId, amount, metadata)
+            val amount = if (blockId >= 0) buffer.readByte().toInt() else 0
+            val metadata = if (blockId >= 0) buffer.readByte().toInt() else 0
+
+            /* todo; for now just default to NORTH as the direction for special case */
+            return ServerboundPlaceBlockPacket(pos, direction ?: BlockFace.NORTH, blockId, amount, metadata)
         }
     }
 
-    enum class BlockFace {
-        NORTH, // -z
-        EAST, // -x
-        SOUTH, // +z
-        WEST, // +x
-        TOP, // +y
-        BOTTOM, // -y
+    enum class BlockFace(val offset: Vec3d) {
+        NORTH(Vec3d(0.0, 0.0, -1.0)), // -z
+        EAST(Vec3d(-1.0, 0.0, -0.0)), // -x
+        SOUTH(Vec3d(0.0, 0.0, 1.0)), // +z
+        WEST(Vec3d(1.0, 0.0, 0.0)), // +x
+        TOP(Vec3d(0.0, 1.0, 0.0)), // +y
+        BOTTOM(Vec3d(0.0, -1.0, 0.0)), // -y
     }
 }

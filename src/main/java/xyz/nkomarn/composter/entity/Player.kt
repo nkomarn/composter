@@ -1,15 +1,21 @@
 package xyz.nkomarn.composter.entity
 
-import kyta.composter.container.PlayerInventoryContainer
+import kyta.composter.container.BasicContainer
+import kyta.composter.container.menu.Menu
+import kyta.composter.container.menu.PlayerInventoryMenu
 import kyta.composter.entity.EntityType
+import kyta.composter.item.ItemStack
 import kyta.composter.network.Connection
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
+import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
+import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
+import net.kyori.adventure.text.Component
 import xyz.nkomarn.composter.entity.tracker.EntityTracker
 import java.util.function.Consumer
 
@@ -20,12 +26,19 @@ class Player(
 ) : Entity(world, EntityType.PLAYER) {
     private val visibleChunks = mutableSetOf<ChunkPos>()
     override val dimensions = 0.6 to 1.8
-    val inventory = PlayerInventoryContainer()
+    val inventory = BasicContainer(36)
+    val armorContainer = BasicContainer(4)
+    var selectedHotbarSlot = 0
+    var cursorItem: ItemStack = ItemStack.EMPTY
+    var currentMenu: Menu? = null
+
     val entityTracker = EntityTracker(this)
     val stance = 67.240000009536743
     var isCrouching = false
     var isOnGround = false
     var lastDigStartTime = 0L
+
+    var menuCounter = 0
 
     fun swingArm() {
         entityTracker.broadcast(GenericPlayerActionPacket(id, GenericPlayerActionPacket.Action.SWING_ARM))
@@ -35,10 +48,25 @@ class Player(
         return ClientboundAddPlayerPacket(this)
     }
 
+    fun sendMessage(message: Component) {
+        connection.sendPacket(ClientboundChatMessagePacket(message))
+    }
+
+    fun openMenu(menu: Menu, id: Int = menuCounter++) {
+        connection.sendPacket(ClientboundSetContainerContentPacket(id, menu))
+        currentMenu = menu
+    }
+
     override fun tick(currentTick: Long) {
         super.tick(currentTick)
         entityTracker.tick(currentTick)
         updateVisibleChunks()
+
+        /* send inventory updates */
+        if (inventory.dirty) { // todo; also armor stuff
+            openMenu(PlayerInventoryMenu(inventory, armorContainer), 0)
+            inventory.dirty = false
+        }
     }
 
     private fun updateVisibleChunks() {
