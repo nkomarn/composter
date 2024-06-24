@@ -12,8 +12,12 @@ interface Container {
     fun getItem(slot: Int): ItemStack
     fun setItem(slot: Int, stack: ItemStack)
 
-    /* returns the remainder */
-    fun addItem(stack: ItemStack): Int
+    /**
+     * attempts to insert the given item into the inventory.
+     * any remaining part of the stack which could not be
+     * inserted is returned.
+     */
+    fun insert(stack: ItemStack): ItemStack
 }
 
 open class BasicContainer(override val size: Int) : Container {
@@ -32,29 +36,42 @@ open class BasicContainer(override val size: Int) : Container {
         dirty = true
     }
 
-    override fun addItem(stack: ItemStack): Int {
-        /**
-         * order of operations:
-         * - merge the item into an existing, similar stack
-         * - add the item to an available empty slot
-         */
-        dirty = true
+    /**
+     * the order of operations:
+     * - attempt to merge into an existing, non-empty but similar stack
+     * - add the item to the next available empty slot
+     * - give up and return the item as a remainder
+     */
+    override fun insert(stack: ItemStack): ItemStack {
+        var remainder = stack
 
-        for (other in items) {
-            stack.mergeInto(other)
+        for ((index, other) in contents.withIndex()) {
+            if (other == null) continue
+            val result = remainder.mergeInto(other)
+                ?: continue // the merge is not possible
 
-            if (stack.isEmpty) {
-                return 0
+            setItem(index, result.second)
+            remainder = result.first
+
+            /* stop here if the remainder is empty */
+            if (remainder.isEmpty) {
+                return remainder
             }
         }
 
-        for ((slot, other) in contents.withIndex()) {
+        /**
+         * if we still haven't completely disposed of the
+         * item, try to add it to the next empty slot in
+         * the inventory.
+         */
+        for ((index, other) in contents.withIndex()) {
             if (other != null) continue
-            setItem(slot, stack.clone())
-            stack.count = 0
+
+            setItem(index, remainder)
+            remainder = ItemStack.EMPTY
             break
         }
 
-        return stack.count
+        return remainder
     }
 }

@@ -26,7 +26,7 @@ class ItemEntity(
             .firstOrNull()
             ?: return
 
-        collectingPlayer.inventory.addItem(itemStack) // todo; handle the remainder
+        println(collectingPlayer.inventory.insert(itemStack)) // todo; handle the remainder
         collectingPlayer.entityTracker.broadcastIncludingSelf(ClientboundCollectDroppedItemPacket(id, collectingPlayer.id))
         markRemoved()
     }

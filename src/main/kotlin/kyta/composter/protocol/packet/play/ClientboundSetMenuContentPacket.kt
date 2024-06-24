@@ -18,16 +18,16 @@ data class ClientboundSetContainerContentPacket(
             buffer.writeShort(slots.size)
 
             for (slot in slots) {
-                val item = slot.item
+                val stack = slot.item
 
-                if (item.isEmpty) {
+                if (stack.isEmpty) {
                     buffer.writeShort(-1)
                     continue
                 }
 
-                buffer.writeShort(item.id)
-                buffer.writeByte(item.count)
-                buffer.writeShort(item.metadataValue)
+                buffer.writeShort(stack.item.networkId)
+                buffer.writeByte(stack.count)
+                buffer.writeShort(stack.metadataValue)
             }
         }
     }

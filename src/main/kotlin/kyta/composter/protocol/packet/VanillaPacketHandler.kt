@@ -1,6 +1,7 @@
 package kyta.composter.protocol.packet
 
 import kyta.composter.entity.ItemEntity
+import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.item.isEmpty
 import kyta.composter.item.shrink
@@ -94,7 +95,7 @@ class VanillaPacketHandler(
 
     override suspend fun handleChatMessage(packet: ServerboundChatMessagePacket) {
         if (packet.message.isBlank()) return
-        connection.player.inventory.addItem(ItemStack(STONE.id, 64, 0))
+        connection.player.inventory.insert(ItemStack(Item(STONE.id), 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
     }
 
@@ -172,7 +173,7 @@ class VanillaPacketHandler(
             val block = world.getBlock(packet.blockPos)
 
             world.setBlock(packet.blockPos, AIR.defaultState)
-            ItemEntity(world, ItemStack(block.block.id, 1, block.metadataValue)).let {
+            ItemEntity(world, ItemStack(Item(block.block.id), 1, block.metadataValue)).let {
                 it.pos = Vec3d(packet.blockPos).add(0.5, 0.25, 0.5)
                 world.addEntity(it)
             }
@@ -198,7 +199,7 @@ class VanillaPacketHandler(
         val offset = packet.face.offset
         player.world.setBlock(
             packet.blockPos.add(offset.x.toInt(), offset.y.toInt(), offset.z.toInt()),
-            BlockState(Block(selectedItem.id), selectedItem.metadataValue),
+            BlockState(Block(selectedItem.item.networkId), selectedItem.metadataValue),
         )
     }
 

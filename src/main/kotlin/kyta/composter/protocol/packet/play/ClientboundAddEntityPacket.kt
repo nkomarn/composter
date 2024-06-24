@@ -52,7 +52,7 @@ data class ClientboundAddDroppedItemPacket(
 ) : AddEntityPacket {
     constructor(entity: ItemEntity) : this(
         entity.id,
-        entity.itemStack.id,
+        entity.itemStack.item.networkId,
         entity.itemStack.count,
         entity.itemStack.metadataValue,
         entity.pos,

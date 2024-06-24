@@ -1,11 +1,12 @@
 package kyta.composter.container.menu
 
+import kyta.composter.Tickable
 import kyta.composter.container.BasicContainer
 import kyta.composter.container.Container
 import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
 import xyz.nkomarn.composter.entity.Player
 
-interface Menu {
+interface Menu : Tickable {
     val slots: List<Slot>
     val currentStateId: Int
 
@@ -16,7 +17,7 @@ interface Menu {
     fun incrementState(): Int
 }
 
-abstract class BasicMenu: Menu {
+abstract class BasicMenu : Menu {
     private val _slots = mutableMapOf<Int, Slot>()
     override val slots: List<Slot>
         get() = _slots.values.sortedBy { it.networkIndex }
@@ -44,6 +45,9 @@ abstract class BasicMenu: Menu {
 
     override fun incrementState(): Int {
         return ++_state
+    }
+
+    override fun tick(currentTick: Long) {
     }
 }
 

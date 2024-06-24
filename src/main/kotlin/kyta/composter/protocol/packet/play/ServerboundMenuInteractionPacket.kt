@@ -1,5 +1,6 @@
 package kyta.composter.protocol.packet.play
 
+import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.protocol.PacketHandler
 import kyta.composter.protocol.PacketSerializer
@@ -24,11 +25,13 @@ data class ServerboundMenuInteractionPacket(
             val stateId = buffer.readShort().toInt()
             val shiftHeld = buffer.readBoolean()
             val itemId = buffer.readShort().toInt()
-            val item = ItemStack(itemId, 0, 0)
+            val item = Item(itemId) // todo; read item instance from registry
+            var count = 1
+            var metadataValue = 0
 
             if (itemId != -1) {
-                item.count = buffer.readByte().toInt()
-                item.metadataValue = buffer.readShort().toInt()
+                count = buffer.readByte().toInt()
+                metadataValue = buffer.readShort().toInt()
             }
 
             return ServerboundMenuInteractionPacket(
@@ -37,7 +40,7 @@ data class ServerboundMenuInteractionPacket(
                 rightClicked,
                 stateId,
                 shiftHeld,
-                item,
+                ItemStack(item, count, metadataValue),
             )
         }
     }
