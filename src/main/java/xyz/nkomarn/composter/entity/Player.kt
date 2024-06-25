@@ -30,6 +30,8 @@ class Player(
     val armorContainer = BasicContainer(4)
     var selectedHotbarSlot = 0
     var cursorItem: ItemStack = ItemStack.EMPTY
+
+    var inventoryMenu = PlayerInventoryMenu(this, inventory, armorContainer)
     var currentMenu: Menu? = null
 
     val entityTracker = EntityTracker(this)
@@ -52,21 +54,14 @@ class Player(
         connection.sendPacket(ClientboundChatMessagePacket(message))
     }
 
-    fun openMenu(menu: Menu, id: Int = menuCounter++) {
-        connection.sendPacket(ClientboundSetContainerContentPacket(id, menu))
-        currentMenu = menu
-    }
-
     override fun tick(currentTick: Long) {
         super.tick(currentTick)
         entityTracker.tick(currentTick)
         updateVisibleChunks()
 
-        /* send inventory updates */
-        if (inventory.dirty) { // todo; also armor stuff
-            openMenu(PlayerInventoryMenu(inventory, armorContainer), 0)
-            inventory.dirty = false
-        }
+        /* send menu updates */
+        currentMenu?.tick(currentTick)
+            ?: inventoryMenu.tick(currentTick)
     }
 
     private fun updateVisibleChunks() {
