@@ -1,9 +1,11 @@
 package xyz.nkomarn.composter.entity
 
+import java.util.function.Consumer
 import kyta.composter.container.BasicContainer
-import kyta.composter.container.menu.Menu
-import kyta.composter.container.menu.PlayerInventoryMenu
+import kyta.composter.container.menu.MenuSynchronizer
 import kyta.composter.entity.EntityType
+import kyta.composter.entity.ItemEntity
+import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.network.Connection
 import kyta.composter.protocol.Packet
@@ -11,60 +13,51 @@ import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
-import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
 import net.kyori.adventure.text.Component
 import xyz.nkomarn.composter.entity.tracker.EntityTracker
-import java.util.function.Consumer
 
 class Player(
     world: World,
     val connection: Connection,
     val username: String,
 ) : Entity(world, EntityType.PLAYER) {
-    private val visibleChunks = mutableSetOf<ChunkPos>()
     override val dimensions = 0.6 to 1.8
-    val inventory = BasicContainer(36)
-    val armorContainer = BasicContainer(4)
-    var selectedHotbarSlot = 0
-    var cursorItem: ItemStack = ItemStack.EMPTY
-
-    var inventoryMenu = PlayerInventoryMenu(this, inventory, armorContainer)
-    var currentMenu: Menu? = null
-
-    val entityTracker = EntityTracker(this)
     val stance = 67.240000009536743
     var isCrouching = false
     var isOnGround = false
     var lastDigStartTime = 0L
 
-    var menuCounter = 0
+    private val visibleChunks = mutableSetOf<ChunkPos>()
+    val inventory = BasicContainer(36)
+    val armorContainer = BasicContainer(4)
+    var cursorItem: ItemStack = ItemStack.EMPTY
+    var selectedHotbarSlot = 0
 
-    fun swingArm() {
-        entityTracker.broadcast(GenericPlayerActionPacket(id, GenericPlayerActionPacket.Action.SWING_ARM))
+    val entityTracker = EntityTracker(this)
+    val menuSynchronizer = MenuSynchronizer(this)
+
+    init {
+        for (x in 0 until inventory.size) {
+            inventory.setItem(x, ItemStack(Item(x + 1)))
+        }
     }
 
     override fun createAddEntityPacket(): Packet {
         return ClientboundAddPlayerPacket(this)
     }
 
-    fun sendMessage(message: Component) {
-        connection.sendPacket(ClientboundChatMessagePacket(message))
-    }
-
     override fun tick(currentTick: Long) {
         super.tick(currentTick)
         entityTracker.tick(currentTick)
-        updateVisibleChunks()
+        menuSynchronizer.tick(currentTick)
 
-        /* send menu updates */
-        currentMenu?.tick(currentTick)
-            ?: inventoryMenu.tick(currentTick)
+        updateVisibleChunks()
     }
 
-    private fun updateVisibleChunks() {
+    fun updateVisibleChunks() {
         val currentBlock = getBlockPos()
         val (currentChunkX, currentChunkZ) = ChunkPos(currentBlock)
 
@@ -109,4 +102,24 @@ class Player(
     private companion object {
         const val VIEW_DISTANCE = 16
     }
+}
+
+fun Player.sendMessage(message: Component) {
+    connection.sendPacket(ClientboundChatMessagePacket(message))
+}
+
+fun Player.getHotbarItem(index: Int): ItemStack {
+    return inventory.getItem(index.coerceIn(0..8)) // todo; test this, might have to be in reverse
+
+}
+
+fun Player.drop(stack: ItemStack) {
+    ItemEntity(world, stack).let { item ->
+        item.pos = pos
+        world.addEntity(item)
+    }
+}
+
+fun Player.swingArm() {
+    entityTracker.broadcast(GenericPlayerActionPacket(id, GenericPlayerActionPacket.Action.SWING_ARM))
 }

@@ -3,12 +3,14 @@ package kyta.composter.protocol.packet.play
 import kyta.composter.asRotation
 import kyta.composter.entity.EntityType
 import kyta.composter.entity.ItemEntity
+import kyta.composter.item.ItemStack
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.PacketSerializer
 import kyta.composter.protocol.WriteBuffer
 import xyz.nkomarn.composter.entity.Entity
 import xyz.nkomarn.composter.entity.Player
+import xyz.nkomarn.composter.entity.getHotbarItem
 
 interface AddEntityPacket : Packet {
     val id: Int
@@ -83,9 +85,16 @@ data class ClientboundAddPlayerPacket(
     override val pos: Vec3d,
     override val yaw: Float,
     override val pitch: Float,
-    // todo; placeholder for currently held item
+    val heldItem: ItemStack,
 ) : AddEntityPacket {
-    constructor(player: Player) : this(player.id, player.username, player.pos, player.yaw, player.pitch)
+    constructor(player: Player) : this(
+        player.id,
+        player.username,
+        player.pos,
+        player.yaw,
+        player.pitch,
+        player.getHotbarItem(player.selectedHotbarSlot),
+    )
 
     companion object : PacketSerializer<ClientboundAddPlayerPacket> {
         override fun serialize(packet: ClientboundAddPlayerPacket, buffer: WriteBuffer) {
@@ -96,7 +105,7 @@ data class ClientboundAddPlayerPacket(
             buffer.writeAbsoluteInt(packet.pos.z)
             buffer.writeByte(packet.yaw.asRotation())
             buffer.writeByte(packet.pitch.asRotation())
-            buffer.writeShort(0) // todo; placeholder for currently held item
+            buffer.writeShort(packet.heldItem.item.networkId)
         }
     }
 }

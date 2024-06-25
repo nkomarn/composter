@@ -32,7 +32,7 @@ open class BasicContainer(override val size: Int) : Container {
 
     override fun setItem(slot: Int, stack: ItemStack) {
         check(slot in 0..<size)
-        contents[slot] = stack.takeUnless { it.isEmpty } ?: ItemStack.EMPTY
+        contents[slot] = stack.takeUnless { it.isEmpty }
         dirty = true
     }
 

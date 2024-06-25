@@ -21,6 +21,7 @@ data class ItemStack(
 
 /* immutable cloning methods */
 fun ItemStack.withCount(count: Int): ItemStack {
+    if (count == 0) return ItemStack.EMPTY
     return ItemStack(this.item, count.coerceIn(0, this.item.maxStackSize), this.metadataValue)
 }
 
@@ -72,4 +73,8 @@ fun ItemStack.mergeInto(other: ItemStack): Pair<ItemStack, ItemStack>? {
 
 fun ItemStack.isSimilarTo(stack: ItemStack): Boolean {
     return this.item.networkId == stack.item.networkId && stack.metadataValue == metadataValue
+}
+
+fun ItemStack.canFit(count: Int = 1) : Boolean {
+    return this.count + count <= item.maxStackSize
 }

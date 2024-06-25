@@ -44,7 +44,7 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
         player.pos = Vec3d(worldSpawn)
         player.world.addEntity(player)
 
-//         player.updateVisibleChunks()
+        player.updateVisibleChunks()
         player.connection.sendPacket(ClientboundSetSpawnPacket(worldSpawn))
 
         /* send the player's spawning position */
@@ -58,6 +58,7 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
             )
         )
 
+        player.menuSynchronizer.synchronize()
         broadcastMessage(Component.text(player.username + " joined the game.", NamedTextColor.YELLOW))
     }
 

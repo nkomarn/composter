@@ -42,6 +42,7 @@ import kyta.composter.protocol.packet.play.ServerboundSetPlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetPlayerRotationPacket
 import kyta.composter.world.BlockPos
 import kotlin.reflect.KClass
+import kyta.composter.protocol.packet.play.ClientboundMenuTransactionPacket
 
 interface Packet
 interface PacketHandler {
@@ -113,6 +114,7 @@ object Protocol {
         registerPacket(101, ServerboundCloseMenuPacket::class, ServerboundCloseMenuPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(102, ServerboundMenuInteractionPacket::class, ServerboundMenuInteractionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(104, ClientboundSetContainerContentPacket::class, ClientboundSetContainerContentPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(106, ClientboundMenuTransactionPacket::class, ClientboundMenuTransactionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
 
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.CLIENTBOUND, *allStates)
         registerPacket(255, GenericDisconnectPacket::class, GenericDisconnectPacket, FlowDirection.SERVERBOUND, *allStates)
