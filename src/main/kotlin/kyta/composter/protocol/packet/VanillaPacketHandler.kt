@@ -1,11 +1,10 @@
 package kyta.composter.protocol.packet
 
-import kyta.composter.entity.ItemEntity
 import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.item.isEmpty
 import kyta.composter.item.shrink
-import kyta.composter.math.Vec3d
+import kyta.composter.item.split
 import kyta.composter.network.Connection
 import kyta.composter.protocol.ConnectionState
 import kyta.composter.protocol.PacketHandler
@@ -30,14 +29,15 @@ import kyta.composter.server.MinecraftServer
 import kyta.composter.withContext
 import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
-import kyta.composter.world.block.AIR
 import kyta.composter.world.block.Block
 import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.STONE
-import kyta.composter.world.block.defaultState
+import kyta.composter.world.breakBlock
 import kyta.composter.world.dimension.DimensionType
 import net.kyori.adventure.text.Component
 import xyz.nkomarn.composter.entity.Player
+import xyz.nkomarn.composter.entity.drop
+import xyz.nkomarn.composter.entity.heldItem
 import xyz.nkomarn.composter.entity.swingArm
 
 class VanillaPacketHandler(
@@ -107,7 +107,7 @@ class VanillaPacketHandler(
     override suspend fun handlePlayerPosition(packet: PositionPacket) {
         val currentPos = connection.player.pos
 
-        if (currentPos.distanceSqrt(packet.pos) >= 100) {
+        if (currentPos.distanceSqRt(packet.pos) >= 100) {
             /*
             return connection.disconnect(
                 String.format(
@@ -169,14 +169,27 @@ class VanillaPacketHandler(
     }
 
     override suspend fun handlePlayerDig(packet: ServerboundPlayerDigPacket) = withContext(server) {
-        if (packet.action == ServerboundPlayerDigPacket.Action.FINISH) {
-            val world = connection.player.world
-            val block = world.getBlock(packet.blockPos)
+        when (packet.action) {
+            ServerboundPlayerDigPacket.Action.START -> {}
+            ServerboundPlayerDigPacket.Action.FINISH -> {
+                /**
+                 * todo;
+                 * - perform range checks for block breaking (4 block radius?)
+                 * - perform speed checks (are we breaking the block too fast, hacking?)
+                 */
+                player.world.breakBlock(packet.blockPos)
+            }
 
-            world.setBlock(packet.blockPos, AIR.defaultState)
-            ItemEntity(world, ItemStack(Item(block.block.id), 1, block.metadataValue)).let {
-                it.pos = Vec3d(packet.blockPos).add(0.5, 0.25, 0.5)
-                world.addEntity(it)
+            /**
+             * Drop a single count out of the item stack the
+             * player is currently holding in their hand.
+             */
+            ServerboundPlayerDigPacket.Action.DROP_ITEM -> {
+                if (player.heldItem.isEmpty) return@withContext
+
+                val (remainder, singleCount) = player.heldItem.split(1)
+                player.heldItem = remainder
+                player.drop(singleCount)
             }
         }
     }

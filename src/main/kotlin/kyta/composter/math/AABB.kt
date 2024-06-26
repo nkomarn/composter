@@ -7,19 +7,17 @@ data class AABB(
     val maxX: Double,
     val maxY: Double,
     val maxZ: Double,
-) {
-    constructor(x: Double, y: Double, z: Double) : this(-x / 2, -y / 2, -z / 2, x / 2, y / 2, z / 2)
+)
 
-    fun overlaps(box: AABB): Boolean {
-        return minX <= box.maxX &&
-                maxX >= box.minX &&
-                minY <= box.maxY &&
-                maxY >= box.minY &&
-                minZ <= box.maxZ &&
-                maxZ >= box.minZ
-    }
+fun AABB.overlaps(other: AABB): Boolean {
+    return minX <= other.maxX &&
+            maxX >= other.minX &&
+            minY <= other.maxY &&
+            maxY >= other.minY &&
+            minZ <= other.maxZ &&
+            maxZ >= other.minZ
+}
 
-    companion object {
-        val ZERO = AABB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    }
+fun AABB.grow(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0): AABB {
+    return AABB(minX - x, minY - y, minZ - z, maxX + x, maxY + y, maxZ + z)
 }

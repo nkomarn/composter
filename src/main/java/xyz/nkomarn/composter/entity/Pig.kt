@@ -16,7 +16,7 @@ class Pig(world: World) : Entity(world, EntityType.PIG) {
         val nearbyPlayer = world.server.playerList.onlinePlayers().firstOrNull()
             ?: return
 
-        if (nearbyPlayer.getBlockPos().distanceSqrt(getBlockPos()) > 30) {
+        if (nearbyPlayer.blockPos.distanceSqRt(blockPos) > 30) {
             pitch = 0F
             return
         }

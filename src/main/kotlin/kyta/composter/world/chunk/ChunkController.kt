@@ -8,6 +8,7 @@ import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
 import xyz.nkomarn.composter.entity.Player
 import java.util.concurrent.ConcurrentHashMap
+import xyz.nkomarn.composter.entity.blockPos
 
 class ChunkController(private val world: World): Tickable {
     private val loadedChunks = ConcurrentHashMap<Long, Chunk>()
@@ -44,7 +45,7 @@ class ChunkController(private val world: World): Tickable {
         for (entity in world.entities) {
             if (entity !is Player) continue
 
-            val (originX, originZ) = ChunkPos(entity.getBlockPos())
+            val (originX, originZ) = ChunkPos(entity.blockPos)
             for (x in originX - SIMULATION_DISTANCE until originX + SIMULATION_DISTANCE) {
                 for (z in originZ - SIMULATION_DISTANCE until originZ + SIMULATION_DISTANCE) {
                     if (chunkActionsThisTick >= MAX_CHUNK_ACTIONS_PER_TICK) {

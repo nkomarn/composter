@@ -7,15 +7,19 @@ import kyta.composter.entity.EntityType
 import kyta.composter.entity.ItemEntity
 import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
+import kyta.composter.item.isEmpty
+import kyta.composter.math.grow
 import kyta.composter.network.Connection
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
+import kyta.composter.protocol.packet.play.ClientboundCollectDroppedItemPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
+import kyta.composter.world.getCollidingEntities
 import net.kyori.adventure.text.Component
 import xyz.nkomarn.composter.entity.tracker.EntityTracker
 
@@ -41,7 +45,7 @@ class Player(
 
     init {
         for (x in 0 until inventory.size) {
-            inventory.setItem(x, ItemStack(Item(x + 1)))
+            inventory.setItem(x, ItemStack(Item(x + 1), count = 64))
         }
     }
 
@@ -54,12 +58,12 @@ class Player(
         entityTracker.tick(currentTick)
         menuSynchronizer.tick(currentTick)
 
+        collectDroppedItems()
         updateVisibleChunks()
     }
 
     fun updateVisibleChunks() {
-        val currentBlock = getBlockPos()
-        val (currentChunkX, currentChunkZ) = ChunkPos(currentBlock)
+        val (currentChunkX, currentChunkZ) = ChunkPos(blockPos)
 
         /*
          * send chunk packets for chunks that the player should
@@ -99,10 +103,33 @@ class Player(
         })
     }
 
+    private fun collectDroppedItems() {
+        val box = boundingBox.grow(1.0, 0.5, 1.0)
+        val nearby = world.getCollidingEntities(box)
+            .filterIsInstance<ItemEntity>()
+            .filter { it.canBePickedUp() }
+
+        for (entity in nearby) {
+            entity.itemStack = inventory.insert(entity.itemStack)
+
+            /**
+             * Display the item pickup animation if the entire quantity
+             * of the stored stack has been picked up.
+             */
+            if (entity.itemStack.isEmpty) {
+                entityTracker.broadcastIncludingSelf(ClientboundCollectDroppedItemPacket(entity.id, id))
+            }
+        }
+    }
+
     private companion object {
         const val VIEW_DISTANCE = 16
     }
 }
+
+var Player.heldItem: ItemStack
+    get() = inventory.getItem(selectedHotbarSlot)
+    set(value) = inventory.setItem(selectedHotbarSlot, value)
 
 fun Player.sendMessage(message: Component) {
     connection.sendPacket(ClientboundChatMessagePacket(message))
@@ -114,10 +141,13 @@ fun Player.getHotbarItem(index: Int): ItemStack {
 }
 
 fun Player.drop(stack: ItemStack) {
-    ItemEntity(world, stack).let { item ->
-        item.pos = pos
-        world.addEntity(item)
+    val entity = ItemEntity(world).apply {
+        pos = this@drop.pos
+        itemStack = stack
+        pickUpDelay = ItemEntity.TICKS_PLAYER_PICK_UP_DELAY
     }
+
+    world.addEntity(entity)
 }
 
 fun Player.swingArm() {

@@ -1,19 +1,20 @@
 package kyta.composter.container.menu
 
+import kotlin.math.ceil
 import kyta.composter.Tickable
 import kyta.composter.container.BasicContainer
 import kyta.composter.container.Container
-import kyta.composter.item.isEmpty
-import kyta.composter.item.isSimilarTo
-import kyta.composter.item.shrink
-import kyta.composter.item.split
-import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
-import xyz.nkomarn.composter.entity.Player
-import kotlin.math.ceil
 import kyta.composter.item.ItemStack
 import kyta.composter.item.canFit
+import kyta.composter.item.isEmpty
+import kyta.composter.item.isSimilarTo
 import kyta.composter.item.mergeInto
+import kyta.composter.item.shrink
+import kyta.composter.item.split
 import kyta.composter.item.withCount
+import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
+import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
+import xyz.nkomarn.composter.entity.Player
 import xyz.nkomarn.composter.entity.drop
 
 interface Menu : Tickable {
@@ -168,13 +169,10 @@ abstract class BasicMenu(override val viewer: Player) : Menu {
         /**
          * send menu updates if any slot is marked dirty.
          */
-        /*
         if (slots.any { it.backingContainer.dirty }) {
-            viewer.sendMessage(Component.text("dirty container"))
-            viewer.connection.sendPacket(ClientboundSetContainerContentPacket(viewer.menuCounter, this))
+            viewer.connection.sendPacket(ClientboundSetContainerContentPacket(id, this))
             slots.forEach { it.backingContainer.dirty = false }
         }
-         */
     }
 }
 

@@ -1,5 +1,6 @@
 package kyta.composter.world
 
+import kyta.composter.math.AABB
 import kyta.composter.math.Vec3
 import kyta.composter.math.Vec3d
 
@@ -7,18 +8,19 @@ data class BlockPos(
     override val x: Int,
     override val y: Int,
     override val z: Int,
-) : Vec3<Int> {
+) : Vec3<Int, BlockPos> {
     constructor(vector: Vec3d) : this(vector.x.toInt(), vector.y.toInt(), vector.z.toInt())
+    val boundingBox by lazy { AABB(x + 0.0, y + 0.0, z + 0.0, x + 1.0, y + 1.0, z + 1.0) }
 
     fun up(amount: Int = 1) = add(0, amount, 0)
     fun down(amount: Int = 1) = add(0, -amount, 0)
 
-    fun add(x: Int, y: Int, z: Int): BlockPos {
+    override fun add(x: Int, y: Int, z: Int): BlockPos {
         return BlockPos(this.x + x, this.y + y, this.z + z)
     }
 
-    fun distanceSqrt(pos: BlockPos): Int {
-        return (x - pos.x) * (x - pos.x) + (y - pos.y) * (y - pos.y) + (z - pos.z) * (z - pos.z)
+    override fun subtract(x: Int, y: Int, z: Int): BlockPos {
+        return BlockPos(this.x - x, this.y - y, this.z - z)
     }
 }
 
