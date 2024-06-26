@@ -1,7 +1,7 @@
 package kyta.composter.container.menu
 
 import kotlin.math.ceil
-import kyta.composter.Tickable
+import kyta.composter.server.Tickable
 import kyta.composter.container.BasicContainer
 import kyta.composter.container.Container
 import kyta.composter.item.ItemStack
@@ -14,8 +14,8 @@ import kyta.composter.item.split
 import kyta.composter.item.withCount
 import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
 import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
-import xyz.nkomarn.composter.entity.Player
-import xyz.nkomarn.composter.entity.drop
+import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.drop
 
 interface Menu : Tickable {
     val id: Int

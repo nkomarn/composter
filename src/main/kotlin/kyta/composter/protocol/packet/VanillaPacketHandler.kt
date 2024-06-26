@@ -26,7 +26,7 @@ import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetHeldSlotPacket
 import kyta.composter.server.MinecraftServer
-import kyta.composter.withContext
+import kyta.composter.server.withContext
 import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.block.Block
@@ -35,10 +35,10 @@ import kyta.composter.world.block.STONE
 import kyta.composter.world.breakBlock
 import kyta.composter.world.dimension.DimensionType
 import net.kyori.adventure.text.Component
-import xyz.nkomarn.composter.entity.Player
-import xyz.nkomarn.composter.entity.drop
-import xyz.nkomarn.composter.entity.heldItem
-import xyz.nkomarn.composter.entity.swingArm
+import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.drop
+import kyta.composter.world.entity.heldItem
+import kyta.composter.world.entity.swingArm
 
 class VanillaPacketHandler(
     private val server: MinecraftServer,
@@ -94,7 +94,7 @@ class VanillaPacketHandler(
 
     override suspend fun handleChatMessage(packet: ServerboundChatMessagePacket) {
         if (packet.message.isBlank()) return
-        connection.player.inventory.insert(ItemStack(Item(STONE.id), 64, 0))
+        connection.player.inventory.insert(ItemStack(Item(STONE.networkId), 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
     }
 
@@ -177,8 +177,18 @@ class VanillaPacketHandler(
                  * - perform range checks for block breaking (4 block radius?)
                  * - perform speed checks (are we breaking the block too fast, hacking?)
                  */
+                /**
+                 * todo;
+                 * - perform range checks for block breaking (4 block radius?)
+                 * - perform speed checks (are we breaking the block too fast, hacking?)
+                 */
                 player.world.breakBlock(packet.blockPos)
             }
+
+            /**
+             * Drop a single count out of the item stack the
+             * player is currently holding in their hand.
+             */
 
             /**
              * Drop a single count out of the item stack the

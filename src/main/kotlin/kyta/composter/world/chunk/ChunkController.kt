@@ -3,12 +3,12 @@ package kyta.composter.world.chunk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kyta.composter.Tickable
+import kyta.composter.server.Tickable
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
-import xyz.nkomarn.composter.entity.Player
+import kyta.composter.world.entity.Player
 import java.util.concurrent.ConcurrentHashMap
-import xyz.nkomarn.composter.entity.blockPos
+import kyta.composter.world.entity.blockPos
 
 class ChunkController(private val world: World): Tickable {
     private val loadedChunks = ConcurrentHashMap<Long, Chunk>()

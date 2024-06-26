@@ -1,8 +1,7 @@
-package xyz.nkomarn.composter.entity
+package kyta.composter.world.entity
 
-import kyta.composter.entity.EntityType
-import kyta.composter.entity.data.DataDescriptor
-import kyta.composter.entity.data.DataType
+import kyta.composter.server.world.entity.data.DataDescriptor
+import kyta.composter.server.world.entity.data.DataType
 import kyta.composter.world.World
 
 class Pig(world: World) : Entity(world, EntityType.PIG) {

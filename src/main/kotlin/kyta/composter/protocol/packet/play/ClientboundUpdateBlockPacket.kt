@@ -10,7 +10,7 @@ data class ClientboundUpdateBlockPacket(val blockPos: BlockPos, val blockState: 
     companion object : PacketSerializer<ClientboundUpdateBlockPacket> {
         override fun serialize(packet: ClientboundUpdateBlockPacket, buffer: WriteBuffer) {
             buffer.writeBlockPos(packet.blockPos)
-            buffer.writeByte(packet.blockState.block.id)
+            buffer.writeByte(packet.blockState.block.networkId)
             buffer.writeByte(packet.blockState.metadataValue)
         }
     }

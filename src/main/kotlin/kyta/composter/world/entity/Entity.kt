@@ -1,9 +1,8 @@
-package xyz.nkomarn.composter.entity
+package kyta.composter.world.entity
 
 import java.util.concurrent.atomic.AtomicInteger
-import kyta.composter.Tickable
-import kyta.composter.entity.EntityType
-import kyta.composter.entity.data.SynchronizedEntityData
+import kyta.composter.server.Tickable
+import kyta.composter.server.world.entity.data.SynchronizedEntityData
 import kyta.composter.math.AABB
 import kyta.composter.math.Vec3d
 import kyta.composter.math.overlaps

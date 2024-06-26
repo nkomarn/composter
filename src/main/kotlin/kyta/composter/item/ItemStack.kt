@@ -34,7 +34,7 @@ fun ItemStack.clone(): ItemStack {
 }
 
 val ItemStack.isEmpty: Boolean
-    get() = count == 0 || item.networkId == AIR.id
+    get() = count == 0 || item.networkId == AIR.networkId
 
 fun ItemStack.shrink(count: Int = 1): ItemStack {
     return withCount((this.count - count).coerceIn(0, item.maxStackSize))

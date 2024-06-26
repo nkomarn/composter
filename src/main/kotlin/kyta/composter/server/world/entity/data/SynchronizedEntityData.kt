@@ -1,4 +1,4 @@
-package kyta.composter.entity.data
+package kyta.composter.server.world.entity.data
 
 data class DataDescriptor<T>(
     val networkId: Int,

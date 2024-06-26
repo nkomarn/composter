@@ -37,7 +37,7 @@ data class ClientboundChunkDataPacket(val pos: ChunkPos, val data: Chunk) : Pack
             val output = ArrayList<Byte>((Chunk.BLOCKS_PER_CHUNK * 5) / 2)
 
             chunk.states.forEach {
-                output.add(it?.block?.id?.toByte() ?: 0)
+                output.add(it?.block?.networkId?.toByte() ?: 0)
             }
 
             // todo; this is a bit weird

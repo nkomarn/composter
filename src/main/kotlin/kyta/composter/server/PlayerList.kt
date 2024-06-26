@@ -1,6 +1,5 @@
 package kyta.composter.server
 
-import kyta.composter.Tickable
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.GenericKeepAlivePacket
@@ -11,7 +10,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.slf4j.LoggerFactory
-import xyz.nkomarn.composter.entity.Player
+import kyta.composter.world.entity.Player
 import java.util.*
 
 class PlayerList(private val server: MinecraftServer) : Tickable {

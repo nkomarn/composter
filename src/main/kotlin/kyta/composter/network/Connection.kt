@@ -11,7 +11,7 @@ import kyta.composter.protocol.PacketHandler
 import kyta.composter.protocol.packet.GenericDisconnectPacket
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import xyz.nkomarn.composter.entity.Player
+import kyta.composter.world.entity.Player
 import kyta.composter.server.MinecraftServer
 import kotlin.coroutines.CoroutineContext
 

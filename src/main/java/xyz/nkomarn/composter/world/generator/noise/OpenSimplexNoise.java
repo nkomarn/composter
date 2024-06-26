@@ -1,568 +1,2088 @@
 package xyz.nkomarn.composter.world.generator.noise;
 
-/**
- * K.jpg's OpenSimplex 2, smooth variant ("SuperSimplex")
+/*
+ * OpenSimplex Noise in Java.
+ * by Kurt Spencer
  *
- * More language ports, as well as legacy 2014 OpenSimplex, can be found here:
- * https://github.com/KdotJPG/OpenSimplex2
+ * v1.1 (October 5, 2014)
+ * - Added 2D and 4D implementations.
+ * - Proper gradient sets for all dimensions, from a
+ *   dimensionally-generalizable scheme with an actual
+ *   rhyme and reason behind it.
+ * - Removed default permutation array in favor of
+ *   default seed.
+ * - Changed seed-based constructor to be independent
+ *   of any particular randomization library, so results
+ *   will be the same when ported to other languages.
  */
+
 public class OpenSimplexNoise {
-    private static final long PRIME_X = 0x5205402B9270C86FL;
-    private static final long PRIME_Y = 0x598CD327003817B5L;
-    private static final long PRIME_Z = 0x5BCC226E9FA0BACBL;
-    private static final long PRIME_W = 0x56CC5227E58F554BL;
-    private static final long HASH_MULTIPLIER = 0x53A3F72DEEC546F5L;
-    private static final long SEED_FLIP_3D = -0x52D547B2E96ED629L;
 
-    private static final double ROOT2OVER2 = 0.7071067811865476;
-    private static final double SKEW_2D = 0.366025403784439;
-    private static final double UNSKEW_2D = -0.21132486540518713;
+    private static final double STRETCH_CONSTANT_2D = -0.211324865405187;    //(1/Math.sqrt(2+1)-1)/2;
+    private static final double SQUISH_CONSTANT_2D = 0.366025403784439;      //(Math.sqrt(2+1)-1)/2;
+    private static final double STRETCH_CONSTANT_3D = -1.0 / 6;              //(1/Math.sqrt(3+1)-1)/3;
+    private static final double SQUISH_CONSTANT_3D = 1.0 / 3;                //(Math.sqrt(3+1)-1)/3;
+    private static final double STRETCH_CONSTANT_4D = -0.138196601125011;    //(1/Math.sqrt(4+1)-1)/4;
+    private static final double SQUISH_CONSTANT_4D = 0.309016994374947;      //(Math.sqrt(4+1)-1)/4;
 
-    private static final double ROOT3OVER3 = 0.577350269189626;
-    private static final double FALLBACK_ROTATE3 = 2.0 / 3.0;
-    private static final double ROTATE3_ORTHOGONALIZER = UNSKEW_2D;
+    private static final double NORM_CONSTANT_2D = 47;
+    private static final double NORM_CONSTANT_3D = 103;
+    private static final double NORM_CONSTANT_4D = 30;
 
-    private static final float SKEW_4D = 0.309016994374947f;
-    private static final float UNSKEW_4D = -0.138196601125011f;
+    private static final long DEFAULT_SEED = 0;
 
-    private static final int N_GRADS_2D_EXPONENT = 7;
-    private static final int N_GRADS_3D_EXPONENT = 8;
-    private static final int N_GRADS_4D_EXPONENT = 9;
-    private static final int N_GRADS_2D = 1 << N_GRADS_2D_EXPONENT;
-    private static final int N_GRADS_3D = 1 << N_GRADS_3D_EXPONENT;
-    private static final int N_GRADS_4D = 1 << N_GRADS_4D_EXPONENT;
+    private short[] perm;
+    private short[] permGradIndex3D;
 
-    private static final double NORMALIZER_2D = 0.05481866495625118;
-    private static final double NORMALIZER_3D = 0.2781926117527186;
-    private static final double NORMALIZER_4D = 0.11127401889945551;
-
-    private static final float RSQUARED_2D = 2.0f / 3.0f;
-    private static final float RSQUARED_3D = 3.0f / 4.0f;
-    private static final float RSQUARED_4D = 4.0f / 5.0f;
-
-    /*
-     * Noise Evaluators
-     */
-
-    /**
-     * 2D OpenSimplex2S/SuperSimplex noise, standard lattice orientation.
-     */
-    public static float noise2(long seed, double x, double y) {
-
-        // Get points for A2* lattice
-        double s = SKEW_2D * (x + y);
-        double xs = x + s, ys = y + s;
-
-        return noise2_UnskewedBase(seed, xs, ys);
+    public OpenSimplexNoise() {
+        this(DEFAULT_SEED);
     }
 
-    /**
-     * 2D OpenSimplex2S/SuperSimplex noise, with Y pointing down the main diagonal.
-     * Might be better for a 2D sandbox style game, where Y is vertical.
-     * Probably slightly less optimal for heightmaps or continent maps,
-     * unless your map is centered around an equator. It's a slight
-     * difference, but the option is here to make it easy.
-     */
-    public static float noise2_ImproveX(long seed, double x, double y) {
+    public OpenSimplexNoise(short[] perm) {
+        this.perm = perm;
+        permGradIndex3D = new short[256];
 
-        // Skew transform and rotation baked into one.
-        double xx = x * ROOT2OVER2;
-        double yy = y * (ROOT2OVER2 * (1 + 2 * SKEW_2D));
-
-        return noise2_UnskewedBase(seed, yy + xx, yy - xx);
+        for (int i = 0; i < 256; i++) {
+            //Since 3D has 24 gradients, simple bitmask won't work, so precompute modulo array.
+            permGradIndex3D[i] = (short)((perm[i] % (gradients3D.length / 3)) * 3);
+        }
     }
 
-    /**
-     * 2D  OpenSimplex2S/SuperSimplex noise base.
-     */
-    private static float noise2_UnskewedBase(long seed, double xs, double ys) {
+    //Initializes the class using a permutation array generated from a 64-bit seed.
+    //Generates a proper permutation (i.e. doesn't merely perform N successive pair swaps on a base array)
+    //Uses a simple 64-bit LCG.
+    public OpenSimplexNoise(long seed) {
+        perm = new short[256];
+        permGradIndex3D = new short[256];
+        short[] source = new short[256];
+        for (short i = 0; i < 256; i++)
+            source[i] = i;
+        seed = seed * 6364136223846793005l + 1442695040888963407l;
+        seed = seed * 6364136223846793005l + 1442695040888963407l;
+        seed = seed * 6364136223846793005l + 1442695040888963407l;
+        for (int i = 255; i >= 0; i--) {
+            seed = seed * 6364136223846793005l + 1442695040888963407l;
+            int r = (int)((seed + 31) % (i + 1));
+            if (r < 0)
+                r += (i + 1);
+            perm[i] = source[r];
+            permGradIndex3D[i] = (short)((perm[i] % (gradients3D.length / 3)) * 3);
+            source[r] = source[i];
+        }
+    }
 
-        // Get base points and offsets.
-        int xsb = fastFloor(xs), ysb = fastFloor(ys);
-        float xi = (float)(xs - xsb), yi = (float)(ys - ysb);
+    //2D OpenSimplex Noise.
+    public double eval(double x, double y) {
 
-        // Prime pre-multiplication for hash.
-        long xsbp = xsb * PRIME_X, ysbp = ysb * PRIME_Y;
+        //Place input coordinates onto grid.
+        double stretchOffset = (x + y) * STRETCH_CONSTANT_2D;
+        double xs = x + stretchOffset;
+        double ys = y + stretchOffset;
 
-        // Unskew.
-        float t = (xi + yi) * (float)UNSKEW_2D;
-        float dx0 = xi + t, dy0 = yi + t;
+        //Floor to get grid coordinates of rhombus (stretched square) super-cell origin.
+        int xsb = fastFloor(xs);
+        int ysb = fastFloor(ys);
 
-        // First vertex.
-        float a0 = RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
-        float value = (a0 * a0) * (a0 * a0) * grad(seed, xsbp, ysbp, dx0, dy0);
+        //Skew out to get actual coordinates of rhombus origin. We'll need these later.
+        double squishOffset = (xsb + ysb) * SQUISH_CONSTANT_2D;
+        double xb = xsb + squishOffset;
+        double yb = ysb + squishOffset;
 
-        // Second vertex.
-        float a1 = (float)(2 * (1 + 2 * UNSKEW_2D) * (1 / UNSKEW_2D + 2)) * t + ((float)(-2 * (1 + 2 * UNSKEW_2D) * (1 + 2 * UNSKEW_2D)) + a0);
-        float dx1 = dx0 - (float)(1 + 2 * UNSKEW_2D);
-        float dy1 = dy0 - (float)(1 + 2 * UNSKEW_2D);
-        value += (a1 * a1) * (a1 * a1) * grad(seed, xsbp + PRIME_X, ysbp + PRIME_Y, dx1, dy1);
+        //Compute grid coordinates relative to rhombus origin.
+        double xins = xs - xsb;
+        double yins = ys - ysb;
 
-        // Third and fourth vertices.
-        // Nested conditionals were faster than compact bit logic/arithmetic.
-        float xmyi = xi - yi;
-        if (t < UNSKEW_2D) {
-            if (xi + xmyi > 1) {
-                float dx2 = dx0 - (float)(3 * UNSKEW_2D + 2);
-                float dy2 = dy0 - (float)(3 * UNSKEW_2D + 1);
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp + (PRIME_X << 1), ysbp + PRIME_Y, dx2, dy2);
+        //Sum those together to get a value that determines which region we're in.
+        double inSum = xins + yins;
+
+        //Positions relative to origin point.
+        double dx0 = x - xb;
+        double dy0 = y - yb;
+
+        //We'll be defining these inside the next block and using them afterwards.
+        double dx_ext, dy_ext;
+        int xsv_ext, ysv_ext;
+
+        double value = 0;
+
+        //Contribution (1,0)
+        double dx1 = dx0 - 1 - SQUISH_CONSTANT_2D;
+        double dy1 = dy0 - 0 - SQUISH_CONSTANT_2D;
+        double attn1 = 2 - dx1 * dx1 - dy1 * dy1;
+        if (attn1 > 0) {
+            attn1 *= attn1;
+            value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, dx1, dy1);
+        }
+
+        //Contribution (0,1)
+        double dx2 = dx0 - 0 - SQUISH_CONSTANT_2D;
+        double dy2 = dy0 - 1 - SQUISH_CONSTANT_2D;
+        double attn2 = 2 - dx2 * dx2 - dy2 * dy2;
+        if (attn2 > 0) {
+            attn2 *= attn2;
+            value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, dx2, dy2);
+        }
+
+        if (inSum <= 1) { //We're inside the triangle (2-Simplex) at (0,0)
+            double zins = 1 - inSum;
+            if (zins > xins || zins > yins) { //(0,0) is one of the closest two triangular vertices
+                if (xins > yins) {
+                    xsv_ext = xsb + 1;
+                    ysv_ext = ysb - 1;
+                    dx_ext = dx0 - 1;
+                    dy_ext = dy0 + 1;
+                } else {
+                    xsv_ext = xsb - 1;
+                    ysv_ext = ysb + 1;
+                    dx_ext = dx0 + 1;
+                    dy_ext = dy0 - 1;
+                }
+            } else { //(1,0) and (0,1) are the closest two vertices.
+                xsv_ext = xsb + 1;
+                ysv_ext = ysb + 1;
+                dx_ext = dx0 - 1 - 2 * SQUISH_CONSTANT_2D;
+                dy_ext = dy0 - 1 - 2 * SQUISH_CONSTANT_2D;
+            }
+        } else { //We're inside the triangle (2-Simplex) at (1,1)
+            double zins = 2 - inSum;
+            if (zins < xins || zins < yins) { //(0,0) is one of the closest two triangular vertices
+                if (xins > yins) {
+                    xsv_ext = xsb + 2;
+                    ysv_ext = ysb + 0;
+                    dx_ext = dx0 - 2 - 2 * SQUISH_CONSTANT_2D;
+                    dy_ext = dy0 + 0 - 2 * SQUISH_CONSTANT_2D;
+                } else {
+                    xsv_ext = xsb + 0;
+                    ysv_ext = ysb + 2;
+                    dx_ext = dx0 + 0 - 2 * SQUISH_CONSTANT_2D;
+                    dy_ext = dy0 - 2 - 2 * SQUISH_CONSTANT_2D;
+                }
+            } else { //(1,0) and (0,1) are the closest two vertices.
+                dx_ext = dx0;
+                dy_ext = dy0;
+                xsv_ext = xsb;
+                ysv_ext = ysb;
+            }
+            xsb += 1;
+            ysb += 1;
+            dx0 = dx0 - 1 - 2 * SQUISH_CONSTANT_2D;
+            dy0 = dy0 - 1 - 2 * SQUISH_CONSTANT_2D;
+        }
+
+        //Contribution (0,0) or (1,1)
+        double attn0 = 2 - dx0 * dx0 - dy0 * dy0;
+        if (attn0 > 0) {
+            attn0 *= attn0;
+            value += attn0 * attn0 * extrapolate(xsb, ysb, dx0, dy0);
+        }
+
+        //Extra Vertex
+        double attn_ext = 2 - dx_ext * dx_ext - dy_ext * dy_ext;
+        if (attn_ext > 0) {
+            attn_ext *= attn_ext;
+            value += attn_ext * attn_ext * extrapolate(xsv_ext, ysv_ext, dx_ext, dy_ext);
+        }
+
+        return value / NORM_CONSTANT_2D;
+    }
+
+    //3D OpenSimplex Noise.
+    public double eval(double x, double y, double z) {
+
+        //Place input coordinates on simplectic honeycomb.
+        double stretchOffset = (x + y + z) * STRETCH_CONSTANT_3D;
+        double xs = x + stretchOffset;
+        double ys = y + stretchOffset;
+        double zs = z + stretchOffset;
+
+        //Floor to get simplectic honeycomb coordinates of rhombohedron (stretched cube) super-cell origin.
+        int xsb = fastFloor(xs);
+        int ysb = fastFloor(ys);
+        int zsb = fastFloor(zs);
+
+        //Skew out to get actual coordinates of rhombohedron origin. We'll need these later.
+        double squishOffset = (xsb + ysb + zsb) * SQUISH_CONSTANT_3D;
+        double xb = xsb + squishOffset;
+        double yb = ysb + squishOffset;
+        double zb = zsb + squishOffset;
+
+        //Compute simplectic honeycomb coordinates relative to rhombohedral origin.
+        double xins = xs - xsb;
+        double yins = ys - ysb;
+        double zins = zs - zsb;
+
+        //Sum those together to get a value that determines which region we're in.
+        double inSum = xins + yins + zins;
+
+        //Positions relative to origin point.
+        double dx0 = x - xb;
+        double dy0 = y - yb;
+        double dz0 = z - zb;
+
+        //We'll be defining these inside the next block and using them afterwards.
+        double dx_ext0, dy_ext0, dz_ext0;
+        double dx_ext1, dy_ext1, dz_ext1;
+        int xsv_ext0, ysv_ext0, zsv_ext0;
+        int xsv_ext1, ysv_ext1, zsv_ext1;
+
+        double value = 0;
+        if (inSum <= 1) { //We're inside the tetrahedron (3-Simplex) at (0,0,0)
+
+            //Determine which two of (0,0,1), (0,1,0), (1,0,0) are closest.
+            byte aPoint = 0x01;
+            double aScore = xins;
+            byte bPoint = 0x02;
+            double bScore = yins;
+            if (aScore >= bScore && zins > bScore) {
+                bScore = zins;
+                bPoint = 0x04;
+            } else if (aScore < bScore && zins > aScore) {
+                aScore = zins;
+                aPoint = 0x04;
+            }
+
+            //Now we determine the two lattice points not part of the tetrahedron that may contribute.
+            //This depends on the closest two tetrahedral vertices, including (0,0,0)
+            double wins = 1 - inSum;
+            if (wins > aScore || wins > bScore) { //(0,0,0) is one of the closest two tetrahedral vertices.
+                byte c = (bScore > aScore ? bPoint : aPoint); //Our other closest vertex is the closest out of a and b.
+
+                if ((c & 0x01) == 0) {
+                    xsv_ext0 = xsb - 1;
+                    xsv_ext1 = xsb;
+                    dx_ext0 = dx0 + 1;
+                    dx_ext1 = dx0;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb + 1;
+                    dx_ext0 = dx_ext1 = dx0 - 1;
+                }
+
+                if ((c & 0x02) == 0) {
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    dy_ext0 = dy_ext1 = dy0;
+                    if ((c & 0x01) == 0) {
+                        ysv_ext1 -= 1;
+                        dy_ext1 += 1;
+                    } else {
+                        ysv_ext0 -= 1;
+                        dy_ext0 += 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy0 - 1;
+                }
+
+                if ((c & 0x04) == 0) {
+                    zsv_ext0 = zsb;
+                    zsv_ext1 = zsb - 1;
+                    dz_ext0 = dz0;
+                    dz_ext1 = dz0 + 1;
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb + 1;
+                    dz_ext0 = dz_ext1 = dz0 - 1;
+                }
+            } else { //(0,0,0) is not one of the closest two tetrahedral vertices.
+                byte c = (byte)(aPoint | bPoint); //Our two extra vertices are determined by the closest two.
+
+                if ((c & 0x01) == 0) {
+                    xsv_ext0 = xsb;
+                    xsv_ext1 = xsb - 1;
+                    dx_ext0 = dx0 - 2 * SQUISH_CONSTANT_3D;
+                    dx_ext1 = dx0 + 1 - SQUISH_CONSTANT_3D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb + 1;
+                    dx_ext0 = dx0 - 1 - 2 * SQUISH_CONSTANT_3D;
+                    dx_ext1 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x02) == 0) {
+                    ysv_ext0 = ysb;
+                    ysv_ext1 = ysb - 1;
+                    dy_ext0 = dy0 - 2 * SQUISH_CONSTANT_3D;
+                    dy_ext1 = dy0 + 1 - SQUISH_CONSTANT_3D;
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb + 1;
+                    dy_ext0 = dy0 - 1 - 2 * SQUISH_CONSTANT_3D;
+                    dy_ext1 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x04) == 0) {
+                    zsv_ext0 = zsb;
+                    zsv_ext1 = zsb - 1;
+                    dz_ext0 = dz0 - 2 * SQUISH_CONSTANT_3D;
+                    dz_ext1 = dz0 + 1 - SQUISH_CONSTANT_3D;
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb + 1;
+                    dz_ext0 = dz0 - 1 - 2 * SQUISH_CONSTANT_3D;
+                    dz_ext1 = dz0 - 1 - SQUISH_CONSTANT_3D;
                 }
             }
-            else
-            {
-                float dx2 = dx0 - (float)UNSKEW_2D;
-                float dy2 = dy0 - (float)(UNSKEW_2D + 1);
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp + PRIME_Y, dx2, dy2);
+
+            //Contribution (0,0,0)
+            double attn0 = 2 - dx0 * dx0 - dy0 * dy0 - dz0 * dz0;
+            if (attn0 > 0) {
+                attn0 *= attn0;
+                value += attn0 * attn0 * extrapolate(xsb + 0, ysb + 0, zsb + 0, dx0, dy0, dz0);
+            }
+
+            //Contribution (1,0,0)
+            double dx1 = dx0 - 1 - SQUISH_CONSTANT_3D;
+            double dy1 = dy0 - 0 - SQUISH_CONSTANT_3D;
+            double dz1 = dz0 - 0 - SQUISH_CONSTANT_3D;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, dx1, dy1, dz1);
+            }
+
+            //Contribution (0,1,0)
+            double dx2 = dx0 - 0 - SQUISH_CONSTANT_3D;
+            double dy2 = dy0 - 1 - SQUISH_CONSTANT_3D;
+            double dz2 = dz1;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, dx2, dy2, dz2);
+            }
+
+            //Contribution (0,0,1)
+            double dx3 = dx2;
+            double dy3 = dy1;
+            double dz3 = dz0 - 1 - SQUISH_CONSTANT_3D;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, dx3, dy3, dz3);
+            }
+        } else if (inSum >= 2) { //We're inside the tetrahedron (3-Simplex) at (1,1,1)
+
+            //Determine which two tetrahedral vertices are the closest, out of (1,1,0), (1,0,1), (0,1,1) but not (1,1,1).
+            byte aPoint = 0x06;
+            double aScore = xins;
+            byte bPoint = 0x05;
+            double bScore = yins;
+            if (aScore <= bScore && zins < bScore) {
+                bScore = zins;
+                bPoint = 0x03;
+            } else if (aScore > bScore && zins < aScore) {
+                aScore = zins;
+                aPoint = 0x03;
+            }
+
+            //Now we determine the two lattice points not part of the tetrahedron that may contribute.
+            //This depends on the closest two tetrahedral vertices, including (1,1,1)
+            double wins = 3 - inSum;
+            if (wins < aScore || wins < bScore) { //(1,1,1) is one of the closest two tetrahedral vertices.
+                byte c = (bScore < aScore ? bPoint : aPoint); //Our other closest vertex is the closest out of a and b.
+
+                if ((c & 0x01) != 0) {
+                    xsv_ext0 = xsb + 2;
+                    xsv_ext1 = xsb + 1;
+                    dx_ext0 = dx0 - 2 - 3 * SQUISH_CONSTANT_3D;
+                    dx_ext1 = dx0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb;
+                    dx_ext0 = dx_ext1 = dx0 - 3 * SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x02) != 0) {
+                    ysv_ext0 = ysv_ext1 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                    if ((c & 0x01) != 0) {
+                        ysv_ext1 += 1;
+                        dy_ext1 -= 1;
+                    } else {
+                        ysv_ext0 += 1;
+                        dy_ext0 -= 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    dy_ext0 = dy_ext1 = dy0 - 3 * SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x04) != 0) {
+                    zsv_ext0 = zsb + 1;
+                    zsv_ext1 = zsb + 2;
+                    dz_ext0 = dz0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                    dz_ext1 = dz0 - 2 - 3 * SQUISH_CONSTANT_3D;
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb;
+                    dz_ext0 = dz_ext1 = dz0 - 3 * SQUISH_CONSTANT_3D;
+                }
+            } else { //(1,1,1) is not one of the closest two tetrahedral vertices.
+                byte c = (byte)(aPoint & bPoint); //Our two extra vertices are determined by the closest two.
+
+                if ((c & 0x01) != 0) {
+                    xsv_ext0 = xsb + 1;
+                    xsv_ext1 = xsb + 2;
+                    dx_ext0 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                    dx_ext1 = dx0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb;
+                    dx_ext0 = dx0 - SQUISH_CONSTANT_3D;
+                    dx_ext1 = dx0 - 2 * SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x02) != 0) {
+                    ysv_ext0 = ysb + 1;
+                    ysv_ext1 = ysb + 2;
+                    dy_ext0 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                    dy_ext1 = dy0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    dy_ext0 = dy0 - SQUISH_CONSTANT_3D;
+                    dy_ext1 = dy0 - 2 * SQUISH_CONSTANT_3D;
+                }
+
+                if ((c & 0x04) != 0) {
+                    zsv_ext0 = zsb + 1;
+                    zsv_ext1 = zsb + 2;
+                    dz_ext0 = dz0 - 1 - SQUISH_CONSTANT_3D;
+                    dz_ext1 = dz0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb;
+                    dz_ext0 = dz0 - SQUISH_CONSTANT_3D;
+                    dz_ext1 = dz0 - 2 * SQUISH_CONSTANT_3D;
                 }
             }
 
-            if (yi - xmyi > 1) {
-                float dx3 = dx0 - (float)(3 * UNSKEW_2D + 1);
-                float dy3 = dy0 - (float)(3 * UNSKEW_2D + 2);
-                float a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
-                if (a3 > 0) {
-                    value += (a3 * a3) * (a3 * a3) * grad(seed, xsbp + PRIME_X, ysbp + (PRIME_Y << 1), dx3, dy3);
+            //Contribution (1,1,0)
+            double dx3 = dx0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double dy3 = dy0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double dz3 = dz0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 1, ysb + 1, zsb + 0, dx3, dy3, dz3);
+            }
+
+            //Contribution (1,0,1)
+            double dx2 = dx3;
+            double dy2 = dy0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double dz2 = dz0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 1, ysb + 0, zsb + 1, dx2, dy2, dz2);
+            }
+
+            //Contribution (0,1,1)
+            double dx1 = dx0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double dy1 = dy3;
+            double dz1 = dz2;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 0, ysb + 1, zsb + 1, dx1, dy1, dz1);
+            }
+
+            //Contribution (1,1,1)
+            dx0 = dx0 - 1 - 3 * SQUISH_CONSTANT_3D;
+            dy0 = dy0 - 1 - 3 * SQUISH_CONSTANT_3D;
+            dz0 = dz0 - 1 - 3 * SQUISH_CONSTANT_3D;
+            double attn0 = 2 - dx0 * dx0 - dy0 * dy0 - dz0 * dz0;
+            if (attn0 > 0) {
+                attn0 *= attn0;
+                value += attn0 * attn0 * extrapolate(xsb + 1, ysb + 1, zsb + 1, dx0, dy0, dz0);
+            }
+        } else { //We're inside the octahedron (Rectified 3-Simplex) in between.
+            double aScore;
+            byte aPoint;
+            boolean aIsFurtherSide;
+            double bScore;
+            byte bPoint;
+            boolean bIsFurtherSide;
+
+            //Decide between point (0,0,1) and (1,1,0) as closest
+            double p1 = xins + yins;
+            if (p1 > 1) {
+                aScore = p1 - 1;
+                aPoint = 0x03;
+                aIsFurtherSide = true;
+            } else {
+                aScore = 1 - p1;
+                aPoint = 0x04;
+                aIsFurtherSide = false;
+            }
+
+            //Decide between point (0,1,0) and (1,0,1) as closest
+            double p2 = xins + zins;
+            if (p2 > 1) {
+                bScore = p2 - 1;
+                bPoint = 0x05;
+                bIsFurtherSide = true;
+            } else {
+                bScore = 1 - p2;
+                bPoint = 0x02;
+                bIsFurtherSide = false;
+            }
+
+            //The closest out of the two (1,0,0) and (0,1,1) will replace the furthest out of the two decided above, if closer.
+            double p3 = yins + zins;
+            if (p3 > 1) {
+                double score = p3 - 1;
+                if (aScore <= bScore && aScore < score) {
+                    aScore = score;
+                    aPoint = 0x06;
+                    aIsFurtherSide = true;
+                } else if (aScore > bScore && bScore < score) {
+                    bScore = score;
+                    bPoint = 0x06;
+                    bIsFurtherSide = true;
+                }
+            } else {
+                double score = 1 - p3;
+                if (aScore <= bScore && aScore < score) {
+                    aScore = score;
+                    aPoint = 0x01;
+                    aIsFurtherSide = false;
+                } else if (aScore > bScore && bScore < score) {
+                    bScore = score;
+                    bPoint = 0x01;
+                    bIsFurtherSide = false;
                 }
             }
-            else
-            {
-                float dx3 = dx0 - (float)(UNSKEW_2D + 1);
-                float dy3 = dy0 - (float)UNSKEW_2D;
-                float a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
-                if (a3 > 0) {
-                    value += (a3 * a3) * (a3 * a3) * grad(seed, xsbp + PRIME_X, ysbp, dx3, dy3);
+
+            //Where each of the two closest points are determines how the extra two vertices are calculated.
+            if (aIsFurtherSide == bIsFurtherSide) {
+                if (aIsFurtherSide) { //Both closest points on (1,1,1) side
+
+                    //One of the two extra points is (1,1,1)
+                    dx_ext0 = dx0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                    dy_ext0 = dy0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                    dz_ext0 = dz0 - 1 - 3 * SQUISH_CONSTANT_3D;
+                    xsv_ext0 = xsb + 1;
+                    ysv_ext0 = ysb + 1;
+                    zsv_ext0 = zsb + 1;
+
+                    //Other extra point is based on the shared axis.
+                    byte c = (byte)(aPoint & bPoint);
+                    if ((c & 0x01) != 0) {
+                        dx_ext1 = dx0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 - 2 * SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 - 2 * SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb + 2;
+                        ysv_ext1 = ysb;
+                        zsv_ext1 = zsb;
+                    } else if ((c & 0x02) != 0) {
+                        dx_ext1 = dx0 - 2 * SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 - 2 * SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb;
+                        ysv_ext1 = ysb + 2;
+                        zsv_ext1 = zsb;
+                    } else {
+                        dx_ext1 = dx0 - 2 * SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 - 2 * SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 - 2 - 2 * SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb;
+                        ysv_ext1 = ysb;
+                        zsv_ext1 = zsb + 2;
+                    }
+                } else {//Both closest points on (0,0,0) side
+
+                    //One of the two extra points is (0,0,0)
+                    dx_ext0 = dx0;
+                    dy_ext0 = dy0;
+                    dz_ext0 = dz0;
+                    xsv_ext0 = xsb;
+                    ysv_ext0 = ysb;
+                    zsv_ext0 = zsb;
+
+                    //Other extra point is based on the omitted axis.
+                    byte c = (byte)(aPoint | bPoint);
+                    if ((c & 0x01) == 0) {
+                        dx_ext1 = dx0 + 1 - SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 - 1 - SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb - 1;
+                        ysv_ext1 = ysb + 1;
+                        zsv_ext1 = zsb + 1;
+                    } else if ((c & 0x02) == 0) {
+                        dx_ext1 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 + 1 - SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 - 1 - SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb + 1;
+                        ysv_ext1 = ysb - 1;
+                        zsv_ext1 = zsb + 1;
+                    } else {
+                        dx_ext1 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                        dy_ext1 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                        dz_ext1 = dz0 + 1 - SQUISH_CONSTANT_3D;
+                        xsv_ext1 = xsb + 1;
+                        ysv_ext1 = ysb + 1;
+                        zsv_ext1 = zsb - 1;
+                    }
                 }
+            } else { //One point on (0,0,0) side, one point on (1,1,1) side
+                byte c1, c2;
+                if (aIsFurtherSide) {
+                    c1 = aPoint;
+                    c2 = bPoint;
+                } else {
+                    c1 = bPoint;
+                    c2 = aPoint;
+                }
+
+                //One contribution is a permutation of (1,1,-1)
+                if ((c1 & 0x01) == 0) {
+                    dx_ext0 = dx0 + 1 - SQUISH_CONSTANT_3D;
+                    dy_ext0 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                    dz_ext0 = dz0 - 1 - SQUISH_CONSTANT_3D;
+                    xsv_ext0 = xsb - 1;
+                    ysv_ext0 = ysb + 1;
+                    zsv_ext0 = zsb + 1;
+                } else if ((c1 & 0x02) == 0) {
+                    dx_ext0 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                    dy_ext0 = dy0 + 1 - SQUISH_CONSTANT_3D;
+                    dz_ext0 = dz0 - 1 - SQUISH_CONSTANT_3D;
+                    xsv_ext0 = xsb + 1;
+                    ysv_ext0 = ysb - 1;
+                    zsv_ext0 = zsb + 1;
+                } else {
+                    dx_ext0 = dx0 - 1 - SQUISH_CONSTANT_3D;
+                    dy_ext0 = dy0 - 1 - SQUISH_CONSTANT_3D;
+                    dz_ext0 = dz0 + 1 - SQUISH_CONSTANT_3D;
+                    xsv_ext0 = xsb + 1;
+                    ysv_ext0 = ysb + 1;
+                    zsv_ext0 = zsb - 1;
+                }
+
+                //One contribution is a permutation of (0,0,2)
+                dx_ext1 = dx0 - 2 * SQUISH_CONSTANT_3D;
+                dy_ext1 = dy0 - 2 * SQUISH_CONSTANT_3D;
+                dz_ext1 = dz0 - 2 * SQUISH_CONSTANT_3D;
+                xsv_ext1 = xsb;
+                ysv_ext1 = ysb;
+                zsv_ext1 = zsb;
+                if ((c2 & 0x01) != 0) {
+                    dx_ext1 -= 2;
+                    xsv_ext1 += 2;
+                } else if ((c2 & 0x02) != 0) {
+                    dy_ext1 -= 2;
+                    ysv_ext1 += 2;
+                } else {
+                    dz_ext1 -= 2;
+                    zsv_ext1 += 2;
+                }
+            }
+
+            //Contribution (1,0,0)
+            double dx1 = dx0 - 1 - SQUISH_CONSTANT_3D;
+            double dy1 = dy0 - 0 - SQUISH_CONSTANT_3D;
+            double dz1 = dz0 - 0 - SQUISH_CONSTANT_3D;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, dx1, dy1, dz1);
+            }
+
+            //Contribution (0,1,0)
+            double dx2 = dx0 - 0 - SQUISH_CONSTANT_3D;
+            double dy2 = dy0 - 1 - SQUISH_CONSTANT_3D;
+            double dz2 = dz1;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, dx2, dy2, dz2);
+            }
+
+            //Contribution (0,0,1)
+            double dx3 = dx2;
+            double dy3 = dy1;
+            double dz3 = dz0 - 1 - SQUISH_CONSTANT_3D;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, dx3, dy3, dz3);
+            }
+
+            //Contribution (1,1,0)
+            double dx4 = dx0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double dy4 = dy0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double dz4 = dz0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4;
+            if (attn4 > 0) {
+                attn4 *= attn4;
+                value += attn4 * attn4 * extrapolate(xsb + 1, ysb + 1, zsb + 0, dx4, dy4, dz4);
+            }
+
+            //Contribution (1,0,1)
+            double dx5 = dx4;
+            double dy5 = dy0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double dz5 = dz0 - 1 - 2 * SQUISH_CONSTANT_3D;
+            double attn5 = 2 - dx5 * dx5 - dy5 * dy5 - dz5 * dz5;
+            if (attn5 > 0) {
+                attn5 *= attn5;
+                value += attn5 * attn5 * extrapolate(xsb + 1, ysb + 0, zsb + 1, dx5, dy5, dz5);
+            }
+
+            //Contribution (0,1,1)
+            double dx6 = dx0 - 0 - 2 * SQUISH_CONSTANT_3D;
+            double dy6 = dy4;
+            double dz6 = dz5;
+            double attn6 = 2 - dx6 * dx6 - dy6 * dy6 - dz6 * dz6;
+            if (attn6 > 0) {
+                attn6 *= attn6;
+                value += attn6 * attn6 * extrapolate(xsb + 0, ysb + 1, zsb + 1, dx6, dy6, dz6);
             }
         }
-        else
+
+        //First extra vertex
+        double attn_ext0 = 2 - dx_ext0 * dx_ext0 - dy_ext0 * dy_ext0 - dz_ext0 * dz_ext0;
+        if (attn_ext0 > 0)
         {
-            if (xi + xmyi < 0) {
-                float dx2 = dx0 + (float)(1 + UNSKEW_2D);
-                float dy2 = dy0 + (float)UNSKEW_2D;
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp - PRIME_X, ysbp, dx2, dy2);
-                }
-            }
-            else
-            {
-                float dx2 = dx0 - (float)(UNSKEW_2D + 1);
-                float dy2 = dy0 - (float)UNSKEW_2D;
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp + PRIME_X, ysbp, dx2, dy2);
-                }
-            }
-
-            if (yi < xmyi) {
-                float dx2 = dx0 + (float)UNSKEW_2D;
-                float dy2 = dy0 + (float)(UNSKEW_2D + 1);
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp - PRIME_Y, dx2, dy2);
-                }
-            }
-            else
-            {
-                float dx2 = dx0 - (float)UNSKEW_2D;
-                float dy2 = dy0 - (float)(UNSKEW_2D + 1);
-                float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-                if (a2 > 0) {
-                    value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp + PRIME_Y, dx2, dy2);
-                }
-            }
+            attn_ext0 *= attn_ext0;
+            value += attn_ext0 * attn_ext0 * extrapolate(xsv_ext0, ysv_ext0, zsv_ext0, dx_ext0, dy_ext0, dz_ext0);
         }
 
-        return value;
-    }
-
-    /**
-     * 3D OpenSimplex2S/SuperSimplex noise, with better visual isotropy in (X, Y).
-     * Recommended for 3D terrain and time-varied animations.
-     * The Z coordinate should always be the "different" coordinate in whatever your use case is.
-     * If Y is vertical in world coordinates, call noise3_ImproveXZ(x, z, Y) or use noise3_XZBeforeY.
-     * If Z is vertical in world coordinates, call noise3_ImproveXZ(x, y, Z).
-     * For a time varied animation, call noise3_ImproveXY(x, y, T).
-     */
-    public static float noise3_ImproveXY(long seed, double x, double y, double z) {
-
-        // Re-orient the cubic lattices without skewing, so Z points up the main lattice diagonal,
-        // and the planes formed by XY are moved far out of alignment with the cube faces.
-        // Orthonormal rotation. Not a skew transform.
-        double xy = x + y;
-        double s2 = xy * ROTATE3_ORTHOGONALIZER;
-        double zz = z * ROOT3OVER3;
-        double xr = x + s2 + zz;
-        double yr = y + s2 + zz;
-        double zr = xy * -ROOT3OVER3 + zz;
-
-        // Evaluate both lattices to form a BCC lattice.
-        return noise3_UnrotatedBase(seed, xr, yr, zr);
-    }
-
-    /**
-     * 3D OpenSimplex2S/SuperSimplex noise, with better visual isotropy in (X, Z).
-     * Recommended for 3D terrain and time-varied animations.
-     * The Y coordinate should always be the "different" coordinate in whatever your use case is.
-     * If Y is vertical in world coordinates, call noise3_ImproveXZ(x, Y, z).
-     * If Z is vertical in world coordinates, call noise3_ImproveXZ(x, Z, y) or use noise3_ImproveXY.
-     * For a time varied animation, call noise3_ImproveXZ(x, T, y) or use noise3_ImproveXY.
-     */
-    public static float noise3_ImproveXZ(long seed, double x, double y, double z) {
-
-        // Re-orient the cubic lattices without skewing, so Y points up the main lattice diagonal,
-        // and the planes formed by XZ are moved far out of alignment with the cube faces.
-        // Orthonormal rotation. Not a skew transform.
-        double xz = x + z;
-        double s2 = xz * -0.211324865405187;
-        double yy = y * ROOT3OVER3;
-        double xr = x + s2 + yy;
-        double zr = z + s2 + yy;
-        double yr = xz * -ROOT3OVER3 + yy;
-
-        // Evaluate both lattices to form a BCC lattice.
-        return noise3_UnrotatedBase(seed, xr, yr, zr);
-    }
-
-    /**
-     * 3D OpenSimplex2S/SuperSimplex noise, fallback rotation option
-     * Use noise3_ImproveXY or noise3_ImproveXZ instead, wherever appropriate.
-     * They have less diagonal bias. This function's best use is as a fallback.
-     */
-    public static float noise3_Fallback(long seed, double x, double y, double z) {
-
-        // Re-orient the cubic lattices via rotation, to produce a familiar look.
-        // Orthonormal rotation. Not a skew transform.
-        double r = FALLBACK_ROTATE3 * (x + y + z);
-        double xr = r - x, yr = r - y, zr = r - z;
-
-        // Evaluate both lattices to form a BCC lattice.
-        return noise3_UnrotatedBase(seed, xr, yr, zr);
-    }
-
-    /**
-     * Generate overlapping cubic lattices for 3D Re-oriented BCC noise.
-     * Lookup table implementation inspired by DigitalShadow.
-     * It was actually faster to narrow down the points in the loop itself,
-     * than to build up the index with enough info to isolate 8 points.
-     */
-    private static float noise3_UnrotatedBase(long seed, double xr, double yr, double zr) {
-
-        // Get base points and offsets.
-        int xrb = fastFloor(xr), yrb = fastFloor(yr), zrb = fastFloor(zr);
-        float xi = (float)(xr - xrb), yi = (float)(yr - yrb), zi = (float)(zr - zrb);
-
-        // Prime pre-multiplication for hash. Also flip seed for second lattice copy.
-        long xrbp = xrb * PRIME_X, yrbp = yrb * PRIME_Y, zrbp = zrb * PRIME_Z;
-        long seed2 = seed ^ -0x52D547B2E96ED629L;
-
-        // -1 if positive, 0 if negative.
-        int xNMask = (int)(-0.5f - xi), yNMask = (int)(-0.5f - yi), zNMask = (int)(-0.5f - zi);
-
-        // First vertex.
-        float x0 = xi + xNMask;
-        float y0 = yi + yNMask;
-        float z0 = zi + zNMask;
-        float a0 = RSQUARED_3D - x0 * x0 - y0 * y0 - z0 * z0;
-        float value = (a0 * a0) * (a0 * a0) * grad(seed,
-                xrbp + (xNMask & PRIME_X), yrbp + (yNMask & PRIME_Y), zrbp + (zNMask & PRIME_Z), x0, y0, z0);
-
-        // Second vertex.
-        float x1 = xi - 0.5f;
-        float y1 = yi - 0.5f;
-        float z1 = zi - 0.5f;
-        float a1 = RSQUARED_3D - x1 * x1 - y1 * y1 - z1 * z1;
-        value += (a1 * a1) * (a1 * a1) * grad(seed2,
-                xrbp + PRIME_X, yrbp + PRIME_Y, zrbp + PRIME_Z, x1, y1, z1);
-
-        // Shortcuts for building the remaining falloffs.
-        // Derived by subtracting the polynomials with the offsets plugged in.
-        float xAFlipMask0 = ((xNMask | 1) << 1) * x1;
-        float yAFlipMask0 = ((yNMask | 1) << 1) * y1;
-        float zAFlipMask0 = ((zNMask | 1) << 1) * z1;
-        float xAFlipMask1 = (-2 - (xNMask << 2)) * x1 - 1.0f;
-        float yAFlipMask1 = (-2 - (yNMask << 2)) * y1 - 1.0f;
-        float zAFlipMask1 = (-2 - (zNMask << 2)) * z1 - 1.0f;
-
-        boolean skip5 = false;
-        float a2 = xAFlipMask0 + a0;
-        if (a2 > 0) {
-            float x2 = x0 - (xNMask | 1);
-            float y2 = y0;
-            float z2 = z0;
-            value += (a2 * a2) * (a2 * a2) * grad(seed,
-                    xrbp + (~xNMask & PRIME_X), yrbp + (yNMask & PRIME_Y), zrbp + (zNMask & PRIME_Z), x2, y2, z2);
-        }
-        else
+        //Second extra vertex
+        double attn_ext1 = 2 - dx_ext1 * dx_ext1 - dy_ext1 * dy_ext1 - dz_ext1 * dz_ext1;
+        if (attn_ext1 > 0)
         {
-            float a3 = yAFlipMask0 + zAFlipMask0 + a0;
-            if (a3 > 0) {
-                float x3 = x0;
-                float y3 = y0 - (yNMask | 1);
-                float z3 = z0 - (zNMask | 1);
-                value += (a3 * a3) * (a3 * a3) * grad(seed,
-                        xrbp + (xNMask & PRIME_X), yrbp + (~yNMask & PRIME_Y), zrbp + (~zNMask & PRIME_Z), x3, y3, z3);
+            attn_ext1 *= attn_ext1;
+            value += attn_ext1 * attn_ext1 * extrapolate(xsv_ext1, ysv_ext1, zsv_ext1, dx_ext1, dy_ext1, dz_ext1);
+        }
+
+        return value / NORM_CONSTANT_3D;
+    }
+
+    //4D OpenSimplex Noise.
+    public double eval(double x, double y, double z, double w) {
+
+        //Place input coordinates on simplectic honeycomb.
+        double stretchOffset = (x + y + z + w) * STRETCH_CONSTANT_4D;
+        double xs = x + stretchOffset;
+        double ys = y + stretchOffset;
+        double zs = z + stretchOffset;
+        double ws = w + stretchOffset;
+
+        //Floor to get simplectic honeycomb coordinates of rhombo-hypercube super-cell origin.
+        int xsb = fastFloor(xs);
+        int ysb = fastFloor(ys);
+        int zsb = fastFloor(zs);
+        int wsb = fastFloor(ws);
+
+        //Skew out to get actual coordinates of stretched rhombo-hypercube origin. We'll need these later.
+        double squishOffset = (xsb + ysb + zsb + wsb) * SQUISH_CONSTANT_4D;
+        double xb = xsb + squishOffset;
+        double yb = ysb + squishOffset;
+        double zb = zsb + squishOffset;
+        double wb = wsb + squishOffset;
+
+        //Compute simplectic honeycomb coordinates relative to rhombo-hypercube origin.
+        double xins = xs - xsb;
+        double yins = ys - ysb;
+        double zins = zs - zsb;
+        double wins = ws - wsb;
+
+        //Sum those together to get a value that determines which region we're in.
+        double inSum = xins + yins + zins + wins;
+
+        //Positions relative to origin point.
+        double dx0 = x - xb;
+        double dy0 = y - yb;
+        double dz0 = z - zb;
+        double dw0 = w - wb;
+
+        //We'll be defining these inside the next block and using them afterwards.
+        double dx_ext0, dy_ext0, dz_ext0, dw_ext0;
+        double dx_ext1, dy_ext1, dz_ext1, dw_ext1;
+        double dx_ext2, dy_ext2, dz_ext2, dw_ext2;
+        int xsv_ext0, ysv_ext0, zsv_ext0, wsv_ext0;
+        int xsv_ext1, ysv_ext1, zsv_ext1, wsv_ext1;
+        int xsv_ext2, ysv_ext2, zsv_ext2, wsv_ext2;
+
+        double value = 0;
+        if (inSum <= 1) { //We're inside the pentachoron (4-Simplex) at (0,0,0,0)
+
+            //Determine which two of (0,0,0,1), (0,0,1,0), (0,1,0,0), (1,0,0,0) are closest.
+            byte aPoint = 0x01;
+            double aScore = xins;
+            byte bPoint = 0x02;
+            double bScore = yins;
+            if (aScore >= bScore && zins > bScore) {
+                bScore = zins;
+                bPoint = 0x04;
+            } else if (aScore < bScore && zins > aScore) {
+                aScore = zins;
+                aPoint = 0x04;
+            }
+            if (aScore >= bScore && wins > bScore) {
+                bScore = wins;
+                bPoint = 0x08;
+            } else if (aScore < bScore && wins > aScore) {
+                aScore = wins;
+                aPoint = 0x08;
             }
 
-            float a4 = xAFlipMask1 + a1;
-            if (a4 > 0) {
-                float x4 = (xNMask | 1) + x1;
-                float y4 = y1;
-                float z4 = z1;
-                value += (a4 * a4) * (a4 * a4) * grad(seed2,
-                        xrbp + (xNMask & (PRIME_X * 2)), yrbp + PRIME_Y, zrbp + PRIME_Z, x4, y4, z4);
-                skip5 = true;
+            //Now we determine the three lattice points not part of the pentachoron that may contribute.
+            //This depends on the closest two pentachoron vertices, including (0,0,0,0)
+            double uins = 1 - inSum;
+            if (uins > aScore || uins > bScore) { //(0,0,0,0) is one of the closest two pentachoron vertices.
+                byte c = (bScore > aScore ? bPoint : aPoint); //Our other closest vertex is the closest out of a and b.
+                if ((c & 0x01) == 0) {
+                    xsv_ext0 = xsb - 1;
+                    xsv_ext1 = xsv_ext2 = xsb;
+                    dx_ext0 = dx0 + 1;
+                    dx_ext1 = dx_ext2 = dx0;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsv_ext2 = xsb + 1;
+                    dx_ext0 = dx_ext1 = dx_ext2 = dx0 - 1;
+                }
+
+                if ((c & 0x02) == 0) {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb;
+                    dy_ext0 = dy_ext1 = dy_ext2 = dy0;
+                    if ((c & 0x01) == 0x01) {
+                        ysv_ext0 -= 1;
+                        dy_ext0 += 1;
+                    } else {
+                        ysv_ext1 -= 1;
+                        dy_ext1 += 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy_ext2 = dy0 - 1;
+                }
+
+                if ((c & 0x04) == 0) {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb;
+                    dz_ext0 = dz_ext1 = dz_ext2 = dz0;
+                    if ((c & 0x03) != 0) {
+                        if ((c & 0x03) == 0x03) {
+                            zsv_ext0 -= 1;
+                            dz_ext0 += 1;
+                        } else {
+                            zsv_ext1 -= 1;
+                            dz_ext1 += 1;
+                        }
+                    } else {
+                        zsv_ext2 -= 1;
+                        dz_ext2 += 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb + 1;
+                    dz_ext0 = dz_ext1 = dz_ext2 = dz0 - 1;
+                }
+
+                if ((c & 0x08) == 0) {
+                    wsv_ext0 = wsv_ext1 = wsb;
+                    wsv_ext2 = wsb - 1;
+                    dw_ext0 = dw_ext1 = dw0;
+                    dw_ext2 = dw0 + 1;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsv_ext2 = wsb + 1;
+                    dw_ext0 = dw_ext1 = dw_ext2 = dw0 - 1;
+                }
+            } else { //(0,0,0,0) is not one of the closest two pentachoron vertices.
+                byte c = (byte)(aPoint | bPoint); //Our three extra vertices are determined by the closest two.
+
+                if ((c & 0x01) == 0) {
+                    xsv_ext0 = xsv_ext2 = xsb;
+                    xsv_ext1 = xsb - 1;
+                    dx_ext0 = dx0 - 2 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx0 + 1 - SQUISH_CONSTANT_4D;
+                    dx_ext2 = dx0 - SQUISH_CONSTANT_4D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsv_ext2 = xsb + 1;
+                    dx_ext0 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx_ext2 = dx0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x02) == 0) {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb;
+                    dy_ext0 = dy0 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext1 = dy_ext2 = dy0 - SQUISH_CONSTANT_4D;
+                    if ((c & 0x01) == 0x01) {
+                        ysv_ext1 -= 1;
+                        dy_ext1 += 1;
+                    } else {
+                        ysv_ext2 -= 1;
+                        dy_ext2 += 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb + 1;
+                    dy_ext0 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext1 = dy_ext2 = dy0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x04) == 0) {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb;
+                    dz_ext0 = dz0 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext1 = dz_ext2 = dz0 - SQUISH_CONSTANT_4D;
+                    if ((c & 0x03) == 0x03) {
+                        zsv_ext1 -= 1;
+                        dz_ext1 += 1;
+                    } else {
+                        zsv_ext2 -= 1;
+                        dz_ext2 += 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb + 1;
+                    dz_ext0 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext1 = dz_ext2 = dz0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x08) == 0) {
+                    wsv_ext0 = wsv_ext1 = wsb;
+                    wsv_ext2 = wsb - 1;
+                    dw_ext0 = dw0 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw0 - SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 + 1 - SQUISH_CONSTANT_4D;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsv_ext2 = wsb + 1;
+                    dw_ext0 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw_ext2 = dw0 - 1 - SQUISH_CONSTANT_4D;
+                }
+            }
+
+            //Contribution (0,0,0,0)
+            double attn0 = 2 - dx0 * dx0 - dy0 * dy0 - dz0 * dz0 - dw0 * dw0;
+            if (attn0 > 0) {
+                attn0 *= attn0;
+                value += attn0 * attn0 * extrapolate(xsb + 0, ysb + 0, zsb + 0, wsb + 0, dx0, dy0, dz0, dw0);
+            }
+
+            //Contribution (1,0,0,0)
+            double dx1 = dx0 - 1 - SQUISH_CONSTANT_4D;
+            double dy1 = dy0 - 0 - SQUISH_CONSTANT_4D;
+            double dz1 = dz0 - 0 - SQUISH_CONSTANT_4D;
+            double dw1 = dw0 - 0 - SQUISH_CONSTANT_4D;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1 - dw1 * dw1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, wsb + 0, dx1, dy1, dz1, dw1);
+            }
+
+            //Contribution (0,1,0,0)
+            double dx2 = dx0 - 0 - SQUISH_CONSTANT_4D;
+            double dy2 = dy0 - 1 - SQUISH_CONSTANT_4D;
+            double dz2 = dz1;
+            double dw2 = dw1;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2 - dw2 * dw2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, wsb + 0, dx2, dy2, dz2, dw2);
+            }
+
+            //Contribution (0,0,1,0)
+            double dx3 = dx2;
+            double dy3 = dy1;
+            double dz3 = dz0 - 1 - SQUISH_CONSTANT_4D;
+            double dw3 = dw1;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3 - dw3 * dw3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, wsb + 0, dx3, dy3, dz3, dw3);
+            }
+
+            //Contribution (0,0,0,1)
+            double dx4 = dx2;
+            double dy4 = dy1;
+            double dz4 = dz1;
+            double dw4 = dw0 - 1 - SQUISH_CONSTANT_4D;
+            double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4 - dw4 * dw4;
+            if (attn4 > 0) {
+                attn4 *= attn4;
+                value += attn4 * attn4 * extrapolate(xsb + 0, ysb + 0, zsb + 0, wsb + 1, dx4, dy4, dz4, dw4);
+            }
+        } else if (inSum >= 3) { //We're inside the pentachoron (4-Simplex) at (1,1,1,1)
+            //Determine which two of (1,1,1,0), (1,1,0,1), (1,0,1,1), (0,1,1,1) are closest.
+            byte aPoint = 0x0E;
+            double aScore = xins;
+            byte bPoint = 0x0D;
+            double bScore = yins;
+            if (aScore <= bScore && zins < bScore) {
+                bScore = zins;
+                bPoint = 0x0B;
+            } else if (aScore > bScore && zins < aScore) {
+                aScore = zins;
+                aPoint = 0x0B;
+            }
+            if (aScore <= bScore && wins < bScore) {
+                bScore = wins;
+                bPoint = 0x07;
+            } else if (aScore > bScore && wins < aScore) {
+                aScore = wins;
+                aPoint = 0x07;
+            }
+
+            //Now we determine the three lattice points not part of the pentachoron that may contribute.
+            //This depends on the closest two pentachoron vertices, including (0,0,0,0)
+            double uins = 4 - inSum;
+            if (uins < aScore || uins < bScore) { //(1,1,1,1) is one of the closest two pentachoron vertices.
+                byte c = (bScore < aScore ? bPoint : aPoint); //Our other closest vertex is the closest out of a and b.
+
+                if ((c & 0x01) != 0) {
+                    xsv_ext0 = xsb + 2;
+                    xsv_ext1 = xsv_ext2 = xsb + 1;
+                    dx_ext0 = dx0 - 2 - 4 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx_ext2 = dx0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsv_ext2 = xsb;
+                    dx_ext0 = dx_ext1 = dx_ext2 = dx0 - 4 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x02) != 0) {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy_ext2 = dy0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    if ((c & 0x01) != 0) {
+                        ysv_ext1 += 1;
+                        dy_ext1 -= 1;
+                    } else {
+                        ysv_ext0 += 1;
+                        dy_ext0 -= 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb;
+                    dy_ext0 = dy_ext1 = dy_ext2 = dy0 - 4 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x04) != 0) {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb + 1;
+                    dz_ext0 = dz_ext1 = dz_ext2 = dz0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    if ((c & 0x03) != 0x03) {
+                        if ((c & 0x03) == 0) {
+                            zsv_ext0 += 1;
+                            dz_ext0 -= 1;
+                        } else {
+                            zsv_ext1 += 1;
+                            dz_ext1 -= 1;
+                        }
+                    } else {
+                        zsv_ext2 += 1;
+                        dz_ext2 -= 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb;
+                    dz_ext0 = dz_ext1 = dz_ext2 = dz0 - 4 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x08) != 0) {
+                    wsv_ext0 = wsv_ext1 = wsb + 1;
+                    wsv_ext2 = wsb + 2;
+                    dw_ext0 = dw_ext1 = dw0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 - 2 - 4 * SQUISH_CONSTANT_4D;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsv_ext2 = wsb;
+                    dw_ext0 = dw_ext1 = dw_ext2 = dw0 - 4 * SQUISH_CONSTANT_4D;
+                }
+            } else { //(1,1,1,1) is not one of the closest two pentachoron vertices.
+                byte c = (byte)(aPoint & bPoint); //Our three extra vertices are determined by the closest two.
+
+                if ((c & 0x01) != 0) {
+                    xsv_ext0 = xsv_ext2 = xsb + 1;
+                    xsv_ext1 = xsb + 2;
+                    dx_ext0 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                    dx_ext2 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsv_ext2 = xsb;
+                    dx_ext0 = dx0 - 2 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx_ext2 = dx0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x02) != 0) {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb + 1;
+                    dy_ext0 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext1 = dy_ext2 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    if ((c & 0x01) != 0) {
+                        ysv_ext2 += 1;
+                        dy_ext2 -= 1;
+                    } else {
+                        ysv_ext1 += 1;
+                        dy_ext1 -= 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysv_ext2 = ysb;
+                    dy_ext0 = dy0 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext1 = dy_ext2 = dy0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x04) != 0) {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb + 1;
+                    dz_ext0 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext1 = dz_ext2 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    if ((c & 0x03) != 0) {
+                        zsv_ext2 += 1;
+                        dz_ext2 -= 1;
+                    } else {
+                        zsv_ext1 += 1;
+                        dz_ext1 -= 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsv_ext2 = zsb;
+                    dz_ext0 = dz0 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext1 = dz_ext2 = dz0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c & 0x08) != 0) {
+                    wsv_ext0 = wsv_ext1 = wsb + 1;
+                    wsv_ext2 = wsb + 2;
+                    dw_ext0 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsv_ext2 = wsb;
+                    dw_ext0 = dw0 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw_ext2 = dw0 - 3 * SQUISH_CONSTANT_4D;
+                }
+            }
+
+            //Contribution (1,1,1,0)
+            double dx4 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dy4 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dz4 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dw4 = dw0 - 3 * SQUISH_CONSTANT_4D;
+            double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4 - dw4 * dw4;
+            if (attn4 > 0) {
+                attn4 *= attn4;
+                value += attn4 * attn4 * extrapolate(xsb + 1, ysb + 1, zsb + 1, wsb + 0, dx4, dy4, dz4, dw4);
+            }
+
+            //Contribution (1,1,0,1)
+            double dx3 = dx4;
+            double dy3 = dy4;
+            double dz3 = dz0 - 3 * SQUISH_CONSTANT_4D;
+            double dw3 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3 - dw3 * dw3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 1, ysb + 1, zsb + 0, wsb + 1, dx3, dy3, dz3, dw3);
+            }
+
+            //Contribution (1,0,1,1)
+            double dx2 = dx4;
+            double dy2 = dy0 - 3 * SQUISH_CONSTANT_4D;
+            double dz2 = dz4;
+            double dw2 = dw3;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2 - dw2 * dw2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 1, ysb + 0, zsb + 1, wsb + 1, dx2, dy2, dz2, dw2);
+            }
+
+            //Contribution (0,1,1,1)
+            double dx1 = dx0 - 3 * SQUISH_CONSTANT_4D;
+            double dz1 = dz4;
+            double dy1 = dy4;
+            double dw1 = dw3;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1 - dw1 * dw1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 0, ysb + 1, zsb + 1, wsb + 1, dx1, dy1, dz1, dw1);
+            }
+
+            //Contribution (1,1,1,1)
+            dx0 = dx0 - 1 - 4 * SQUISH_CONSTANT_4D;
+            dy0 = dy0 - 1 - 4 * SQUISH_CONSTANT_4D;
+            dz0 = dz0 - 1 - 4 * SQUISH_CONSTANT_4D;
+            dw0 = dw0 - 1 - 4 * SQUISH_CONSTANT_4D;
+            double attn0 = 2 - dx0 * dx0 - dy0 * dy0 - dz0 * dz0 - dw0 * dw0;
+            if (attn0 > 0) {
+                attn0 *= attn0;
+                value += attn0 * attn0 * extrapolate(xsb + 1, ysb + 1, zsb + 1, wsb + 1, dx0, dy0, dz0, dw0);
+            }
+        } else if (inSum <= 2) { //We're inside the first dispentachoron (Rectified 4-Simplex)
+            double aScore;
+            byte aPoint;
+            boolean aIsBiggerSide = true;
+            double bScore;
+            byte bPoint;
+            boolean bIsBiggerSide = true;
+
+            //Decide between (1,1,0,0) and (0,0,1,1)
+            if (xins + yins > zins + wins) {
+                aScore = xins + yins;
+                aPoint = 0x03;
+            } else {
+                aScore = zins + wins;
+                aPoint = 0x0C;
+            }
+
+            //Decide between (1,0,1,0) and (0,1,0,1)
+            if (xins + zins > yins + wins) {
+                bScore = xins + zins;
+                bPoint = 0x05;
+            } else {
+                bScore = yins + wins;
+                bPoint = 0x0A;
+            }
+
+            //Closer between (1,0,0,1) and (0,1,1,0) will replace the further of a and b, if closer.
+            if (xins + wins > yins + zins) {
+                double score = xins + wins;
+                if (aScore >= bScore && score > bScore) {
+                    bScore = score;
+                    bPoint = 0x09;
+                } else if (aScore < bScore && score > aScore) {
+                    aScore = score;
+                    aPoint = 0x09;
+                }
+            } else {
+                double score = yins + zins;
+                if (aScore >= bScore && score > bScore) {
+                    bScore = score;
+                    bPoint = 0x06;
+                } else if (aScore < bScore && score > aScore) {
+                    aScore = score;
+                    aPoint = 0x06;
+                }
+            }
+
+            //Decide if (1,0,0,0) is closer.
+            double p1 = 2 - inSum + xins;
+            if (aScore >= bScore && p1 > bScore) {
+                bScore = p1;
+                bPoint = 0x01;
+                bIsBiggerSide = false;
+            } else if (aScore < bScore && p1 > aScore) {
+                aScore = p1;
+                aPoint = 0x01;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (0,1,0,0) is closer.
+            double p2 = 2 - inSum + yins;
+            if (aScore >= bScore && p2 > bScore) {
+                bScore = p2;
+                bPoint = 0x02;
+                bIsBiggerSide = false;
+            } else if (aScore < bScore && p2 > aScore) {
+                aScore = p2;
+                aPoint = 0x02;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (0,0,1,0) is closer.
+            double p3 = 2 - inSum + zins;
+            if (aScore >= bScore && p3 > bScore) {
+                bScore = p3;
+                bPoint = 0x04;
+                bIsBiggerSide = false;
+            } else if (aScore < bScore && p3 > aScore) {
+                aScore = p3;
+                aPoint = 0x04;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (0,0,0,1) is closer.
+            double p4 = 2 - inSum + wins;
+            if (aScore >= bScore && p4 > bScore) {
+                bScore = p4;
+                bPoint = 0x08;
+                bIsBiggerSide = false;
+            } else if (aScore < bScore && p4 > aScore) {
+                aScore = p4;
+                aPoint = 0x08;
+                aIsBiggerSide = false;
+            }
+
+            //Where each of the two closest points are determines how the extra three vertices are calculated.
+            if (aIsBiggerSide == bIsBiggerSide) {
+                if (aIsBiggerSide) { //Both closest points on the bigger side
+                    byte c1 = (byte)(aPoint | bPoint);
+                    byte c2 = (byte)(aPoint & bPoint);
+                    if ((c1 & 0x01) == 0) {
+                        xsv_ext0 = xsb;
+                        xsv_ext1 = xsb - 1;
+                        dx_ext0 = dx0 - 3 * SQUISH_CONSTANT_4D;
+                        dx_ext1 = dx0 + 1 - 2 * SQUISH_CONSTANT_4D;
+                    } else {
+                        xsv_ext0 = xsv_ext1 = xsb + 1;
+                        dx_ext0 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        dx_ext1 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c1 & 0x02) == 0) {
+                        ysv_ext0 = ysb;
+                        ysv_ext1 = ysb - 1;
+                        dy_ext0 = dy0 - 3 * SQUISH_CONSTANT_4D;
+                        dy_ext1 = dy0 + 1 - 2 * SQUISH_CONSTANT_4D;
+                    } else {
+                        ysv_ext0 = ysv_ext1 = ysb + 1;
+                        dy_ext0 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        dy_ext1 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c1 & 0x04) == 0) {
+                        zsv_ext0 = zsb;
+                        zsv_ext1 = zsb - 1;
+                        dz_ext0 = dz0 - 3 * SQUISH_CONSTANT_4D;
+                        dz_ext1 = dz0 + 1 - 2 * SQUISH_CONSTANT_4D;
+                    } else {
+                        zsv_ext0 = zsv_ext1 = zsb + 1;
+                        dz_ext0 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        dz_ext1 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c1 & 0x08) == 0) {
+                        wsv_ext0 = wsb;
+                        wsv_ext1 = wsb - 1;
+                        dw_ext0 = dw0 - 3 * SQUISH_CONSTANT_4D;
+                        dw_ext1 = dw0 + 1 - 2 * SQUISH_CONSTANT_4D;
+                    } else {
+                        wsv_ext0 = wsv_ext1 = wsb + 1;
+                        dw_ext0 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        dw_ext1 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    }
+
+                    //One combination is a permutation of (0,0,0,2) based on c2
+                    xsv_ext2 = xsb;
+                    ysv_ext2 = ysb;
+                    zsv_ext2 = zsb;
+                    wsv_ext2 = wsb;
+                    dx_ext2 = dx0 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext2 = dy0 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext2 = dz0 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 - 2 * SQUISH_CONSTANT_4D;
+                    if ((c2 & 0x01) != 0) {
+                        xsv_ext2 += 2;
+                        dx_ext2 -= 2;
+                    } else if ((c2 & 0x02) != 0) {
+                        ysv_ext2 += 2;
+                        dy_ext2 -= 2;
+                    } else if ((c2 & 0x04) != 0) {
+                        zsv_ext2 += 2;
+                        dz_ext2 -= 2;
+                    } else {
+                        wsv_ext2 += 2;
+                        dw_ext2 -= 2;
+                    }
+
+                } else { //Both closest points on the smaller side
+                    //One of the two extra points is (0,0,0,0)
+                    xsv_ext2 = xsb;
+                    ysv_ext2 = ysb;
+                    zsv_ext2 = zsb;
+                    wsv_ext2 = wsb;
+                    dx_ext2 = dx0;
+                    dy_ext2 = dy0;
+                    dz_ext2 = dz0;
+                    dw_ext2 = dw0;
+
+                    //Other two points are based on the omitted axes.
+                    byte c = (byte)(aPoint | bPoint);
+
+                    if ((c & 0x01) == 0) {
+                        xsv_ext0 = xsb - 1;
+                        xsv_ext1 = xsb;
+                        dx_ext0 = dx0 + 1 - SQUISH_CONSTANT_4D;
+                        dx_ext1 = dx0 - SQUISH_CONSTANT_4D;
+                    } else {
+                        xsv_ext0 = xsv_ext1 = xsb + 1;
+                        dx_ext0 = dx_ext1 = dx0 - 1 - SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x02) == 0) {
+                        ysv_ext0 = ysv_ext1 = ysb;
+                        dy_ext0 = dy_ext1 = dy0 - SQUISH_CONSTANT_4D;
+                        if ((c & 0x01) == 0x01)
+                        {
+                            ysv_ext0 -= 1;
+                            dy_ext0 += 1;
+                        } else {
+                            ysv_ext1 -= 1;
+                            dy_ext1 += 1;
+                        }
+                    } else {
+                        ysv_ext0 = ysv_ext1 = ysb + 1;
+                        dy_ext0 = dy_ext1 = dy0 - 1 - SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x04) == 0) {
+                        zsv_ext0 = zsv_ext1 = zsb;
+                        dz_ext0 = dz_ext1 = dz0 - SQUISH_CONSTANT_4D;
+                        if ((c & 0x03) == 0x03)
+                        {
+                            zsv_ext0 -= 1;
+                            dz_ext0 += 1;
+                        } else {
+                            zsv_ext1 -= 1;
+                            dz_ext1 += 1;
+                        }
+                    } else {
+                        zsv_ext0 = zsv_ext1 = zsb + 1;
+                        dz_ext0 = dz_ext1 = dz0 - 1 - SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x08) == 0)
+                    {
+                        wsv_ext0 = wsb;
+                        wsv_ext1 = wsb - 1;
+                        dw_ext0 = dw0 - SQUISH_CONSTANT_4D;
+                        dw_ext1 = dw0 + 1 - SQUISH_CONSTANT_4D;
+                    } else {
+                        wsv_ext0 = wsv_ext1 = wsb + 1;
+                        dw_ext0 = dw_ext1 = dw0 - 1 - SQUISH_CONSTANT_4D;
+                    }
+
+                }
+            } else { //One point on each "side"
+                byte c1, c2;
+                if (aIsBiggerSide) {
+                    c1 = aPoint;
+                    c2 = bPoint;
+                } else {
+                    c1 = bPoint;
+                    c2 = aPoint;
+                }
+
+                //Two contributions are the bigger-sided point with each 0 replaced with -1.
+                if ((c1 & 0x01) == 0) {
+                    xsv_ext0 = xsb - 1;
+                    xsv_ext1 = xsb;
+                    dx_ext0 = dx0 + 1 - SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx0 - SQUISH_CONSTANT_4D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb + 1;
+                    dx_ext0 = dx_ext1 = dx0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x02) == 0) {
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    dy_ext0 = dy_ext1 = dy0 - SQUISH_CONSTANT_4D;
+                    if ((c1 & 0x01) == 0x01) {
+                        ysv_ext0 -= 1;
+                        dy_ext0 += 1;
+                    } else {
+                        ysv_ext1 -= 1;
+                        dy_ext1 += 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x04) == 0) {
+                    zsv_ext0 = zsv_ext1 = zsb;
+                    dz_ext0 = dz_ext1 = dz0 - SQUISH_CONSTANT_4D;
+                    if ((c1 & 0x03) == 0x03) {
+                        zsv_ext0 -= 1;
+                        dz_ext0 += 1;
+                    } else {
+                        zsv_ext1 -= 1;
+                        dz_ext1 += 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb + 1;
+                    dz_ext0 = dz_ext1 = dz0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x08) == 0) {
+                    wsv_ext0 = wsb;
+                    wsv_ext1 = wsb - 1;
+                    dw_ext0 = dw0 - SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw0 + 1 - SQUISH_CONSTANT_4D;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsb + 1;
+                    dw_ext0 = dw_ext1 = dw0 - 1 - SQUISH_CONSTANT_4D;
+                }
+
+                //One contribution is a permutation of (0,0,0,2) based on the smaller-sided point
+                xsv_ext2 = xsb;
+                ysv_ext2 = ysb;
+                zsv_ext2 = zsb;
+                wsv_ext2 = wsb;
+                dx_ext2 = dx0 - 2 * SQUISH_CONSTANT_4D;
+                dy_ext2 = dy0 - 2 * SQUISH_CONSTANT_4D;
+                dz_ext2 = dz0 - 2 * SQUISH_CONSTANT_4D;
+                dw_ext2 = dw0 - 2 * SQUISH_CONSTANT_4D;
+                if ((c2 & 0x01) != 0) {
+                    xsv_ext2 += 2;
+                    dx_ext2 -= 2;
+                } else if ((c2 & 0x02) != 0) {
+                    ysv_ext2 += 2;
+                    dy_ext2 -= 2;
+                } else if ((c2 & 0x04) != 0) {
+                    zsv_ext2 += 2;
+                    dz_ext2 -= 2;
+                } else {
+                    wsv_ext2 += 2;
+                    dw_ext2 -= 2;
+                }
+            }
+
+            //Contribution (1,0,0,0)
+            double dx1 = dx0 - 1 - SQUISH_CONSTANT_4D;
+            double dy1 = dy0 - 0 - SQUISH_CONSTANT_4D;
+            double dz1 = dz0 - 0 - SQUISH_CONSTANT_4D;
+            double dw1 = dw0 - 0 - SQUISH_CONSTANT_4D;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1 - dw1 * dw1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, wsb + 0, dx1, dy1, dz1, dw1);
+            }
+
+            //Contribution (0,1,0,0)
+            double dx2 = dx0 - 0 - SQUISH_CONSTANT_4D;
+            double dy2 = dy0 - 1 - SQUISH_CONSTANT_4D;
+            double dz2 = dz1;
+            double dw2 = dw1;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2 - dw2 * dw2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, wsb + 0, dx2, dy2, dz2, dw2);
+            }
+
+            //Contribution (0,0,1,0)
+            double dx3 = dx2;
+            double dy3 = dy1;
+            double dz3 = dz0 - 1 - SQUISH_CONSTANT_4D;
+            double dw3 = dw1;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3 - dw3 * dw3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, wsb + 0, dx3, dy3, dz3, dw3);
+            }
+
+            //Contribution (0,0,0,1)
+            double dx4 = dx2;
+            double dy4 = dy1;
+            double dz4 = dz1;
+            double dw4 = dw0 - 1 - SQUISH_CONSTANT_4D;
+            double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4 - dw4 * dw4;
+            if (attn4 > 0) {
+                attn4 *= attn4;
+                value += attn4 * attn4 * extrapolate(xsb + 0, ysb + 0, zsb + 0, wsb + 1, dx4, dy4, dz4, dw4);
+            }
+
+            //Contribution (1,1,0,0)
+            double dx5 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy5 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz5 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw5 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn5 = 2 - dx5 * dx5 - dy5 * dy5 - dz5 * dz5 - dw5 * dw5;
+            if (attn5 > 0) {
+                attn5 *= attn5;
+                value += attn5 * attn5 * extrapolate(xsb + 1, ysb + 1, zsb + 0, wsb + 0, dx5, dy5, dz5, dw5);
+            }
+
+            //Contribution (1,0,1,0)
+            double dx6 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy6 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz6 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw6 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn6 = 2 - dx6 * dx6 - dy6 * dy6 - dz6 * dz6 - dw6 * dw6;
+            if (attn6 > 0) {
+                attn6 *= attn6;
+                value += attn6 * attn6 * extrapolate(xsb + 1, ysb + 0, zsb + 1, wsb + 0, dx6, dy6, dz6, dw6);
+            }
+
+            //Contribution (1,0,0,1)
+            double dx7 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy7 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz7 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw7 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn7 = 2 - dx7 * dx7 - dy7 * dy7 - dz7 * dz7 - dw7 * dw7;
+            if (attn7 > 0) {
+                attn7 *= attn7;
+                value += attn7 * attn7 * extrapolate(xsb + 1, ysb + 0, zsb + 0, wsb + 1, dx7, dy7, dz7, dw7);
+            }
+
+            //Contribution (0,1,1,0)
+            double dx8 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy8 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz8 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw8 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn8 = 2 - dx8 * dx8 - dy8 * dy8 - dz8 * dz8 - dw8 * dw8;
+            if (attn8 > 0) {
+                attn8 *= attn8;
+                value += attn8 * attn8 * extrapolate(xsb + 0, ysb + 1, zsb + 1, wsb + 0, dx8, dy8, dz8, dw8);
+            }
+
+            //Contribution (0,1,0,1)
+            double dx9 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy9 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz9 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw9 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn9 = 2 - dx9 * dx9 - dy9 * dy9 - dz9 * dz9 - dw9 * dw9;
+            if (attn9 > 0) {
+                attn9 *= attn9;
+                value += attn9 * attn9 * extrapolate(xsb + 0, ysb + 1, zsb + 0, wsb + 1, dx9, dy9, dz9, dw9);
+            }
+
+            //Contribution (0,0,1,1)
+            double dx10 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy10 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz10 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw10 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn10 = 2 - dx10 * dx10 - dy10 * dy10 - dz10 * dz10 - dw10 * dw10;
+            if (attn10 > 0) {
+                attn10 *= attn10;
+                value += attn10 * attn10 * extrapolate(xsb + 0, ysb + 0, zsb + 1, wsb + 1, dx10, dy10, dz10, dw10);
+            }
+        } else { //We're inside the second dispentachoron (Rectified 4-Simplex)
+            double aScore;
+            byte aPoint;
+            boolean aIsBiggerSide = true;
+            double bScore;
+            byte bPoint;
+            boolean bIsBiggerSide = true;
+
+            //Decide between (0,0,1,1) and (1,1,0,0)
+            if (xins + yins < zins + wins) {
+                aScore = xins + yins;
+                aPoint = 0x0C;
+            } else {
+                aScore = zins + wins;
+                aPoint = 0x03;
+            }
+
+            //Decide between (0,1,0,1) and (1,0,1,0)
+            if (xins + zins < yins + wins) {
+                bScore = xins + zins;
+                bPoint = 0x0A;
+            } else {
+                bScore = yins + wins;
+                bPoint = 0x05;
+            }
+
+            //Closer between (0,1,1,0) and (1,0,0,1) will replace the further of a and b, if closer.
+            if (xins + wins < yins + zins) {
+                double score = xins + wins;
+                if (aScore <= bScore && score < bScore) {
+                    bScore = score;
+                    bPoint = 0x06;
+                } else if (aScore > bScore && score < aScore) {
+                    aScore = score;
+                    aPoint = 0x06;
+                }
+            } else {
+                double score = yins + zins;
+                if (aScore <= bScore && score < bScore) {
+                    bScore = score;
+                    bPoint = 0x09;
+                } else if (aScore > bScore && score < aScore) {
+                    aScore = score;
+                    aPoint = 0x09;
+                }
+            }
+
+            //Decide if (0,1,1,1) is closer.
+            double p1 = 3 - inSum + xins;
+            if (aScore <= bScore && p1 < bScore) {
+                bScore = p1;
+                bPoint = 0x0E;
+                bIsBiggerSide = false;
+            } else if (aScore > bScore && p1 < aScore) {
+                aScore = p1;
+                aPoint = 0x0E;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (1,0,1,1) is closer.
+            double p2 = 3 - inSum + yins;
+            if (aScore <= bScore && p2 < bScore) {
+                bScore = p2;
+                bPoint = 0x0D;
+                bIsBiggerSide = false;
+            } else if (aScore > bScore && p2 < aScore) {
+                aScore = p2;
+                aPoint = 0x0D;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (1,1,0,1) is closer.
+            double p3 = 3 - inSum + zins;
+            if (aScore <= bScore && p3 < bScore) {
+                bScore = p3;
+                bPoint = 0x0B;
+                bIsBiggerSide = false;
+            } else if (aScore > bScore && p3 < aScore) {
+                aScore = p3;
+                aPoint = 0x0B;
+                aIsBiggerSide = false;
+            }
+
+            //Decide if (1,1,1,0) is closer.
+            double p4 = 3 - inSum + wins;
+            if (aScore <= bScore && p4 < bScore) {
+                bScore = p4;
+                bPoint = 0x07;
+                bIsBiggerSide = false;
+            } else if (aScore > bScore && p4 < aScore) {
+                aScore = p4;
+                aPoint = 0x07;
+                aIsBiggerSide = false;
+            }
+
+            //Where each of the two closest points are determines how the extra three vertices are calculated.
+            if (aIsBiggerSide == bIsBiggerSide) {
+                if (aIsBiggerSide) { //Both closest points on the bigger side
+                    byte c1 = (byte)(aPoint & bPoint);
+                    byte c2 = (byte)(aPoint | bPoint);
+
+                    //Two contributions are permutations of (0,0,0,1) and (0,0,0,2) based on c1
+                    xsv_ext0 = xsv_ext1 = xsb;
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    zsv_ext0 = zsv_ext1 = zsb;
+                    wsv_ext0 = wsv_ext1 = wsb;
+                    dx_ext0 = dx0 - SQUISH_CONSTANT_4D;
+                    dy_ext0 = dy0 - SQUISH_CONSTANT_4D;
+                    dz_ext0 = dz0 - SQUISH_CONSTANT_4D;
+                    dw_ext0 = dw0 - SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx0 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext1 = dy0 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext1 = dz0 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw0 - 2 * SQUISH_CONSTANT_4D;
+                    if ((c1 & 0x01) != 0) {
+                        xsv_ext0 += 1;
+                        dx_ext0 -= 1;
+                        xsv_ext1 += 2;
+                        dx_ext1 -= 2;
+                    } else if ((c1 & 0x02) != 0) {
+                        ysv_ext0 += 1;
+                        dy_ext0 -= 1;
+                        ysv_ext1 += 2;
+                        dy_ext1 -= 2;
+                    } else if ((c1 & 0x04) != 0) {
+                        zsv_ext0 += 1;
+                        dz_ext0 -= 1;
+                        zsv_ext1 += 2;
+                        dz_ext1 -= 2;
+                    } else {
+                        wsv_ext0 += 1;
+                        dw_ext0 -= 1;
+                        wsv_ext1 += 2;
+                        dw_ext1 -= 2;
+                    }
+
+                    //One contribution is a permutation of (1,1,1,-1) based on c2
+                    xsv_ext2 = xsb + 1;
+                    ysv_ext2 = ysb + 1;
+                    zsv_ext2 = zsb + 1;
+                    wsv_ext2 = wsb + 1;
+                    dx_ext2 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dy_ext2 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dz_ext2 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                    if ((c2 & 0x01) == 0) {
+                        xsv_ext2 -= 2;
+                        dx_ext2 += 2;
+                    } else if ((c2 & 0x02) == 0) {
+                        ysv_ext2 -= 2;
+                        dy_ext2 += 2;
+                    } else if ((c2 & 0x04) == 0) {
+                        zsv_ext2 -= 2;
+                        dz_ext2 += 2;
+                    } else {
+                        wsv_ext2 -= 2;
+                        dw_ext2 += 2;
+                    }
+                } else { //Both closest points on the smaller side
+                    //One of the two extra points is (1,1,1,1)
+                    xsv_ext2 = xsb + 1;
+                    ysv_ext2 = ysb + 1;
+                    zsv_ext2 = zsb + 1;
+                    wsv_ext2 = wsb + 1;
+                    dx_ext2 = dx0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    dy_ext2 = dy0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    dz_ext2 = dz0 - 1 - 4 * SQUISH_CONSTANT_4D;
+                    dw_ext2 = dw0 - 1 - 4 * SQUISH_CONSTANT_4D;
+
+                    //Other two points are based on the shared axes.
+                    byte c = (byte)(aPoint & bPoint);
+
+                    if ((c & 0x01) != 0) {
+                        xsv_ext0 = xsb + 2;
+                        xsv_ext1 = xsb + 1;
+                        dx_ext0 = dx0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                        dx_ext1 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    } else {
+                        xsv_ext0 = xsv_ext1 = xsb;
+                        dx_ext0 = dx_ext1 = dx0 - 3 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x02) != 0) {
+                        ysv_ext0 = ysv_ext1 = ysb + 1;
+                        dy_ext0 = dy_ext1 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        if ((c & 0x01) == 0)
+                        {
+                            ysv_ext0 += 1;
+                            dy_ext0 -= 1;
+                        } else {
+                            ysv_ext1 += 1;
+                            dy_ext1 -= 1;
+                        }
+                    } else {
+                        ysv_ext0 = ysv_ext1 = ysb;
+                        dy_ext0 = dy_ext1 = dy0 - 3 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x04) != 0) {
+                        zsv_ext0 = zsv_ext1 = zsb + 1;
+                        dz_ext0 = dz_ext1 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        if ((c & 0x03) == 0)
+                        {
+                            zsv_ext0 += 1;
+                            dz_ext0 -= 1;
+                        } else {
+                            zsv_ext1 += 1;
+                            dz_ext1 -= 1;
+                        }
+                    } else {
+                        zsv_ext0 = zsv_ext1 = zsb;
+                        dz_ext0 = dz_ext1 = dz0 - 3 * SQUISH_CONSTANT_4D;
+                    }
+
+                    if ((c & 0x08) != 0)
+                    {
+                        wsv_ext0 = wsb + 1;
+                        wsv_ext1 = wsb + 2;
+                        dw_ext0 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                        dw_ext1 = dw0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                    } else {
+                        wsv_ext0 = wsv_ext1 = wsb;
+                        dw_ext0 = dw_ext1 = dw0 - 3 * SQUISH_CONSTANT_4D;
+                    }
+                }
+            } else { //One point on each "side"
+                byte c1, c2;
+                if (aIsBiggerSide) {
+                    c1 = aPoint;
+                    c2 = bPoint;
+                } else {
+                    c1 = bPoint;
+                    c2 = aPoint;
+                }
+
+                //Two contributions are the bigger-sided point with each 1 replaced with 2.
+                if ((c1 & 0x01) != 0) {
+                    xsv_ext0 = xsb + 2;
+                    xsv_ext1 = xsb + 1;
+                    dx_ext0 = dx0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                    dx_ext1 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                } else {
+                    xsv_ext0 = xsv_ext1 = xsb;
+                    dx_ext0 = dx_ext1 = dx0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x02) != 0) {
+                    ysv_ext0 = ysv_ext1 = ysb + 1;
+                    dy_ext0 = dy_ext1 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    if ((c1 & 0x01) == 0) {
+                        ysv_ext0 += 1;
+                        dy_ext0 -= 1;
+                    } else {
+                        ysv_ext1 += 1;
+                        dy_ext1 -= 1;
+                    }
+                } else {
+                    ysv_ext0 = ysv_ext1 = ysb;
+                    dy_ext0 = dy_ext1 = dy0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x04) != 0) {
+                    zsv_ext0 = zsv_ext1 = zsb + 1;
+                    dz_ext0 = dz_ext1 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    if ((c1 & 0x03) == 0) {
+                        zsv_ext0 += 1;
+                        dz_ext0 -= 1;
+                    } else {
+                        zsv_ext1 += 1;
+                        dz_ext1 -= 1;
+                    }
+                } else {
+                    zsv_ext0 = zsv_ext1 = zsb;
+                    dz_ext0 = dz_ext1 = dz0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                if ((c1 & 0x08) != 0) {
+                    wsv_ext0 = wsb + 1;
+                    wsv_ext1 = wsb + 2;
+                    dw_ext0 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+                    dw_ext1 = dw0 - 2 - 3 * SQUISH_CONSTANT_4D;
+                } else {
+                    wsv_ext0 = wsv_ext1 = wsb;
+                    dw_ext0 = dw_ext1 = dw0 - 3 * SQUISH_CONSTANT_4D;
+                }
+
+                //One contribution is a permutation of (1,1,1,-1) based on the smaller-sided point
+                xsv_ext2 = xsb + 1;
+                ysv_ext2 = ysb + 1;
+                zsv_ext2 = zsb + 1;
+                wsv_ext2 = wsb + 1;
+                dx_ext2 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                dy_ext2 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                dz_ext2 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                dw_ext2 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+                if ((c2 & 0x01) == 0) {
+                    xsv_ext2 -= 2;
+                    dx_ext2 += 2;
+                } else if ((c2 & 0x02) == 0) {
+                    ysv_ext2 -= 2;
+                    dy_ext2 += 2;
+                } else if ((c2 & 0x04) == 0) {
+                    zsv_ext2 -= 2;
+                    dz_ext2 += 2;
+                } else {
+                    wsv_ext2 -= 2;
+                    dw_ext2 += 2;
+                }
+            }
+
+            //Contribution (1,1,1,0)
+            double dx4 = dx0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dy4 = dy0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dz4 = dz0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double dw4 = dw0 - 3 * SQUISH_CONSTANT_4D;
+            double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4 - dw4 * dw4;
+            if (attn4 > 0) {
+                attn4 *= attn4;
+                value += attn4 * attn4 * extrapolate(xsb + 1, ysb + 1, zsb + 1, wsb + 0, dx4, dy4, dz4, dw4);
+            }
+
+            //Contribution (1,1,0,1)
+            double dx3 = dx4;
+            double dy3 = dy4;
+            double dz3 = dz0 - 3 * SQUISH_CONSTANT_4D;
+            double dw3 = dw0 - 1 - 3 * SQUISH_CONSTANT_4D;
+            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3 - dw3 * dw3;
+            if (attn3 > 0) {
+                attn3 *= attn3;
+                value += attn3 * attn3 * extrapolate(xsb + 1, ysb + 1, zsb + 0, wsb + 1, dx3, dy3, dz3, dw3);
+            }
+
+            //Contribution (1,0,1,1)
+            double dx2 = dx4;
+            double dy2 = dy0 - 3 * SQUISH_CONSTANT_4D;
+            double dz2 = dz4;
+            double dw2 = dw3;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2 - dw2 * dw2;
+            if (attn2 > 0) {
+                attn2 *= attn2;
+                value += attn2 * attn2 * extrapolate(xsb + 1, ysb + 0, zsb + 1, wsb + 1, dx2, dy2, dz2, dw2);
+            }
+
+            //Contribution (0,1,1,1)
+            double dx1 = dx0 - 3 * SQUISH_CONSTANT_4D;
+            double dz1 = dz4;
+            double dy1 = dy4;
+            double dw1 = dw3;
+            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1 - dw1 * dw1;
+            if (attn1 > 0) {
+                attn1 *= attn1;
+                value += attn1 * attn1 * extrapolate(xsb + 0, ysb + 1, zsb + 1, wsb + 1, dx1, dy1, dz1, dw1);
+            }
+
+            //Contribution (1,1,0,0)
+            double dx5 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy5 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz5 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw5 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn5 = 2 - dx5 * dx5 - dy5 * dy5 - dz5 * dz5 - dw5 * dw5;
+            if (attn5 > 0) {
+                attn5 *= attn5;
+                value += attn5 * attn5 * extrapolate(xsb + 1, ysb + 1, zsb + 0, wsb + 0, dx5, dy5, dz5, dw5);
+            }
+
+            //Contribution (1,0,1,0)
+            double dx6 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy6 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz6 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw6 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn6 = 2 - dx6 * dx6 - dy6 * dy6 - dz6 * dz6 - dw6 * dw6;
+            if (attn6 > 0) {
+                attn6 *= attn6;
+                value += attn6 * attn6 * extrapolate(xsb + 1, ysb + 0, zsb + 1, wsb + 0, dx6, dy6, dz6, dw6);
+            }
+
+            //Contribution (1,0,0,1)
+            double dx7 = dx0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dy7 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz7 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw7 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn7 = 2 - dx7 * dx7 - dy7 * dy7 - dz7 * dz7 - dw7 * dw7;
+            if (attn7 > 0) {
+                attn7 *= attn7;
+                value += attn7 * attn7 * extrapolate(xsb + 1, ysb + 0, zsb + 0, wsb + 1, dx7, dy7, dz7, dw7);
+            }
+
+            //Contribution (0,1,1,0)
+            double dx8 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy8 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz8 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw8 = dw0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double attn8 = 2 - dx8 * dx8 - dy8 * dy8 - dz8 * dz8 - dw8 * dw8;
+            if (attn8 > 0) {
+                attn8 *= attn8;
+                value += attn8 * attn8 * extrapolate(xsb + 0, ysb + 1, zsb + 1, wsb + 0, dx8, dy8, dz8, dw8);
+            }
+
+            //Contribution (0,1,0,1)
+            double dx9 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy9 = dy0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dz9 = dz0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dw9 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn9 = 2 - dx9 * dx9 - dy9 * dy9 - dz9 * dz9 - dw9 * dw9;
+            if (attn9 > 0) {
+                attn9 *= attn9;
+                value += attn9 * attn9 * extrapolate(xsb + 0, ysb + 1, zsb + 0, wsb + 1, dx9, dy9, dz9, dw9);
+            }
+
+            //Contribution (0,0,1,1)
+            double dx10 = dx0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dy10 = dy0 - 0 - 2 * SQUISH_CONSTANT_4D;
+            double dz10 = dz0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double dw10 = dw0 - 1 - 2 * SQUISH_CONSTANT_4D;
+            double attn10 = 2 - dx10 * dx10 - dy10 * dy10 - dz10 * dz10 - dw10 * dw10;
+            if (attn10 > 0) {
+                attn10 *= attn10;
+                value += attn10 * attn10 * extrapolate(xsb + 0, ysb + 0, zsb + 1, wsb + 1, dx10, dy10, dz10, dw10);
             }
         }
 
-        boolean skip9 = false;
-        float a6 = yAFlipMask0 + a0;
-        if (a6 > 0) {
-            float x6 = x0;
-            float y6 = y0 - (yNMask | 1);
-            float z6 = z0;
-            value += (a6 * a6) * (a6 * a6) * grad(seed,
-                    xrbp + (xNMask & PRIME_X), yrbp + (~yNMask & PRIME_Y), zrbp + (zNMask & PRIME_Z), x6, y6, z6);
-        }
-        else
+        //First extra vertex
+        double attn_ext0 = 2 - dx_ext0 * dx_ext0 - dy_ext0 * dy_ext0 - dz_ext0 * dz_ext0 - dw_ext0 * dw_ext0;
+        if (attn_ext0 > 0)
         {
-            float a7 = xAFlipMask0 + zAFlipMask0 + a0;
-            if (a7 > 0) {
-                float x7 = x0 - (xNMask | 1);
-                float y7 = y0;
-                float z7 = z0 - (zNMask | 1);
-                value += (a7 * a7) * (a7 * a7) * grad(seed,
-                        xrbp + (~xNMask & PRIME_X), yrbp + (yNMask & PRIME_Y), zrbp + (~zNMask & PRIME_Z), x7, y7, z7);
-            }
-
-            float a8 = yAFlipMask1 + a1;
-            if (a8 > 0) {
-                float x8 = x1;
-                float y8 = (yNMask | 1) + y1;
-                float z8 = z1;
-                value += (a8 * a8) * (a8 * a8) * grad(seed2,
-                        xrbp + PRIME_X, yrbp + (yNMask & (PRIME_Y << 1)), zrbp + PRIME_Z, x8, y8, z8);
-                skip9 = true;
-            }
+            attn_ext0 *= attn_ext0;
+            value += attn_ext0 * attn_ext0 * extrapolate(xsv_ext0, ysv_ext0, zsv_ext0, wsv_ext0, dx_ext0, dy_ext0, dz_ext0, dw_ext0);
         }
 
-        boolean skipD = false;
-        float aA = zAFlipMask0 + a0;
-        if (aA > 0) {
-            float xA = x0;
-            float yA = y0;
-            float zA = z0 - (zNMask | 1);
-            value += (aA * aA) * (aA * aA) * grad(seed,
-                    xrbp + (xNMask & PRIME_X), yrbp + (yNMask & PRIME_Y), zrbp + (~zNMask & PRIME_Z), xA, yA, zA);
-        }
-        else
+        //Second extra vertex
+        double attn_ext1 = 2 - dx_ext1 * dx_ext1 - dy_ext1 * dy_ext1 - dz_ext1 * dz_ext1 - dw_ext1 * dw_ext1;
+        if (attn_ext1 > 0)
         {
-            float aB = xAFlipMask0 + yAFlipMask0 + a0;
-            if (aB > 0) {
-                float xB = x0 - (xNMask | 1);
-                float yB = y0 - (yNMask | 1);
-                float zB = z0;
-                value += (aB * aB) * (aB * aB) * grad(seed,
-                        xrbp + (~xNMask & PRIME_X), yrbp + (~yNMask & PRIME_Y), zrbp + (zNMask & PRIME_Z), xB, yB, zB);
-            }
-
-            float aC = zAFlipMask1 + a1;
-            if (aC > 0) {
-                float xC = x1;
-                float yC = y1;
-                float zC = (zNMask | 1) + z1;
-                value += (aC * aC) * (aC * aC) * grad(seed2,
-                        xrbp + PRIME_X, yrbp + PRIME_Y, zrbp + (zNMask & (PRIME_Z << 1)), xC, yC, zC);
-                skipD = true;
-            }
+            attn_ext1 *= attn_ext1;
+            value += attn_ext1 * attn_ext1 * extrapolate(xsv_ext1, ysv_ext1, zsv_ext1, wsv_ext1, dx_ext1, dy_ext1, dz_ext1, dw_ext1);
         }
 
-        if (!skip5) {
-            float a5 = yAFlipMask1 + zAFlipMask1 + a1;
-            if (a5 > 0) {
-                float x5 = x1;
-                float y5 = (yNMask | 1) + y1;
-                float z5 = (zNMask | 1) + z1;
-                value += (a5 * a5) * (a5 * a5) * grad(seed2,
-                        xrbp + PRIME_X, yrbp + (yNMask & (PRIME_Y << 1)), zrbp + (zNMask & (PRIME_Z << 1)), x5, y5, z5);
-            }
+        //Third extra vertex
+        double attn_ext2 = 2 - dx_ext2 * dx_ext2 - dy_ext2 * dy_ext2 - dz_ext2 * dz_ext2 - dw_ext2 * dw_ext2;
+        if (attn_ext2 > 0)
+        {
+            attn_ext2 *= attn_ext2;
+            value += attn_ext2 * attn_ext2 * extrapolate(xsv_ext2, ysv_ext2, zsv_ext2, wsv_ext2, dx_ext2, dy_ext2, dz_ext2, dw_ext2);
         }
 
-        if (!skip9) {
-            float a9 = xAFlipMask1 + zAFlipMask1 + a1;
-            if (a9 > 0) {
-                float x9 = (xNMask | 1) + x1;
-                float y9 = y1;
-                float z9 = (zNMask | 1) + z1;
-                value += (a9 * a9) * (a9 * a9) * grad(seed2,
-                        xrbp + (xNMask & (PRIME_X * 2)), yrbp + PRIME_Y, zrbp + (zNMask & (PRIME_Z << 1)), x9, y9, z9);
-            }
-        }
-
-        if (!skipD) {
-            float aD = xAFlipMask1 + yAFlipMask1 + a1;
-            if (aD > 0) {
-                float xD = (xNMask | 1) + x1;
-                float yD = (yNMask | 1) + y1;
-                float zD = z1;
-                value += (aD * aD) * (aD * aD) * grad(seed2,
-                        xrbp + (xNMask & (PRIME_X << 1)), yrbp + (yNMask & (PRIME_Y << 1)), zrbp + PRIME_Z, xD, yD, zD);
-            }
-        }
-
-        return value;
+        return value / NORM_CONSTANT_4D;
     }
 
-    /**
-     * 4D SuperSimplex noise, with XYZ oriented like noise3_ImproveXY
-     * and W for an extra degree of freedom. W repeats eventually.
-     * Recommended for time-varied animations which texture a 3D object (W=time)
-     * in a space where Z is vertical
-     */
-    public static float noise4_ImproveXYZ_ImproveXY(long seed, double x, double y, double z, double w) {
-        double xy = x + y;
-        double s2 = xy * -0.21132486540518699998;
-        double zz = z * 0.28867513459481294226;
-        double ww = w * 1.118033988749894;
-        double xr = x + (zz + ww + s2), yr = y + (zz + ww + s2);
-        double zr = xy * -0.57735026918962599998 + (zz + ww);
-        double wr = z * -0.866025403784439 + ww;
-
-        return noise4_UnskewedBase(seed, xr, yr, zr, wr);
+    private double extrapolate(int xsb, int ysb, double dx, double dy)
+    {
+        int index = perm[(perm[xsb & 0xFF] + ysb) & 0xFF] & 0x0E;
+        return gradients2D[index] * dx
+            + gradients2D[index + 1] * dy;
     }
 
-    /**
-     * 4D SuperSimplex noise, with XYZ oriented like noise3_ImproveXZ
-     * and W for an extra degree of freedom. W repeats eventually.
-     * Recommended for time-varied animations which texture a 3D object (W=time)
-     * in a space where Y is vertical
-     */
-    public static float noise4_ImproveXYZ_ImproveXZ(long seed, double x, double y, double z, double w) {
-        double xz = x + z;
-        double s2 = xz * -0.21132486540518699998;
-        double yy = y * 0.28867513459481294226;
-        double ww = w * 1.118033988749894;
-        double xr = x + (yy + ww + s2), zr = z + (yy + ww + s2);
-        double yr = xz * -0.57735026918962599998 + (yy + ww);
-        double wr = y * -0.866025403784439 + ww;
-
-        return noise4_UnskewedBase(seed, xr, yr, zr, wr);
+    private double extrapolate(int xsb, int ysb, int zsb, double dx, double dy, double dz)
+    {
+        int index = permGradIndex3D[(perm[(perm[xsb & 0xFF] + ysb) & 0xFF] + zsb) & 0xFF];
+        return gradients3D[index] * dx
+            + gradients3D[index + 1] * dy
+            + gradients3D[index + 2] * dz;
     }
 
-    /**
-     * 4D SuperSimplex noise, with XYZ oriented like noise3_Fallback
-     * and W for an extra degree of freedom. W repeats eventually.
-     * Recommended for time-varied animations which texture a 3D object (W=time)
-     * where there isn't a clear distinction between horizontal and vertical
-     */
-    public static float noise4_ImproveXYZ(long seed, double x, double y, double z, double w) {
-        double xyz = x + y + z;
-        double ww = w * 1.118033988749894;
-        double s2 = xyz * -0.16666666666666666 + ww;
-        double xs = x + s2, ys = y + s2, zs = z + s2, ws = -0.5 * xyz + ww;
-
-        return noise4_UnskewedBase(seed, xs, ys, zs, ws);
-    }
-
-    /**
-     * 4D SuperSimplex noise, with XY and ZW forming orthogonal triangular-based planes.
-     * Recommended for 3D terrain, where X and Y (or Z and W) are horizontal.
-     * Recommended for noise(x, y, sin(time), cos(time)) trick.
-     */
-    public static float noise4_ImproveXY_ImproveZW(long seed, double x, double y, double z, double w) {
-
-        double s2 = (x + y) * -0.28522513987434876941 + (z + w) * 0.83897065470611435718;
-        double t2 = (z + w) * 0.21939749883706435719 + (x + y) * -0.48214856493302476942;
-        double xs = x + s2, ys = y + s2, zs = z + t2, ws = w + t2;
-
-        return noise4_UnskewedBase(seed, xs, ys, zs, ws);
-    }
-
-    /**
-     * 4D SuperSimplex noise, fallback lattice orientation.
-     */
-    public static float noise4_Fallback(long seed, double x, double y, double z, double w) {
-
-        // Get points for A4 lattice
-        double s = SKEW_4D * (x + y + z + w);
-        double xs = x + s, ys = y + s, zs = z + s, ws = w + s;
-
-        return noise4_UnskewedBase(seed, xs, ys, zs, ws);
-    }
-
-    /**
-     * 4D SuperSimplex noise base.
-     * Using ultra-simple 4x4x4x4 lookup partitioning.
-     * This isn't as elegant or SIMD/GPU/etc. portable as other approaches,
-     * but it competes performance-wise with optimized 2014 OpenSimplex.
-     */
-    private static float noise4_UnskewedBase(long seed, double xs, double ys, double zs, double ws) {
-
-        // Get base points and offsets
-        int xsb = fastFloor(xs), ysb = fastFloor(ys), zsb = fastFloor(zs), wsb = fastFloor(ws);
-        float xsi = (float)(xs - xsb), ysi = (float)(ys - ysb), zsi = (float)(zs - zsb), wsi = (float)(ws - wsb);
-
-        // Unskewed offsets
-        float ssi = (xsi + ysi + zsi + wsi) * UNSKEW_4D;
-        float xi = xsi + ssi, yi = ysi + ssi, zi = zsi + ssi, wi = wsi + ssi;
-
-        // Prime pre-multiplication for hash.
-        long xsvp = xsb * PRIME_X, ysvp = ysb * PRIME_Y, zsvp = zsb * PRIME_Z, wsvp = wsb * PRIME_W;
-
-        // Index into initial table.
-        int index = ((fastFloor(xs * 4) & 3) << 0)
-                | ((fastFloor(ys * 4) & 3) << 2)
-                | ((fastFloor(zs * 4) & 3) << 4)
-                | ((fastFloor(ws * 4) & 3) << 6);
-
-        // Point contributions
-        float value = 0;
-        int secondaryIndexStartAndStop = LOOKUP_4D_A[index];
-        int secondaryIndexStart = secondaryIndexStartAndStop & 0xFFFF;
-        int secondaryIndexStop = secondaryIndexStartAndStop >> 16;
-        for (int i = secondaryIndexStart; i < secondaryIndexStop; i++) {
-            LatticeVertex4D c = LOOKUP_4D_B[i];
-            float dx = xi + c.dx, dy = yi + c.dy, dz = zi + c.dz, dw = wi + c.dw;
-            float a = (dx * dx + dy * dy) + (dz * dz + dw * dw);
-            if (a < RSQUARED_4D) {
-                a -= RSQUARED_4D;
-                a *= a;
-                value += a * a * grad(seed, xsvp + c.xsvp, ysvp + c.ysvp, zsvp + c.zsvp, wsvp + c.wsvp, dx, dy, dz, dw);
-            }
-        }
-        return value;
-    }
-
-    /*
-     * Utility
-     */
-
-    private static float grad(long seed, long xsvp, long ysvp, float dx, float dy) {
-        long hash = seed ^ xsvp ^ ysvp;
-        hash *= HASH_MULTIPLIER;
-        hash ^= hash >> (64 - N_GRADS_2D_EXPONENT + 1);
-        int gi = (int)hash & ((N_GRADS_2D - 1) << 1);
-        return GRADIENTS_2D[gi | 0] * dx + GRADIENTS_2D[gi | 1] * dy;
-    }
-
-    private static float grad(long seed, long xrvp, long yrvp, long zrvp, float dx, float dy, float dz) {
-        long hash = (seed ^ xrvp) ^ (yrvp ^ zrvp);
-        hash *= HASH_MULTIPLIER;
-        hash ^= hash >> (64 - N_GRADS_3D_EXPONENT + 2);
-        int gi = (int)hash & ((N_GRADS_3D - 1) << 2);
-        return GRADIENTS_3D[gi | 0] * dx + GRADIENTS_3D[gi | 1] * dy + GRADIENTS_3D[gi | 2] * dz;
-    }
-
-    private static float grad(long seed, long xsvp, long ysvp, long zsvp, long wsvp, float dx, float dy, float dz, float dw) {
-        long hash = seed ^ (xsvp ^ ysvp) ^ (zsvp ^ wsvp);
-        hash *= HASH_MULTIPLIER;
-        hash ^= hash >> (64 - N_GRADS_4D_EXPONENT + 2);
-        int gi = (int)hash & ((N_GRADS_4D - 1) << 2);
-        return (GRADIENTS_4D[gi | 0] * dx + GRADIENTS_4D[gi | 1] * dy) + (GRADIENTS_4D[gi | 2] * dz + GRADIENTS_4D[gi | 3] * dw);
+    private double extrapolate(int xsb, int ysb, int zsb, int wsb, double dx, double dy, double dz, double dw)
+    {
+        int index = perm[(perm[(perm[(perm[xsb & 0xFF] + ysb) & 0xFF] + zsb) & 0xFF] + wsb) & 0xFF] & 0xFC;
+        return gradients4D[index] * dx
+            + gradients4D[index + 1] * dy
+            + gradients4D[index + 2] * dz
+            + gradients4D[index + 3] * dw;
     }
 
     private static int fastFloor(double x) {
@@ -570,576 +2090,50 @@ public class OpenSimplexNoise {
         return x < xi ? xi - 1 : xi;
     }
 
-    /*
-     * Lookup Tables & Gradients
-     */
+    //Gradients for 2D. They approximate the directions to the
+    //vertices of an octagon from the center.
+    private static byte[] gradients2D = new byte[] {
+        5,  2,    2,  5,
+        -5,  2,   -2,  5,
+        5, -2,    2, -5,
+        -5, -2,   -2, -5,
+    };
 
-    private static float[] GRADIENTS_2D;
-    private static float[] GRADIENTS_3D;
-    private static float[] GRADIENTS_4D;
-    private static int[] LOOKUP_4D_A;
-    private static LatticeVertex4D[] LOOKUP_4D_B;
-    static {
+    //Gradients for 3D. They approximate the directions to the
+    //vertices of a rhombicuboctahedron from the center, skewed so
+    //that the triangular and square facets can be inscribed inside
+    //circles of the same radius.
+    private static byte[] gradients3D = new byte[] {
+        -11,  4,  4,     -4,  11,  4,    -4,  4,  11,
+        11,  4,  4,      4,  11,  4,     4,  4,  11,
+        -11, -4,  4,     -4, -11,  4,    -4, -4,  11,
+        11, -4,  4,      4, -11,  4,     4, -4,  11,
+        -11,  4, -4,     -4,  11, -4,    -4,  4, -11,
+        11,  4, -4,      4,  11, -4,     4,  4, -11,
+        -11, -4, -4,     -4, -11, -4,    -4, -4, -11,
+        11, -4, -4,      4, -11, -4,     4, -4, -11,
+    };
 
-        GRADIENTS_2D = new float[N_GRADS_2D * 2];
-        float[] grad2 = {
-                0.38268343236509f,   0.923879532511287f,
-                0.923879532511287f,  0.38268343236509f,
-                0.923879532511287f, -0.38268343236509f,
-                0.38268343236509f,  -0.923879532511287f,
-                -0.38268343236509f,  -0.923879532511287f,
-                -0.923879532511287f, -0.38268343236509f,
-                -0.923879532511287f,  0.38268343236509f,
-                -0.38268343236509f,   0.923879532511287f,
-                //-------------------------------------//
-                0.130526192220052f,  0.99144486137381f,
-                0.608761429008721f,  0.793353340291235f,
-                0.793353340291235f,  0.608761429008721f,
-                0.99144486137381f,   0.130526192220051f,
-                0.99144486137381f,  -0.130526192220051f,
-                0.793353340291235f, -0.60876142900872f,
-                0.608761429008721f, -0.793353340291235f,
-                0.130526192220052f, -0.99144486137381f,
-                -0.130526192220052f, -0.99144486137381f,
-                -0.608761429008721f, -0.793353340291235f,
-                -0.793353340291235f, -0.608761429008721f,
-                -0.99144486137381f,  -0.130526192220052f,
-                -0.99144486137381f,   0.130526192220051f,
-                -0.793353340291235f,  0.608761429008721f,
-                -0.608761429008721f,  0.793353340291235f,
-                -0.130526192220052f,  0.99144486137381f,
-        };
-        for (int i = 0; i < grad2.length; i++) {
-            grad2[i] = (float)(grad2[i] / NORMALIZER_2D);
-        }
-        for (int i = 0, j = 0; i < GRADIENTS_2D.length; i++, j++) {
-            if (j == grad2.length) j = 0;
-            GRADIENTS_2D[i] = grad2[j];
-        }
-
-        GRADIENTS_3D = new float[N_GRADS_3D * 4];
-        float[] grad3 = {
-                2.22474487139f,       2.22474487139f,      -1.0f,                 0.0f,
-                2.22474487139f,       2.22474487139f,       1.0f,                 0.0f,
-                3.0862664687972017f,  1.1721513422464978f,  0.0f,                 0.0f,
-                1.1721513422464978f,  3.0862664687972017f,  0.0f,                 0.0f,
-                -2.22474487139f,       2.22474487139f,      -1.0f,                 0.0f,
-                -2.22474487139f,       2.22474487139f,       1.0f,                 0.0f,
-                -1.1721513422464978f,  3.0862664687972017f,  0.0f,                 0.0f,
-                -3.0862664687972017f,  1.1721513422464978f,  0.0f,                 0.0f,
-                -1.0f,                -2.22474487139f,      -2.22474487139f,       0.0f,
-                1.0f,                -2.22474487139f,      -2.22474487139f,       0.0f,
-                0.0f,                -3.0862664687972017f, -1.1721513422464978f,  0.0f,
-                0.0f,                -1.1721513422464978f, -3.0862664687972017f,  0.0f,
-                -1.0f,                -2.22474487139f,       2.22474487139f,       0.0f,
-                1.0f,                -2.22474487139f,       2.22474487139f,       0.0f,
-                0.0f,                -1.1721513422464978f,  3.0862664687972017f,  0.0f,
-                0.0f,                -3.0862664687972017f,  1.1721513422464978f,  0.0f,
-                //--------------------------------------------------------------------//
-                -2.22474487139f,      -2.22474487139f,      -1.0f,                 0.0f,
-                -2.22474487139f,      -2.22474487139f,       1.0f,                 0.0f,
-                -3.0862664687972017f, -1.1721513422464978f,  0.0f,                 0.0f,
-                -1.1721513422464978f, -3.0862664687972017f,  0.0f,                 0.0f,
-                -2.22474487139f,      -1.0f,                -2.22474487139f,       0.0f,
-                -2.22474487139f,       1.0f,                -2.22474487139f,       0.0f,
-                -1.1721513422464978f,  0.0f,                -3.0862664687972017f,  0.0f,
-                -3.0862664687972017f,  0.0f,                -1.1721513422464978f,  0.0f,
-                -2.22474487139f,      -1.0f,                 2.22474487139f,       0.0f,
-                -2.22474487139f,       1.0f,                 2.22474487139f,       0.0f,
-                -3.0862664687972017f,  0.0f,                 1.1721513422464978f,  0.0f,
-                -1.1721513422464978f,  0.0f,                 3.0862664687972017f,  0.0f,
-                -1.0f,                 2.22474487139f,      -2.22474487139f,       0.0f,
-                1.0f,                 2.22474487139f,      -2.22474487139f,       0.0f,
-                0.0f,                 1.1721513422464978f, -3.0862664687972017f,  0.0f,
-                0.0f,                 3.0862664687972017f, -1.1721513422464978f,  0.0f,
-                -1.0f,                 2.22474487139f,       2.22474487139f,       0.0f,
-                1.0f,                 2.22474487139f,       2.22474487139f,       0.0f,
-                0.0f,                 3.0862664687972017f,  1.1721513422464978f,  0.0f,
-                0.0f,                 1.1721513422464978f,  3.0862664687972017f,  0.0f,
-                2.22474487139f,      -2.22474487139f,      -1.0f,                 0.0f,
-                2.22474487139f,      -2.22474487139f,       1.0f,                 0.0f,
-                1.1721513422464978f, -3.0862664687972017f,  0.0f,                 0.0f,
-                3.0862664687972017f, -1.1721513422464978f,  0.0f,                 0.0f,
-                2.22474487139f,      -1.0f,                -2.22474487139f,       0.0f,
-                2.22474487139f,       1.0f,                -2.22474487139f,       0.0f,
-                3.0862664687972017f,  0.0f,                -1.1721513422464978f,  0.0f,
-                1.1721513422464978f,  0.0f,                -3.0862664687972017f,  0.0f,
-                2.22474487139f,      -1.0f,                 2.22474487139f,       0.0f,
-                2.22474487139f,       1.0f,                 2.22474487139f,       0.0f,
-                1.1721513422464978f,  0.0f,                 3.0862664687972017f,  0.0f,
-                3.0862664687972017f,  0.0f,                 1.1721513422464978f,  0.0f,
-        };
-        for (int i = 0; i < grad3.length; i++) {
-            grad3[i] = (float)(grad3[i] / NORMALIZER_3D);
-        }
-        for (int i = 0, j = 0; i < GRADIENTS_3D.length; i++, j++) {
-            if (j == grad3.length) j = 0;
-            GRADIENTS_3D[i] = grad3[j];
-        }
-
-        GRADIENTS_4D = new float[N_GRADS_4D * 4];
-        float[] grad4 = {
-                -0.6740059517812944f,   -0.3239847771997537f,   -0.3239847771997537f,    0.5794684678643381f,
-                -0.7504883828755602f,   -0.4004672082940195f,    0.15296486218853164f,   0.5029860367700724f,
-                -0.7504883828755602f,    0.15296486218853164f,  -0.4004672082940195f,    0.5029860367700724f,
-                -0.8828161875373585f,    0.08164729285680945f,   0.08164729285680945f,   0.4553054119602712f,
-                -0.4553054119602712f,   -0.08164729285680945f,  -0.08164729285680945f,   0.8828161875373585f,
-                -0.5029860367700724f,   -0.15296486218853164f,   0.4004672082940195f,    0.7504883828755602f,
-                -0.5029860367700724f,    0.4004672082940195f,   -0.15296486218853164f,   0.7504883828755602f,
-                -0.5794684678643381f,    0.3239847771997537f,    0.3239847771997537f,    0.6740059517812944f,
-                -0.6740059517812944f,   -0.3239847771997537f,    0.5794684678643381f,   -0.3239847771997537f,
-                -0.7504883828755602f,   -0.4004672082940195f,    0.5029860367700724f,    0.15296486218853164f,
-                -0.7504883828755602f,    0.15296486218853164f,   0.5029860367700724f,   -0.4004672082940195f,
-                -0.8828161875373585f,    0.08164729285680945f,   0.4553054119602712f,    0.08164729285680945f,
-                -0.4553054119602712f,   -0.08164729285680945f,   0.8828161875373585f,   -0.08164729285680945f,
-                -0.5029860367700724f,   -0.15296486218853164f,   0.7504883828755602f,    0.4004672082940195f,
-                -0.5029860367700724f,    0.4004672082940195f,    0.7504883828755602f,   -0.15296486218853164f,
-                -0.5794684678643381f,    0.3239847771997537f,    0.6740059517812944f,    0.3239847771997537f,
-                -0.6740059517812944f,    0.5794684678643381f,   -0.3239847771997537f,   -0.3239847771997537f,
-                -0.7504883828755602f,    0.5029860367700724f,   -0.4004672082940195f,    0.15296486218853164f,
-                -0.7504883828755602f,    0.5029860367700724f,    0.15296486218853164f,  -0.4004672082940195f,
-                -0.8828161875373585f,    0.4553054119602712f,    0.08164729285680945f,   0.08164729285680945f,
-                -0.4553054119602712f,    0.8828161875373585f,   -0.08164729285680945f,  -0.08164729285680945f,
-                -0.5029860367700724f,    0.7504883828755602f,   -0.15296486218853164f,   0.4004672082940195f,
-                -0.5029860367700724f,    0.7504883828755602f,    0.4004672082940195f,   -0.15296486218853164f,
-                -0.5794684678643381f,    0.6740059517812944f,    0.3239847771997537f,    0.3239847771997537f,
-                0.5794684678643381f,   -0.6740059517812944f,   -0.3239847771997537f,   -0.3239847771997537f,
-                0.5029860367700724f,   -0.7504883828755602f,   -0.4004672082940195f,    0.15296486218853164f,
-                0.5029860367700724f,   -0.7504883828755602f,    0.15296486218853164f,  -0.4004672082940195f,
-                0.4553054119602712f,   -0.8828161875373585f,    0.08164729285680945f,   0.08164729285680945f,
-                0.8828161875373585f,   -0.4553054119602712f,   -0.08164729285680945f,  -0.08164729285680945f,
-                0.7504883828755602f,   -0.5029860367700724f,   -0.15296486218853164f,   0.4004672082940195f,
-                0.7504883828755602f,   -0.5029860367700724f,    0.4004672082940195f,   -0.15296486218853164f,
-                0.6740059517812944f,   -0.5794684678643381f,    0.3239847771997537f,    0.3239847771997537f,
-                //------------------------------------------------------------------------------------------//
-                -0.753341017856078f,    -0.37968289875261624f,  -0.37968289875261624f,  -0.37968289875261624f,
-                -0.7821684431180708f,   -0.4321472685365301f,   -0.4321472685365301f,    0.12128480194602098f,
-                -0.7821684431180708f,   -0.4321472685365301f,    0.12128480194602098f,  -0.4321472685365301f,
-                -0.7821684431180708f,    0.12128480194602098f,  -0.4321472685365301f,   -0.4321472685365301f,
-                -0.8586508742123365f,   -0.508629699630796f,     0.044802370851755174f,  0.044802370851755174f,
-                -0.8586508742123365f,    0.044802370851755174f, -0.508629699630796f,     0.044802370851755174f,
-                -0.8586508742123365f,    0.044802370851755174f,  0.044802370851755174f, -0.508629699630796f,
-                -0.9982828964265062f,   -0.03381941603233842f,  -0.03381941603233842f,  -0.03381941603233842f,
-                -0.37968289875261624f,  -0.753341017856078f,    -0.37968289875261624f,  -0.37968289875261624f,
-                -0.4321472685365301f,   -0.7821684431180708f,   -0.4321472685365301f,    0.12128480194602098f,
-                -0.4321472685365301f,   -0.7821684431180708f,    0.12128480194602098f,  -0.4321472685365301f,
-                0.12128480194602098f,  -0.7821684431180708f,   -0.4321472685365301f,   -0.4321472685365301f,
-                -0.508629699630796f,    -0.8586508742123365f,    0.044802370851755174f,  0.044802370851755174f,
-                0.044802370851755174f, -0.8586508742123365f,   -0.508629699630796f,     0.044802370851755174f,
-                0.044802370851755174f, -0.8586508742123365f,    0.044802370851755174f, -0.508629699630796f,
-                -0.03381941603233842f,  -0.9982828964265062f,   -0.03381941603233842f,  -0.03381941603233842f,
-                -0.37968289875261624f,  -0.37968289875261624f,  -0.753341017856078f,    -0.37968289875261624f,
-                -0.4321472685365301f,   -0.4321472685365301f,   -0.7821684431180708f,    0.12128480194602098f,
-                -0.4321472685365301f,    0.12128480194602098f,  -0.7821684431180708f,   -0.4321472685365301f,
-                0.12128480194602098f,  -0.4321472685365301f,   -0.7821684431180708f,   -0.4321472685365301f,
-                -0.508629699630796f,     0.044802370851755174f, -0.8586508742123365f,    0.044802370851755174f,
-                0.044802370851755174f, -0.508629699630796f,    -0.8586508742123365f,    0.044802370851755174f,
-                0.044802370851755174f,  0.044802370851755174f, -0.8586508742123365f,   -0.508629699630796f,
-                -0.03381941603233842f,  -0.03381941603233842f,  -0.9982828964265062f,   -0.03381941603233842f,
-                -0.37968289875261624f,  -0.37968289875261624f,  -0.37968289875261624f,  -0.753341017856078f,
-                -0.4321472685365301f,   -0.4321472685365301f,    0.12128480194602098f,  -0.7821684431180708f,
-                -0.4321472685365301f,    0.12128480194602098f,  -0.4321472685365301f,   -0.7821684431180708f,
-                0.12128480194602098f,  -0.4321472685365301f,   -0.4321472685365301f,   -0.7821684431180708f,
-                -0.508629699630796f,     0.044802370851755174f,  0.044802370851755174f, -0.8586508742123365f,
-                0.044802370851755174f, -0.508629699630796f,     0.044802370851755174f, -0.8586508742123365f,
-                0.044802370851755174f,  0.044802370851755174f, -0.508629699630796f,    -0.8586508742123365f,
-                -0.03381941603233842f,  -0.03381941603233842f,  -0.03381941603233842f,  -0.9982828964265062f,
-                -0.3239847771997537f,   -0.6740059517812944f,   -0.3239847771997537f,    0.5794684678643381f,
-                -0.4004672082940195f,   -0.7504883828755602f,    0.15296486218853164f,   0.5029860367700724f,
-                0.15296486218853164f,  -0.7504883828755602f,   -0.4004672082940195f,    0.5029860367700724f,
-                0.08164729285680945f,  -0.8828161875373585f,    0.08164729285680945f,   0.4553054119602712f,
-                -0.08164729285680945f,  -0.4553054119602712f,   -0.08164729285680945f,   0.8828161875373585f,
-                -0.15296486218853164f,  -0.5029860367700724f,    0.4004672082940195f,    0.7504883828755602f,
-                0.4004672082940195f,   -0.5029860367700724f,   -0.15296486218853164f,   0.7504883828755602f,
-                0.3239847771997537f,   -0.5794684678643381f,    0.3239847771997537f,    0.6740059517812944f,
-                -0.3239847771997537f,   -0.3239847771997537f,   -0.6740059517812944f,    0.5794684678643381f,
-                -0.4004672082940195f,    0.15296486218853164f,  -0.7504883828755602f,    0.5029860367700724f,
-                0.15296486218853164f,  -0.4004672082940195f,   -0.7504883828755602f,    0.5029860367700724f,
-                0.08164729285680945f,   0.08164729285680945f,  -0.8828161875373585f,    0.4553054119602712f,
-                -0.08164729285680945f,  -0.08164729285680945f,  -0.4553054119602712f,    0.8828161875373585f,
-                -0.15296486218853164f,   0.4004672082940195f,   -0.5029860367700724f,    0.7504883828755602f,
-                0.4004672082940195f,   -0.15296486218853164f,  -0.5029860367700724f,    0.7504883828755602f,
-                0.3239847771997537f,    0.3239847771997537f,   -0.5794684678643381f,    0.6740059517812944f,
-                -0.3239847771997537f,   -0.6740059517812944f,    0.5794684678643381f,   -0.3239847771997537f,
-                -0.4004672082940195f,   -0.7504883828755602f,    0.5029860367700724f,    0.15296486218853164f,
-                0.15296486218853164f,  -0.7504883828755602f,    0.5029860367700724f,   -0.4004672082940195f,
-                0.08164729285680945f,  -0.8828161875373585f,    0.4553054119602712f,    0.08164729285680945f,
-                -0.08164729285680945f,  -0.4553054119602712f,    0.8828161875373585f,   -0.08164729285680945f,
-                -0.15296486218853164f,  -0.5029860367700724f,    0.7504883828755602f,    0.4004672082940195f,
-                0.4004672082940195f,   -0.5029860367700724f,    0.7504883828755602f,   -0.15296486218853164f,
-                0.3239847771997537f,   -0.5794684678643381f,    0.6740059517812944f,    0.3239847771997537f,
-                -0.3239847771997537f,   -0.3239847771997537f,    0.5794684678643381f,   -0.6740059517812944f,
-                -0.4004672082940195f,    0.15296486218853164f,   0.5029860367700724f,   -0.7504883828755602f,
-                0.15296486218853164f,  -0.4004672082940195f,    0.5029860367700724f,   -0.7504883828755602f,
-                0.08164729285680945f,   0.08164729285680945f,   0.4553054119602712f,   -0.8828161875373585f,
-                -0.08164729285680945f,  -0.08164729285680945f,   0.8828161875373585f,   -0.4553054119602712f,
-                -0.15296486218853164f,   0.4004672082940195f,    0.7504883828755602f,   -0.5029860367700724f,
-                0.4004672082940195f,   -0.15296486218853164f,   0.7504883828755602f,   -0.5029860367700724f,
-                0.3239847771997537f,    0.3239847771997537f,    0.6740059517812944f,   -0.5794684678643381f,
-                -0.3239847771997537f,    0.5794684678643381f,   -0.6740059517812944f,   -0.3239847771997537f,
-                -0.4004672082940195f,    0.5029860367700724f,   -0.7504883828755602f,    0.15296486218853164f,
-                0.15296486218853164f,   0.5029860367700724f,   -0.7504883828755602f,   -0.4004672082940195f,
-                0.08164729285680945f,   0.4553054119602712f,   -0.8828161875373585f,    0.08164729285680945f,
-                -0.08164729285680945f,   0.8828161875373585f,   -0.4553054119602712f,   -0.08164729285680945f,
-                -0.15296486218853164f,   0.7504883828755602f,   -0.5029860367700724f,    0.4004672082940195f,
-                0.4004672082940195f,    0.7504883828755602f,   -0.5029860367700724f,   -0.15296486218853164f,
-                0.3239847771997537f,    0.6740059517812944f,   -0.5794684678643381f,    0.3239847771997537f,
-                -0.3239847771997537f,    0.5794684678643381f,   -0.3239847771997537f,   -0.6740059517812944f,
-                -0.4004672082940195f,    0.5029860367700724f,    0.15296486218853164f,  -0.7504883828755602f,
-                0.15296486218853164f,   0.5029860367700724f,   -0.4004672082940195f,   -0.7504883828755602f,
-                0.08164729285680945f,   0.4553054119602712f,    0.08164729285680945f,  -0.8828161875373585f,
-                -0.08164729285680945f,   0.8828161875373585f,   -0.08164729285680945f,  -0.4553054119602712f,
-                -0.15296486218853164f,   0.7504883828755602f,    0.4004672082940195f,   -0.5029860367700724f,
-                0.4004672082940195f,    0.7504883828755602f,   -0.15296486218853164f,  -0.5029860367700724f,
-                0.3239847771997537f,    0.6740059517812944f,    0.3239847771997537f,   -0.5794684678643381f,
-                0.5794684678643381f,   -0.3239847771997537f,   -0.6740059517812944f,   -0.3239847771997537f,
-                0.5029860367700724f,   -0.4004672082940195f,   -0.7504883828755602f,    0.15296486218853164f,
-                0.5029860367700724f,    0.15296486218853164f,  -0.7504883828755602f,   -0.4004672082940195f,
-                0.4553054119602712f,    0.08164729285680945f,  -0.8828161875373585f,    0.08164729285680945f,
-                0.8828161875373585f,   -0.08164729285680945f,  -0.4553054119602712f,   -0.08164729285680945f,
-                0.7504883828755602f,   -0.15296486218853164f,  -0.5029860367700724f,    0.4004672082940195f,
-                0.7504883828755602f,    0.4004672082940195f,   -0.5029860367700724f,   -0.15296486218853164f,
-                0.6740059517812944f,    0.3239847771997537f,   -0.5794684678643381f,    0.3239847771997537f,
-                0.5794684678643381f,   -0.3239847771997537f,   -0.3239847771997537f,   -0.6740059517812944f,
-                0.5029860367700724f,   -0.4004672082940195f,    0.15296486218853164f,  -0.7504883828755602f,
-                0.5029860367700724f,    0.15296486218853164f,  -0.4004672082940195f,   -0.7504883828755602f,
-                0.4553054119602712f,    0.08164729285680945f,   0.08164729285680945f,  -0.8828161875373585f,
-                0.8828161875373585f,   -0.08164729285680945f,  -0.08164729285680945f,  -0.4553054119602712f,
-                0.7504883828755602f,   -0.15296486218853164f,   0.4004672082940195f,   -0.5029860367700724f,
-                0.7504883828755602f,    0.4004672082940195f,   -0.15296486218853164f,  -0.5029860367700724f,
-                0.6740059517812944f,    0.3239847771997537f,    0.3239847771997537f,   -0.5794684678643381f,
-                0.03381941603233842f,   0.03381941603233842f,   0.03381941603233842f,   0.9982828964265062f,
-                -0.044802370851755174f, -0.044802370851755174f,  0.508629699630796f,     0.8586508742123365f,
-                -0.044802370851755174f,  0.508629699630796f,    -0.044802370851755174f,  0.8586508742123365f,
-                -0.12128480194602098f,   0.4321472685365301f,    0.4321472685365301f,    0.7821684431180708f,
-                0.508629699630796f,    -0.044802370851755174f, -0.044802370851755174f,  0.8586508742123365f,
-                0.4321472685365301f,   -0.12128480194602098f,   0.4321472685365301f,    0.7821684431180708f,
-                0.4321472685365301f,    0.4321472685365301f,   -0.12128480194602098f,   0.7821684431180708f,
-                0.37968289875261624f,   0.37968289875261624f,   0.37968289875261624f,   0.753341017856078f,
-                0.03381941603233842f,   0.03381941603233842f,   0.9982828964265062f,    0.03381941603233842f,
-                -0.044802370851755174f,  0.044802370851755174f,  0.8586508742123365f,    0.508629699630796f,
-                -0.044802370851755174f,  0.508629699630796f,     0.8586508742123365f,   -0.044802370851755174f,
-                -0.12128480194602098f,   0.4321472685365301f,    0.7821684431180708f,    0.4321472685365301f,
-                0.508629699630796f,    -0.044802370851755174f,  0.8586508742123365f,   -0.044802370851755174f,
-                0.4321472685365301f,   -0.12128480194602098f,   0.7821684431180708f,    0.4321472685365301f,
-                0.4321472685365301f,    0.4321472685365301f,    0.7821684431180708f,   -0.12128480194602098f,
-                0.37968289875261624f,   0.37968289875261624f,   0.753341017856078f,     0.37968289875261624f,
-                0.03381941603233842f,   0.9982828964265062f,    0.03381941603233842f,   0.03381941603233842f,
-                -0.044802370851755174f,  0.8586508742123365f,   -0.044802370851755174f,  0.508629699630796f,
-                -0.044802370851755174f,  0.8586508742123365f,    0.508629699630796f,    -0.044802370851755174f,
-                -0.12128480194602098f,   0.7821684431180708f,    0.4321472685365301f,    0.4321472685365301f,
-                0.508629699630796f,     0.8586508742123365f,   -0.044802370851755174f, -0.044802370851755174f,
-                0.4321472685365301f,    0.7821684431180708f,   -0.12128480194602098f,   0.4321472685365301f,
-                0.4321472685365301f,    0.7821684431180708f,    0.4321472685365301f,   -0.12128480194602098f,
-                0.37968289875261624f,   0.753341017856078f,     0.37968289875261624f,   0.37968289875261624f,
-                0.9982828964265062f,    0.03381941603233842f,   0.03381941603233842f,   0.03381941603233842f,
-                0.8586508742123365f,   -0.044802370851755174f, -0.044802370851755174f,  0.508629699630796f,
-                0.8586508742123365f,   -0.044802370851755174f,  0.508629699630796f,    -0.044802370851755174f,
-                0.7821684431180708f,   -0.12128480194602098f,   0.4321472685365301f,    0.4321472685365301f,
-                0.8586508742123365f,    0.508629699630796f,    -0.044802370851755174f, -0.044802370851755174f,
-                0.7821684431180708f,    0.4321472685365301f,   -0.12128480194602098f,   0.4321472685365301f,
-                0.7821684431180708f,    0.4321472685365301f,    0.4321472685365301f,   -0.12128480194602098f,
-                0.753341017856078f,     0.37968289875261624f,   0.37968289875261624f,   0.37968289875261624f,
-        };
-        for (int i = 0; i < grad4.length; i++) {
-            grad4[i] = (float)(grad4[i] / NORMALIZER_4D);
-        }
-        for (int i = 0, j = 0; i < GRADIENTS_4D.length; i++, j++) {
-            if (j == grad4.length) j = 0;
-            GRADIENTS_4D[i] = grad4[j];
-        }
-
-        int[][] lookup4DVertexCodes = {
-                new int[] { 0x15, 0x45, 0x51, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x15, 0x45, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA6, 0xAA },
-                new int[] { 0x01, 0x05, 0x11, 0x15, 0x41, 0x45, 0x51, 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xAA },
-                new int[] { 0x01, 0x15, 0x16, 0x45, 0x46, 0x51, 0x52, 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x15, 0x45, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA9, 0xAA },
-                new int[] { 0x05, 0x15, 0x45, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xAA },
-                new int[] { 0x05, 0x15, 0x45, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xAA },
-                new int[] { 0x05, 0x15, 0x16, 0x45, 0x46, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xAA, 0xAB },
-                new int[] { 0x04, 0x05, 0x14, 0x15, 0x44, 0x45, 0x54, 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA },
-                new int[] { 0x05, 0x15, 0x45, 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xAA },
-                new int[] { 0x05, 0x15, 0x45, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x9A, 0xAA },
-                new int[] { 0x05, 0x15, 0x16, 0x45, 0x46, 0x55, 0x56, 0x59, 0x5A, 0x5B, 0x6A, 0x9A, 0xAA, 0xAB },
-                new int[] { 0x04, 0x15, 0x19, 0x45, 0x49, 0x54, 0x55, 0x58, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x05, 0x15, 0x19, 0x45, 0x49, 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xAA, 0xAE },
-                new int[] { 0x05, 0x15, 0x19, 0x45, 0x49, 0x55, 0x56, 0x59, 0x5A, 0x5E, 0x6A, 0x9A, 0xAA, 0xAE },
-                new int[] { 0x05, 0x15, 0x1A, 0x45, 0x4A, 0x55, 0x56, 0x59, 0x5A, 0x5B, 0x5E, 0x6A, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x15, 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x11, 0x15, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x11, 0x15, 0x51, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x96, 0xA6, 0xAA },
-                new int[] { 0x11, 0x15, 0x16, 0x51, 0x52, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x96, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x99, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x9A, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x15, 0x16, 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x6B, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x54, 0x55, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x99, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x9A, 0xAA },
-                new int[] { 0x15, 0x16, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x6B, 0x9A, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x19, 0x54, 0x55, 0x58, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x99, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x19, 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x6E, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x19, 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x6E, 0x9A, 0xAA, 0xAE },
-                new int[] { 0x15, 0x1A, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x6B, 0x6E, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x10, 0x11, 0x14, 0x15, 0x50, 0x51, 0x54, 0x55, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x11, 0x15, 0x51, 0x55, 0x56, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x11, 0x15, 0x51, 0x55, 0x56, 0x65, 0x66, 0x6A, 0xA6, 0xAA },
-                new int[] { 0x11, 0x15, 0x16, 0x51, 0x52, 0x55, 0x56, 0x65, 0x66, 0x67, 0x6A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x54, 0x55, 0x59, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA6, 0xAA },
-                new int[] { 0x15, 0x16, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x6B, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x54, 0x55, 0x59, 0x65, 0x69, 0x6A, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xAA },
-                new int[] { 0x15, 0x16, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x6B, 0xAA, 0xAB },
-                new int[] { 0x14, 0x15, 0x19, 0x54, 0x55, 0x58, 0x59, 0x65, 0x69, 0x6A, 0x6D, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x19, 0x55, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x6E, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x19, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x6E, 0xAA, 0xAE },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x69, 0x6A, 0x6B, 0x6E, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x10, 0x15, 0x25, 0x51, 0x54, 0x55, 0x61, 0x64, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x11, 0x15, 0x25, 0x51, 0x55, 0x56, 0x61, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xAA, 0xBA },
-                new int[] { 0x11, 0x15, 0x25, 0x51, 0x55, 0x56, 0x61, 0x65, 0x66, 0x6A, 0x76, 0xA6, 0xAA, 0xBA },
-                new int[] { 0x11, 0x15, 0x26, 0x51, 0x55, 0x56, 0x62, 0x65, 0x66, 0x67, 0x6A, 0x76, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x14, 0x15, 0x25, 0x54, 0x55, 0x59, 0x64, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x25, 0x55, 0x65, 0x66, 0x69, 0x6A, 0x7A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x25, 0x55, 0x56, 0x65, 0x66, 0x69, 0x6A, 0x7A, 0xA6, 0xAA, 0xBA },
-                new int[] { 0x15, 0x26, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x6B, 0x7A, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x14, 0x15, 0x25, 0x54, 0x55, 0x59, 0x64, 0x65, 0x69, 0x6A, 0x79, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x25, 0x55, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x7A, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x25, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x7A, 0xAA, 0xBA },
-                new int[] { 0x15, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x6B, 0x7A, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x14, 0x15, 0x29, 0x54, 0x55, 0x59, 0x65, 0x68, 0x69, 0x6A, 0x6D, 0x79, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x15, 0x29, 0x55, 0x59, 0x65, 0x69, 0x6A, 0x6E, 0x7A, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x15, 0x55, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x6E, 0x7A, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x6B, 0x6E, 0x7A, 0xAA, 0xAB, 0xAE, 0xBA, 0xBF },
-                new int[] { 0x45, 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x5A, 0x66, 0x95, 0x96, 0x9A, 0xA6, 0xAA },
-                new int[] { 0x41, 0x45, 0x46, 0x51, 0x52, 0x55, 0x56, 0x5A, 0x66, 0x95, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x69, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x45, 0x46, 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0x9B, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x5A, 0x69, 0x95, 0x99, 0x9A, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xAA },
-                new int[] { 0x45, 0x46, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x96, 0x9A, 0x9B, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x49, 0x54, 0x55, 0x58, 0x59, 0x5A, 0x69, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x49, 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0x9E, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x49, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x99, 0x9A, 0x9E, 0xAA, 0xAE },
-                new int[] { 0x45, 0x4A, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x9A, 0x9B, 0x9E, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x66, 0x69, 0x95, 0x96, 0x99, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x59, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x51, 0x52, 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xA7, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x56, 0x59, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x15, 0x45, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x45, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x45, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xA9, 0xAA, 0xAB, 0xAE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x58, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAD, 0xAE },
-                new int[] { 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x66, 0x69, 0x95, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x95, 0x96, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x51, 0x52, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x96, 0xA6, 0xA7, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xBA },
-                new int[] { 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x6A, 0x95, 0x99, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x15, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAE, 0xBA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x9A, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x58, 0x59, 0x65, 0x69, 0x6A, 0x99, 0xA9, 0xAA, 0xAD, 0xAE },
-                new int[] { 0x55, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x69, 0x6A, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x61, 0x64, 0x65, 0x66, 0x69, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x51, 0x55, 0x61, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xB6, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x61, 0x65, 0x66, 0x6A, 0xA5, 0xA6, 0xAA, 0xB6, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x62, 0x65, 0x66, 0x6A, 0xA6, 0xA7, 0xAA, 0xAB, 0xB6, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x64, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xB9, 0xBA },
-                new int[] { 0x55, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x55, 0x56, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x55, 0x56, 0x65, 0x66, 0x6A, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x59, 0x64, 0x65, 0x69, 0x6A, 0xA5, 0xA9, 0xAA, 0xB9, 0xBA },
-                new int[] { 0x55, 0x59, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x15, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x68, 0x69, 0x6A, 0xA9, 0xAA, 0xAD, 0xAE, 0xB9, 0xBA, 0xBE },
-                new int[] { 0x55, 0x59, 0x65, 0x69, 0x6A, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x15, 0x55, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0xAA, 0xAB, 0xAE, 0xBA, 0xBF },
-                new int[] { 0x40, 0x41, 0x44, 0x45, 0x50, 0x51, 0x54, 0x55, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x95, 0x96, 0x9A, 0xA6, 0xAA },
-                new int[] { 0x41, 0x45, 0x46, 0x51, 0x52, 0x55, 0x56, 0x95, 0x96, 0x97, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xAA },
-                new int[] { 0x45, 0x46, 0x55, 0x56, 0x5A, 0x95, 0x96, 0x9A, 0x9B, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x95, 0x99, 0x9A, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xAA },
-                new int[] { 0x45, 0x46, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0xAA, 0xAB },
-                new int[] { 0x44, 0x45, 0x49, 0x54, 0x55, 0x58, 0x59, 0x95, 0x99, 0x9A, 0x9D, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x49, 0x55, 0x59, 0x5A, 0x95, 0x99, 0x9A, 0x9E, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x49, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0x9E, 0xAA, 0xAE },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x96, 0x99, 0x9A, 0x9B, 0x9E, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x95, 0x96, 0x99, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x51, 0x52, 0x55, 0x56, 0x66, 0x95, 0x96, 0x9A, 0xA6, 0xA7, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x51, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xEA },
-                new int[] { 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x45, 0x54, 0x55, 0x56, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAE, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x66, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x58, 0x59, 0x69, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xAD, 0xAE },
-                new int[] { 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x96, 0x99, 0x9A, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x95, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xAA },
-                new int[] { 0x51, 0x52, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xA7, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x54, 0x55, 0x56, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x51, 0x55, 0x56, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA9, 0xAA },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA6, 0xA9, 0xAA, 0xAB },
-                new int[] { 0x54, 0x55, 0x58, 0x59, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA9, 0xAA, 0xAD, 0xAE },
-                new int[] { 0x54, 0x55, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA6, 0xA9, 0xAA, 0xAE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x66, 0x69, 0x6A, 0x96, 0x99, 0x9A, 0xA6, 0xA9, 0xAA, 0xAB, 0xAE, 0xAF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x61, 0x64, 0x65, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xB5, 0xBA },
-                new int[] { 0x51, 0x55, 0x61, 0x65, 0x66, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xB6, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x61, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xAA, 0xB6, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x96, 0xA5, 0xA6, 0xA7, 0xAA, 0xAB, 0xB6, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x64, 0x65, 0x69, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xB9, 0xBA },
-                new int[] { 0x55, 0x65, 0x66, 0x69, 0x6A, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x6A, 0x96, 0xA5, 0xA6, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x59, 0x64, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA9, 0xAA, 0xB9, 0xBA },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x55, 0x56, 0x59, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA },
-                new int[] { 0x55, 0x56, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x96, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xBA, 0xBB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x6A, 0x99, 0xA5, 0xA9, 0xAA, 0xAD, 0xAE, 0xB9, 0xBA, 0xBE },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x6A, 0x99, 0xA5, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x55, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAE, 0xBA, 0xBE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x9A, 0xA6, 0xA9, 0xAA, 0xAB, 0xAE, 0xBA },
-                new int[] { 0x40, 0x45, 0x51, 0x54, 0x55, 0x85, 0x91, 0x94, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x85, 0x91, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xAA, 0xEA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x85, 0x91, 0x95, 0x96, 0x9A, 0xA6, 0xAA, 0xD6, 0xEA },
-                new int[] { 0x41, 0x45, 0x51, 0x55, 0x56, 0x86, 0x92, 0x95, 0x96, 0x97, 0x9A, 0xA6, 0xAA, 0xAB, 0xD6, 0xEA, 0xEB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x85, 0x94, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x55, 0x85, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xDA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x85, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xAA, 0xDA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x86, 0x95, 0x96, 0x9A, 0x9B, 0xA6, 0xAA, 0xAB, 0xDA, 0xEA, 0xEB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x85, 0x94, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xD9, 0xEA },
-                new int[] { 0x45, 0x55, 0x59, 0x85, 0x95, 0x96, 0x99, 0x9A, 0xA9, 0xAA, 0xDA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x85, 0x95, 0x96, 0x99, 0x9A, 0xAA, 0xDA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0xA6, 0xAA, 0xAB, 0xDA, 0xEA, 0xEB },
-                new int[] { 0x44, 0x45, 0x54, 0x55, 0x59, 0x89, 0x95, 0x98, 0x99, 0x9A, 0x9D, 0xA9, 0xAA, 0xAE, 0xD9, 0xEA, 0xEE },
-                new int[] { 0x45, 0x55, 0x59, 0x89, 0x95, 0x99, 0x9A, 0x9E, 0xA9, 0xAA, 0xAE, 0xDA, 0xEA, 0xEE },
-                new int[] { 0x45, 0x55, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0x9E, 0xA9, 0xAA, 0xAE, 0xDA, 0xEA, 0xEE },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0x9E, 0xAA, 0xAB, 0xAE, 0xDA, 0xEA, 0xEF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x91, 0x94, 0x95, 0x96, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x51, 0x55, 0x91, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xE6, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x91, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xAA, 0xE6, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x92, 0x95, 0x96, 0x9A, 0xA6, 0xA7, 0xAA, 0xAB, 0xE6, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x94, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xE9, 0xEA },
-                new int[] { 0x55, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x55, 0x56, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x55, 0x56, 0x95, 0x96, 0x9A, 0xA6, 0xAA, 0xAB, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x59, 0x94, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xE9, 0xEA },
-                new int[] { 0x55, 0x59, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x45, 0x55, 0x56, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xAA, 0xAB, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x59, 0x95, 0x98, 0x99, 0x9A, 0xA9, 0xAA, 0xAD, 0xAE, 0xE9, 0xEA, 0xEE },
-                new int[] { 0x55, 0x59, 0x95, 0x99, 0x9A, 0xA9, 0xAA, 0xAE, 0xEA, 0xEE },
-                new int[] { 0x45, 0x55, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xA9, 0xAA, 0xAE, 0xEA, 0xEE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x95, 0x96, 0x99, 0x9A, 0xAA, 0xAB, 0xAE, 0xEA, 0xEF },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x91, 0x94, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xE5, 0xEA },
-                new int[] { 0x51, 0x55, 0x65, 0x91, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA, 0xE6, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x91, 0x95, 0x96, 0xA5, 0xA6, 0xAA, 0xE6, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x66, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xA7, 0xAA, 0xAB, 0xE6, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x65, 0x94, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xE9, 0xEA },
-                new int[] { 0x55, 0x65, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x51, 0x55, 0x56, 0x66, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xAA, 0xAB, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x94, 0x95, 0x99, 0xA5, 0xA9, 0xAA, 0xE9, 0xEA },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x55, 0x56, 0x59, 0x65, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xEA },
-                new int[] { 0x55, 0x56, 0x5A, 0x66, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xEA, 0xEB },
-                new int[] { 0x54, 0x55, 0x59, 0x69, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xAD, 0xAE, 0xE9, 0xEA, 0xEE },
-                new int[] { 0x54, 0x55, 0x59, 0x69, 0x95, 0x99, 0x9A, 0xA5, 0xA9, 0xAA, 0xAE, 0xEA, 0xEE },
-                new int[] { 0x55, 0x59, 0x5A, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAE, 0xEA, 0xEE },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA6, 0xA9, 0xAA, 0xAB, 0xAE, 0xEA },
-                new int[] { 0x50, 0x51, 0x54, 0x55, 0x65, 0x95, 0xA1, 0xA4, 0xA5, 0xA6, 0xA9, 0xAA, 0xB5, 0xBA, 0xE5, 0xEA, 0xFA },
-                new int[] { 0x51, 0x55, 0x65, 0x95, 0xA1, 0xA5, 0xA6, 0xA9, 0xAA, 0xB6, 0xBA, 0xE6, 0xEA, 0xFA },
-                new int[] { 0x51, 0x55, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA, 0xB6, 0xBA, 0xE6, 0xEA, 0xFA },
-                new int[] { 0x51, 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xA7, 0xAA, 0xAB, 0xB6, 0xBA, 0xE6, 0xEA, 0xFB },
-                new int[] { 0x54, 0x55, 0x65, 0x95, 0xA4, 0xA5, 0xA6, 0xA9, 0xAA, 0xB9, 0xBA, 0xE9, 0xEA, 0xFA },
-                new int[] { 0x55, 0x65, 0x95, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA, 0xEA, 0xFA },
-                new int[] { 0x51, 0x55, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA, 0xEA, 0xFA },
-                new int[] { 0x55, 0x56, 0x65, 0x66, 0x95, 0x96, 0xA5, 0xA6, 0xAA, 0xAB, 0xBA, 0xEA, 0xFB },
-                new int[] { 0x54, 0x55, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xB9, 0xBA, 0xE9, 0xEA, 0xFA },
-                new int[] { 0x54, 0x55, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA, 0xEA, 0xFA },
-                new int[] { 0x55, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xBA, 0xEA, 0xFA },
-                new int[] { 0x55, 0x56, 0x65, 0x66, 0x6A, 0x95, 0x96, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xBA, 0xEA },
-                new int[] { 0x54, 0x55, 0x59, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA9, 0xAA, 0xAD, 0xAE, 0xB9, 0xBA, 0xE9, 0xEA, 0xFE },
-                new int[] { 0x55, 0x59, 0x65, 0x69, 0x95, 0x99, 0xA5, 0xA9, 0xAA, 0xAE, 0xBA, 0xEA, 0xFE },
-                new int[] { 0x55, 0x59, 0x65, 0x69, 0x6A, 0x95, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAE, 0xBA, 0xEA },
-                new int[] { 0x55, 0x56, 0x59, 0x5A, 0x65, 0x66, 0x69, 0x6A, 0x95, 0x96, 0x99, 0x9A, 0xA5, 0xA6, 0xA9, 0xAA, 0xAB, 0xAE, 0xBA, 0xEA },
-        };
-        LatticeVertex4D[] latticeVerticesByCode = new LatticeVertex4D[256];
-        for (int i = 0; i < 256; i++) {
-            int cx = ((i >> 0) & 3) - 1;
-            int cy = ((i >> 2) & 3) - 1;
-            int cz = ((i >> 4) & 3) - 1;
-            int cw = ((i >> 6) & 3) - 1;
-            latticeVerticesByCode[i] = new LatticeVertex4D(cx, cy, cz, cw);
-        }
-        int nLatticeVerticesTotal = 0;
-        for (int i = 0; i < 256; i++) {
-            nLatticeVerticesTotal += lookup4DVertexCodes[i].length;
-        }
-        LOOKUP_4D_A = new int[256];
-        LOOKUP_4D_B = new LatticeVertex4D[nLatticeVerticesTotal];
-        for (int i = 0, j = 0; i < 256; i++) {
-            LOOKUP_4D_A[i] = j | ((j + lookup4DVertexCodes[i].length) << 16);
-            for (int k = 0; k < lookup4DVertexCodes[i].length; k++) {
-                LOOKUP_4D_B[j++] = latticeVerticesByCode[lookup4DVertexCodes[i][k]];
-            }
-        }
-    }
-
-    private static class LatticeVertex4D {
-        public final float dx, dy, dz, dw;
-        public final long xsvp, ysvp, zsvp, wsvp;
-        public LatticeVertex4D(int xsv, int ysv, int zsv, int wsv) {
-            this.xsvp = xsv * PRIME_X; this.ysvp = ysv * PRIME_Y;
-            this.zsvp = zsv * PRIME_Z; this.wsvp = wsv * PRIME_W;
-            float ssv = (xsv + ysv + zsv + wsv) * UNSKEW_4D;
-            this.dx = -xsv - ssv;
-            this.dy = -ysv - ssv;
-            this.dz = -zsv - ssv;
-            this.dw = -wsv - ssv;
-        }
-    }
+    //Gradients for 4D. They approximate the directions to the
+    //vertices of a disprismatotesseractihexadecachoron from the center,
+    //skewed so that the tetrahedral and cubic facets can be inscribed inside
+    //spheres of the same radius.
+    private static byte[] gradients4D = new byte[] {
+        3,  1,  1,  1,      1,  3,  1,  1,      1,  1,  3,  1,      1,  1,  1,  3,
+        -3,  1,  1,  1,     -1,  3,  1,  1,     -1,  1,  3,  1,     -1,  1,  1,  3,
+        3, -1,  1,  1,      1, -3,  1,  1,      1, -1,  3,  1,      1, -1,  1,  3,
+        -3, -1,  1,  1,     -1, -3,  1,  1,     -1, -1,  3,  1,     -1, -1,  1,  3,
+        3,  1, -1,  1,      1,  3, -1,  1,      1,  1, -3,  1,      1,  1, -1,  3,
+        -3,  1, -1,  1,     -1,  3, -1,  1,     -1,  1, -3,  1,     -1,  1, -1,  3,
+        3, -1, -1,  1,      1, -3, -1,  1,      1, -1, -3,  1,      1, -1, -1,  3,
+        -3, -1, -1,  1,     -1, -3, -1,  1,     -1, -1, -3,  1,     -1, -1, -1,  3,
+        3,  1,  1, -1,      1,  3,  1, -1,      1,  1,  3, -1,      1,  1,  1, -3,
+        -3,  1,  1, -1,     -1,  3,  1, -1,     -1,  1,  3, -1,     -1,  1,  1, -3,
+        3, -1,  1, -1,      1, -3,  1, -1,      1, -1,  3, -1,      1, -1,  1, -3,
+        -3, -1,  1, -1,     -1, -3,  1, -1,     -1, -1,  3, -1,     -1, -1,  1, -3,
+        3,  1, -1, -1,      1,  3, -1, -1,      1,  1, -3, -1,      1,  1, -1, -3,
+        -3,  1, -1, -1,     -1,  3, -1, -1,     -1,  1, -3, -1,     -1,  1, -1, -3,
+        3, -1, -1, -1,      1, -3, -1, -1,      1, -1, -3, -1,      1, -1, -1, -3,
+        -3, -1, -1, -1,     -1, -3, -1, -1,     -1, -1, -3, -1,     -1, -1, -1, -3,
+    };
 }

@@ -1,14 +1,12 @@
-package xyz.nkomarn.composter.entity.tracker
+package kyta.composter.server.world.entity.tracker
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import kyta.composter.Tickable
+import kyta.composter.server.Tickable
 import kyta.composter.protocol.Packet
-import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
-import kyta.composter.protocol.packet.play.ClientboundAddPlayerPacket
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
 import org.slf4j.LoggerFactory
-import xyz.nkomarn.composter.entity.Entity
-import xyz.nkomarn.composter.entity.Player
+import kyta.composter.world.entity.Entity
+import kyta.composter.world.entity.Player
 
 class EntityTracker(private val player: Player) : Tickable {
     private val logger = LoggerFactory.getLogger("tracker")

@@ -1,4 +1,4 @@
-package kyta.composter.entity
+package kyta.composter.world.entity
 
 import kyta.composter.item.ItemStack
 import kyta.composter.item.isEmpty
@@ -7,8 +7,6 @@ import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddDroppedItemPacket
 import kyta.composter.world.World
 import kyta.composter.world.getCollidingEntities
-import xyz.nkomarn.composter.entity.Entity
-import xyz.nkomarn.composter.entity.boundingBox
 
 class ItemEntity(world: World) : Entity(world, EntityType.DROPPED_ITEM) {
     override val dimensions = 0.25 to 0.25

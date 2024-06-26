@@ -1,19 +1,17 @@
-package xyz.nkomarn.composter.server
+package kyta.composter.server.world
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kyta.composter.Tickable
-import kyta.composter.server.MinecraftServer
+import kyta.composter.server.Tickable
 import kyta.composter.world.BlockPos
 import kyta.composter.world.World
 import kyta.composter.world.dimension.DimensionType
 import xyz.nkomarn.composter.world.ChunkIO
-import xyz.nkomarn.composter.world.generator.FlatGenerator
 import xyz.nkomarn.composter.world.generator.NoiseGenerator
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ThreadLocalRandom
-import java.util.function.Consumer
+import kyta.composter.server.MinecraftServer
 
 class WorldManager(
     private val server: MinecraftServer,

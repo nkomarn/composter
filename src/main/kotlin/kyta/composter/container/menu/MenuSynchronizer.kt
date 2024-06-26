@@ -1,8 +1,8 @@
 package kyta.composter.container.menu
 
-import kyta.composter.Tickable
+import kyta.composter.server.Tickable
 import kyta.composter.protocol.packet.play.ClientboundSetContainerContentPacket
-import xyz.nkomarn.composter.entity.Player
+import kyta.composter.world.entity.Player
 
 class MenuSynchronizer(private val player: Player) : Tickable {
     private val inventoryMenu = PlayerInventoryMenu(player, player.inventory, player.armorContainer)
