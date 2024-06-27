@@ -87,8 +87,8 @@ data class ServerboundSetAbsolutePlayerPositionPacket(
     companion object : PacketSerializer<ServerboundSetAbsolutePlayerPositionPacket> {
         override fun deserialize(buffer: ReadBuffer): ServerboundSetAbsolutePlayerPositionPacket {
             val x = buffer.readDouble()
-            val stance = buffer.readDouble()
             val y = buffer.readDouble()
+            val stance = buffer.readDouble()
             val z = buffer.readDouble()
 
             return ServerboundSetAbsolutePlayerPositionPacket(
