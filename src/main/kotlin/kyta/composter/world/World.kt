@@ -1,8 +1,6 @@
 package kyta.composter.world
 
 import kotlinx.coroutines.runBlocking
-import kyta.composter.server.Tickable
-import kyta.composter.world.entity.ItemEntity
 import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.math.AABB
@@ -12,21 +10,23 @@ import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
 import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
 import kyta.composter.server.MinecraftServer
+import kyta.composter.server.Tickable
+import kyta.composter.server.world.storage.ChunkStorage
 import kyta.composter.world.block.AIR
 import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.defaultState
 import kyta.composter.world.chunk.ChunkController
 import kyta.composter.world.dimension.DimensionType
 import kyta.composter.world.entity.Entity
+import kyta.composter.world.entity.ItemEntity
 import kyta.composter.world.entity.Player
 import kyta.composter.world.entity.boundingBox
-import xyz.nkomarn.composter.world.ChunkIO
 import xyz.nkomarn.composter.world.generator.WorldGenerator
 
 class World(
     val server: MinecraftServer,
     val properties: Properties,
-) : Tickable {
+) : Tickable, AutoCloseable {
     private var time: Long = 0
     val chunks = ChunkController(this)
 
@@ -121,10 +121,14 @@ class World(
         chunks.tick(currentTick)
     }
 
+    override fun close() = runBlocking {
+        chunks.saveAll()
+    }
+
     data class Properties(
         val type: DimensionType,
         val seed: Long,
-        val io: ChunkIO,
+        val storage: ChunkStorage,
         val generator: WorldGenerator,
         var spawn: BlockPos,
     )

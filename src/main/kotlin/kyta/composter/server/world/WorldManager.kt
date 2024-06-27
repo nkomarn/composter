@@ -1,17 +1,17 @@
 package kyta.composter.server.world
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kyta.composter.server.Tickable
-import kyta.composter.world.BlockPos
-import kyta.composter.world.World
-import kyta.composter.world.dimension.DimensionType
-import xyz.nkomarn.composter.world.ChunkIO
-import xyz.nkomarn.composter.world.generator.NoiseGenerator
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ThreadLocalRandom
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kyta.composter.server.MinecraftServer
+import kyta.composter.server.Tickable
+import kyta.composter.server.world.storage.SqliteChunkStorage
+import kyta.composter.world.BlockPos
+import kyta.composter.world.World
+import kyta.composter.world.dimension.DimensionType
+import xyz.nkomarn.composter.world.generator.NoiseGenerator
 
 class WorldManager(
     private val server: MinecraftServer,
@@ -31,11 +31,12 @@ class WorldManager(
             World.Properties(
                 DimensionType.OVERWORLD,
                 seed,
-                ChunkIO(server, directory.resolve("world")),
+                SqliteChunkStorage(directory.resolve("world").also { it.toFile().mkdirs() }),
                 NoiseGenerator(seed.toInt()),
                 BlockPos(0, 62, 0),
             )
         )
+
         worlds[world.properties.type] = world
     }
 

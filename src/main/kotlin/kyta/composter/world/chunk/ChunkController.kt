@@ -1,5 +1,6 @@
 package kyta.composter.world.chunk
 
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -7,7 +8,6 @@ import kyta.composter.server.Tickable
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
 import kyta.composter.world.entity.Player
-import java.util.concurrent.ConcurrentHashMap
 import kyta.composter.world.entity.blockPos
 
 class ChunkController(private val world: World): Tickable {
@@ -28,14 +28,18 @@ class ChunkController(private val world: World): Tickable {
             return getLoadedChunk(pos)!!
         }
 
-        /*
-         * todo; attempt to load the chunk from disk first.
-         */
-
         return withContext(Dispatchers.IO) {
-            val newChunk = world.properties.generator.generate(pos.x, pos.z)
-            loadedChunks[pos.compact] = newChunk
-            return@withContext newChunk
+            val chunk = world.properties.storage.read(pos)
+                ?: world.properties.generator.generate(pos.x, pos.z)
+
+            loadedChunks[pos.compact] = chunk
+            return@withContext chunk
+        }
+    }
+
+    suspend fun saveAll() {
+        for (chunk in loadedChunks.values) {
+            world.properties.storage.write(chunk.pos, chunk)
         }
     }
 
@@ -67,10 +71,16 @@ class ChunkController(private val world: World): Tickable {
                 }
             }
         }
+
+        if (currentTick % TICKS_CHUNK_SAVE == 0L) {
+            world.server.logger.info("saving all chunks..")
+            world.server.launch { saveAll() }
+        }
     }
 
     private companion object {
         const val SIMULATION_DISTANCE = 8
         const val MAX_CHUNK_ACTIONS_PER_TICK = 8
+        const val TICKS_CHUNK_SAVE = 600
     }
 }
