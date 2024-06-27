@@ -9,7 +9,7 @@ data class AABB(
     val maxZ: Double,
 )
 
-fun AABB.overlaps(other: AABB): Boolean {
+fun AABB.intersects(other: AABB): Boolean {
     return minX <= other.maxX &&
             maxX >= other.minX &&
             minY <= other.maxY &&

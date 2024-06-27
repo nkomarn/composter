@@ -1,14 +1,13 @@
-package xyz.nkomarn.composter.entity
+package kyta.composter.world.entity
 
 import java.util.concurrent.atomic.AtomicInteger
-import kyta.composter.Tickable
-import kyta.composter.entity.EntityType
-import kyta.composter.entity.data.SynchronizedEntityData
 import kyta.composter.math.AABB
 import kyta.composter.math.Vec3d
-import kyta.composter.math.overlaps
+import kyta.composter.math.intersects
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
+import kyta.composter.server.Tickable
+import kyta.composter.server.world.entity.data.SynchronizedEntityData
 import kyta.composter.world.BlockPos
 import kyta.composter.world.GlobalPos
 import kyta.composter.world.World
@@ -75,12 +74,12 @@ val Entity.globalPos: GlobalPos
 val Entity.boundingBox: AABB
     get() = pos.let { pos ->
         AABB(
-            pos.x,
+            pos.x - dimensions.first / 2.0,
             pos.y,
-            pos.z,
-            pos.x + dimensions.first,
+            pos.z - dimensions.first / 2.0,
+            pos.x + dimensions.first / 2.0,
             pos.y + dimensions.second,
-            pos.z + dimensions.first,
+            pos.z + dimensions.first / 2.0,
         )
     }
 
@@ -88,6 +87,6 @@ fun Entity.findCollidingEntities(): Sequence<Entity> {
     return boundingBox.let { box ->
         world.entities.asSequence()
             .filterNot { it === this }
-            .filter { box.overlaps(it.boundingBox) }
+            .filter { box.intersects(it.boundingBox) }
     }
 }

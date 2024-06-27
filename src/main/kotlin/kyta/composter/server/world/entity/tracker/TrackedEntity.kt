@@ -1,15 +1,14 @@
-package xyz.nkomarn.composter.entity.tracker
+package kyta.composter.server.world.entity.tracker
 
-import kyta.composter.Tickable
+import kyta.composter.server.Tickable
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionPacket
 import kyta.composter.protocol.packet.play.ClientboundAdjustEntityPositionRotationPacket
 import kyta.composter.protocol.packet.play.ClientboundSetEntityRotationPacket
 import kyta.composter.protocol.packet.play.ClientboundTeleportEntityPacket
-import xyz.nkomarn.composter.entity.Entity
+import kyta.composter.world.entity.Entity
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.max
 
 class TrackedEntity(

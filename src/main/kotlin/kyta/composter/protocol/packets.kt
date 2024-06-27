@@ -2,7 +2,6 @@ package kyta.composter.protocol
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import kyta.composter.asAbsoluteInt
 import kyta.composter.protocol.packet.GenericDisconnectPacket
 import kyta.composter.protocol.packet.GenericKeepAlivePacket
 import kyta.composter.protocol.packet.handshaking.ClientboundHandshakePacket

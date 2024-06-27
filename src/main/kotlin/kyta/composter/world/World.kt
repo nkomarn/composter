@@ -1,13 +1,13 @@
 package kyta.composter.world
 
 import kotlinx.coroutines.runBlocking
-import kyta.composter.Tickable
-import kyta.composter.entity.ItemEntity
+import kyta.composter.server.Tickable
+import kyta.composter.world.entity.ItemEntity
 import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.math.AABB
 import kyta.composter.math.Vec3d
-import kyta.composter.math.overlaps
+import kyta.composter.math.intersects
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
 import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
@@ -17,9 +17,9 @@ import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.defaultState
 import kyta.composter.world.chunk.ChunkController
 import kyta.composter.world.dimension.DimensionType
-import xyz.nkomarn.composter.entity.Entity
-import xyz.nkomarn.composter.entity.Player
-import xyz.nkomarn.composter.entity.boundingBox
+import kyta.composter.world.entity.Entity
+import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.boundingBox
 import xyz.nkomarn.composter.world.ChunkIO
 import xyz.nkomarn.composter.world.generator.WorldGenerator
 
@@ -137,14 +137,14 @@ class World(
 fun World.getCollidingEntities(box: AABB): Sequence<Entity> {
     return entities.asSequence()
         .filterNot(Entity::isRemoved)
-        .filter { box.overlaps(it.boundingBox) }
+        .filter { box.intersects(it.boundingBox) }
 }
 
 fun World.breakBlock(pos: BlockPos) {
     val state = getBlock(pos)
     val entity = ItemEntity(this).apply {
         this.pos = Vec3d(pos).add(0.5, 0.0, 0.5)
-        itemStack = ItemStack(Item(state.block.id), metadataValue = state.metadataValue)
+        itemStack = ItemStack(Item(state.block.networkId), metadataValue = state.metadataValue)
     }
 
     setBlock(pos, AIR.defaultState)

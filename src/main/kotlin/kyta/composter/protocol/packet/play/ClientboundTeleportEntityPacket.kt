@@ -1,6 +1,6 @@
 package kyta.composter.protocol.packet.play
 
-import kyta.composter.asRotation
+import kyta.composter.protocol.asRotation
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.PacketSerializer

@@ -1,4 +1,4 @@
-package kyta.composter.entity
+package kyta.composter.world.entity
 
 enum class EntityType(val networkId: Int) {
     PIG(90),

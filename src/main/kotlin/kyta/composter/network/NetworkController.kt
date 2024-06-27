@@ -20,9 +20,10 @@ class NetworkController(private val server: MinecraftServer) {
     @Throws(InterruptedException::class)
     fun bind(port: Int) {
         val future = ServerBootstrap()
-            .group(createGroup())
+            .group(createGroup(3))
             .channel(channelClass().java)
             .childOption(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.TCP_FASTOPEN, 50)
             .childHandler(InboundConnectionInitializer(server, logger))
             .bind(port)
             .sync()
@@ -34,8 +35,8 @@ class NetworkController(private val server: MinecraftServer) {
         future.channel().closeFuture().sync()
     }
 
-    private fun createGroup(): EventLoopGroup {
-        return if (Epoll.isAvailable()) EpollEventLoopGroup() else NioEventLoopGroup()
+    private fun createGroup(threads: Int): EventLoopGroup {
+        return if (Epoll.isAvailable()) EpollEventLoopGroup(threads) else NioEventLoopGroup(threads)
     }
 
     private fun channelClass(): KClass<out ServerChannel> {

@@ -1,10 +1,8 @@
-package xyz.nkomarn.composter.entity
+package kyta.composter.world.entity
 
 import java.util.function.Consumer
 import kyta.composter.container.BasicContainer
 import kyta.composter.container.menu.MenuSynchronizer
-import kyta.composter.entity.EntityType
-import kyta.composter.entity.ItemEntity
 import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.item.isEmpty
@@ -17,11 +15,11 @@ import kyta.composter.protocol.packet.play.ClientboundChunkDataPacket
 import kyta.composter.protocol.packet.play.ClientboundChunkOperationPacket
 import kyta.composter.protocol.packet.play.ClientboundCollectDroppedItemPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
+import kyta.composter.server.world.entity.tracker.EntityTracker
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.World
 import kyta.composter.world.getCollidingEntities
 import net.kyori.adventure.text.Component
-import xyz.nkomarn.composter.entity.tracker.EntityTracker
 
 class Player(
     world: World,
@@ -122,8 +120,9 @@ class Player(
         }
     }
 
-    private companion object {
+    companion object {
         const val VIEW_DISTANCE = 16
+        const val EYE_HEIGHT = 1.62000000476837
     }
 }
 

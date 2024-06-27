@@ -1,4 +1,4 @@
-package xyz.nkomarn.composter.world.noise;
+package xyz.nkomarn.composter.world.generator.noise;
 
 import java.util.Random;
 

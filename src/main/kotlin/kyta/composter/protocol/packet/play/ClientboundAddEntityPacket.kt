@@ -1,16 +1,16 @@
 package kyta.composter.protocol.packet.play
 
-import kyta.composter.asRotation
-import kyta.composter.entity.EntityType
-import kyta.composter.entity.ItemEntity
+import kyta.composter.protocol.asRotation
+import kyta.composter.world.entity.EntityType
+import kyta.composter.world.entity.ItemEntity
 import kyta.composter.item.ItemStack
 import kyta.composter.math.Vec3d
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.PacketSerializer
 import kyta.composter.protocol.WriteBuffer
-import xyz.nkomarn.composter.entity.Entity
-import xyz.nkomarn.composter.entity.Player
-import xyz.nkomarn.composter.entity.getHotbarItem
+import kyta.composter.world.entity.Entity
+import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.getHotbarItem
 
 interface AddEntityPacket : Packet {
     val id: Int

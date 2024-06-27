@@ -8,7 +8,6 @@ import kyta.composter.world.block.DANDELION
 import kyta.composter.world.block.DIRT
 import kyta.composter.world.block.FLOWING_WATER
 import kyta.composter.world.block.GRASS_BLOCK
-import kyta.composter.world.block.GRAVEL
 import kyta.composter.world.block.SAND
 import kyta.composter.world.block.SANDSTONE
 import kyta.composter.world.block.SHORT_GRASS
@@ -16,10 +15,9 @@ import kyta.composter.world.block.STONE
 import kyta.composter.world.block.WATER
 import kyta.composter.world.block.defaultState
 import kyta.composter.world.chunk.Chunk
-import xyz.nkomarn.composter.world.noise.PerlinNoise
+import xyz.nkomarn.composter.world.generator.noise.PerlinNoise
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
-import kotlin.math.pow
 
 class NoiseGenerator(private val seed: Int) : WorldGenerator {
     private val noise = PerlinNoise(seed)

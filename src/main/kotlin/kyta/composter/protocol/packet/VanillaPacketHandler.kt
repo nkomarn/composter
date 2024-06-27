@@ -26,19 +26,21 @@ import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
 import kyta.composter.protocol.packet.play.ServerboundSetAbsolutePlayerPositionPacket
 import kyta.composter.protocol.packet.play.ServerboundSetHeldSlotPacket
 import kyta.composter.server.MinecraftServer
-import kyta.composter.withContext
+import kyta.composter.server.withContext
 import kyta.composter.world.BlockPos
 import kyta.composter.world.ChunkPos
 import kyta.composter.world.block.Block
 import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.STONE
+import kyta.composter.world.block.isAir
 import kyta.composter.world.breakBlock
 import kyta.composter.world.dimension.DimensionType
+import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.drop
+import kyta.composter.world.entity.heldItem
+import kyta.composter.world.entity.swingArm
+import kyta.composter.world.getCollidingEntities
 import net.kyori.adventure.text.Component
-import xyz.nkomarn.composter.entity.Player
-import xyz.nkomarn.composter.entity.drop
-import xyz.nkomarn.composter.entity.heldItem
-import xyz.nkomarn.composter.entity.swingArm
 
 class VanillaPacketHandler(
     private val server: MinecraftServer,
@@ -83,7 +85,7 @@ class VanillaPacketHandler(
                     player.world.properties.seed,
                     DimensionType.OVERWORLD,
                 )
-            )
+            ).sync()
             connection.player = player
             connection.state = ConnectionState.PLAY
 
@@ -94,7 +96,7 @@ class VanillaPacketHandler(
 
     override suspend fun handleChatMessage(packet: ServerboundChatMessagePacket) {
         if (packet.message.isBlank()) return
-        connection.player.inventory.insert(ItemStack(Item(STONE.id), 64, 0))
+        connection.player.inventory.insert(ItemStack(Item(STONE.networkId), 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
     }
 
@@ -126,7 +128,7 @@ class VanillaPacketHandler(
         val player = connection.player
 
         if (!player.world.chunks.isLoaded(chunkPos)) {
-            return connection.sendPacket(
+            connection.sendPacket(
                 ClientboundSetAbsolutePlayerPositionPacket(
                     player.pos,
                     player.stance,
@@ -135,6 +137,8 @@ class VanillaPacketHandler(
                     player.isOnGround,
                 )
             )
+
+            return
         }
 
         /*
@@ -194,26 +198,32 @@ class VanillaPacketHandler(
         }
     }
 
-    override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) {
-        val player = connection.player
-        val selectedItem = player.inventory.getItem(player.selectedHotbarSlot)
-        if (selectedItem.isEmpty) return
+    override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) = withContext(server) {
+        if (!packet.isBlockPlacement()) {
+            return@withContext
+        }
 
-        // connection.player.sendMessage(Component.text("trying to place item id $selectedItem"))
+        val item = player.heldItem.takeUnless(ItemStack::isEmpty)
+            ?: return@withContext
+
+        val offset = packet.face.offset
+        val target = packet.blockPos.add(offset.x, offset.y, offset.z)
+
+        /**
+         * Check world collisions to make sure there is not another
+         * block or an entity within the bounding box of the target block.
+         */
+        if (!player.world.getBlock(target).isAir() || player.world.getCollidingEntities(target.boundingBox).any()) {
+            return@withContext
+        }
 
         /**
          * todo; some considerations:
-         * - check block collisions to make sure there is not an entity/block in the target block
          * - make sure the player can actually reach the target block (4 block reach radius?)
          * - get the block from the registry based on id instead of making a new instance
          */
-        player.inventory.setItem(player.selectedHotbarSlot, selectedItem.shrink(1))
-
-        val offset = packet.face.offset
-        player.world.setBlock(
-            packet.blockPos.add(offset.x.toInt(), offset.y.toInt(), offset.z.toInt()),
-            BlockState(Block(selectedItem.item.networkId), selectedItem.metadataValue),
-        )
+        player.world.setBlock(target, BlockState(Block(item.item.networkId), item.metadataValue))
+        player.heldItem = item.shrink(1)
     }
 
     override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {
