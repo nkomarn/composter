@@ -177,18 +177,8 @@ class VanillaPacketHandler(
                  * - perform range checks for block breaking (4 block radius?)
                  * - perform speed checks (are we breaking the block too fast, hacking?)
                  */
-                /**
-                 * todo;
-                 * - perform range checks for block breaking (4 block radius?)
-                 * - perform speed checks (are we breaking the block too fast, hacking?)
-                 */
                 player.world.breakBlock(packet.blockPos)
             }
-
-            /**
-             * Drop a single count out of the item stack the
-             * player is currently holding in their hand.
-             */
 
             /**
              * Drop a single count out of the item stack the
@@ -204,26 +194,32 @@ class VanillaPacketHandler(
         }
     }
 
-    override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) {
-        val player = connection.player
-        val selectedItem = player.inventory.getItem(player.selectedHotbarSlot)
-        if (selectedItem.isEmpty) return
+    override suspend fun handleBlockPlacement(packet: ServerboundPlaceBlockPacket) = withContext(server) {
+        if (!packet.isBlockPlacement()) {
+            return@withContext
+        }
 
-        // connection.player.sendMessage(Component.text("trying to place item id $selectedItem"))
+        val item = player.heldItem.takeUnless(ItemStack::isEmpty)
+            ?: return@withContext
+
+        val offset = packet.face.offset
+        val target = packet.blockPos.add(offset.x, offset.y, offset.z)
+
+        /**
+         * Check world collisions to make sure there is not another
+         * block or an entity within the bounding box of the target block.
+         */
+        if (!player.world.getBlock(target).isAir() || player.world.getCollidingEntities(target.boundingBox).any()) {
+            return@withContext
+        }
 
         /**
          * todo; some considerations:
-         * - check block collisions to make sure there is not an entity/block in the target block
          * - make sure the player can actually reach the target block (4 block reach radius?)
          * - get the block from the registry based on id instead of making a new instance
          */
-        player.inventory.setItem(player.selectedHotbarSlot, selectedItem.shrink(1))
-
-        val offset = packet.face.offset
-        player.world.setBlock(
-            packet.blockPos.add(offset.x.toInt(), offset.y.toInt(), offset.z.toInt()),
-            BlockState(Block(selectedItem.item.networkId), selectedItem.metadataValue),
-        )
+        player.world.setBlock(target, BlockState(Block(item.item.networkId), item.metadataValue))
+        player.heldItem = item.shrink(1)
     }
 
     override suspend fun handlePlayerAction(packet: GenericPlayerActionPacket) {

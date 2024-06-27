@@ -37,3 +37,17 @@ data class Vec3d(
         val ZERO = Vec3d(0.0, 0.0, 0.0)
     }
 }
+
+data class Vec3i(
+    override val x: Int,
+    override val y: Int,
+    override val z: Int,
+) : Vec3<Int, Vec3i> {
+    override fun add(x: Int, y: Int, z: Int): Vec3i {
+        return Vec3i(this.x + x, this.y + y, this.z + z)
+    }
+
+    override fun subtract(x: Int, y: Int, z: Int): Vec3i {
+        return Vec3i(this.x - x, this.y - y, this.z - z)
+    }
+}

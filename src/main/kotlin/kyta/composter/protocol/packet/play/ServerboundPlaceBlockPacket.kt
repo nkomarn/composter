@@ -16,7 +16,13 @@ data class ServerboundPlaceBlockPacket(
 ) : ServerboundPacket {
     override suspend fun handle(handler: PacketHandler) = handler.handleBlockPlacement(this)
 
+    fun isBlockPlacement(): Boolean {
+        return blockPos != SPECIAL_CASE_POS
+    }
+
     companion object : PacketSerializer<ServerboundPlaceBlockPacket> {
+        private val SPECIAL_CASE_POS = BlockPos(-1, -1, -1)
+
         override fun deserialize(buffer: ReadBuffer): ServerboundPlaceBlockPacket {
             val pos = buffer.readBlockPos()
             val direction = when (buffer.readByte().toInt()) {
@@ -40,12 +46,12 @@ data class ServerboundPlaceBlockPacket(
         }
     }
 
-    enum class BlockFace(val offset: Vec3d) {
-        NORTH(Vec3d(0.0, 0.0, -1.0)), // -z
-        EAST(Vec3d(-1.0, 0.0, -0.0)), // -x
-        SOUTH(Vec3d(0.0, 0.0, 1.0)), // +z
-        WEST(Vec3d(1.0, 0.0, 0.0)), // +x
-        TOP(Vec3d(0.0, 1.0, 0.0)), // +y
-        BOTTOM(Vec3d(0.0, -1.0, 0.0)), // -y
+    enum class BlockFace(val offset: Vec3i) {
+        NORTH(Vec3i(0, 0, -1)), // -z
+        EAST(Vec3i(-1, 0, 0)), // -x
+        SOUTH(Vec3i(0, 0, 1)), // +z
+        WEST(Vec3i(1, 0, 0)), // +x
+        TOP(Vec3i(0, 1, 0)), // +y
+        BOTTOM(Vec3i(0, -1, 0)), // -y
     }
 }

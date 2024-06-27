@@ -7,7 +7,7 @@ import kyta.composter.item.Item
 import kyta.composter.item.ItemStack
 import kyta.composter.math.AABB
 import kyta.composter.math.Vec3d
-import kyta.composter.math.overlaps
+import kyta.composter.math.intersects
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundSetTimePacket
 import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
@@ -137,7 +137,7 @@ class World(
 fun World.getCollidingEntities(box: AABB): Sequence<Entity> {
     return entities.asSequence()
         .filterNot(Entity::isRemoved)
-        .filter { box.overlaps(it.boundingBox) }
+        .filter { box.intersects(it.boundingBox) }
 }
 
 fun World.breakBlock(pos: BlockPos) {
