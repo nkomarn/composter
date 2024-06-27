@@ -39,12 +39,13 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
         onlinePlayers[username.lowercase()] = player
 
         /* add the player into the world */
-        val worldSpawn = player.world.properties.spawn.up(3)
-        player.pos = Vec3d(worldSpawn)
-        player.world.addEntity(player)
+        val worldSpawn = player.world.properties.spawn
+        player.pos = Vec3d(worldSpawn).add(0.0, Player.EYE_HEIGHT, 0.0)
 
         player.updateVisibleChunks()
+        player.menuSynchronizer.synchronize()
         player.connection.sendPacket(ClientboundSetSpawnPacket(worldSpawn))
+        player.world.addEntity(player)
 
         /* send the player's spawning position */
         player.connection.sendPacket(
@@ -57,7 +58,6 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
             )
         )
 
-        player.menuSynchronizer.synchronize()
         broadcastMessage(Component.text(player.username + " joined the game.", NamedTextColor.YELLOW))
     }
 

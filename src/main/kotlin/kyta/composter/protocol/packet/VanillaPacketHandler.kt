@@ -83,7 +83,7 @@ class VanillaPacketHandler(
                     player.world.properties.seed,
                     DimensionType.OVERWORLD,
                 )
-            )
+            ).sync()
             connection.player = player
             connection.state = ConnectionState.PLAY
 
@@ -126,7 +126,7 @@ class VanillaPacketHandler(
         val player = connection.player
 
         if (!player.world.chunks.isLoaded(chunkPos)) {
-            return connection.sendPacket(
+            connection.sendPacket(
                 ClientboundSetAbsolutePlayerPositionPacket(
                     player.pos,
                     player.stance,
@@ -135,6 +135,8 @@ class VanillaPacketHandler(
                     player.isOnGround,
                 )
             )
+
+            return
         }
 
         /*
