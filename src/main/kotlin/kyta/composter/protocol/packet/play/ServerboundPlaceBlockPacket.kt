@@ -1,6 +1,6 @@
 package kyta.composter.protocol.packet.play
 
-import kyta.composter.math.Vec3d
+import kyta.composter.math.Vec3i
 import kyta.composter.protocol.PacketHandler
 import kyta.composter.protocol.PacketSerializer
 import kyta.composter.protocol.ReadBuffer

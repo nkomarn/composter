@@ -32,13 +32,15 @@ import kyta.composter.world.ChunkPos
 import kyta.composter.world.block.Block
 import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.STONE
+import kyta.composter.world.block.isAir
 import kyta.composter.world.breakBlock
 import kyta.composter.world.dimension.DimensionType
-import net.kyori.adventure.text.Component
 import kyta.composter.world.entity.Player
 import kyta.composter.world.entity.drop
 import kyta.composter.world.entity.heldItem
 import kyta.composter.world.entity.swingArm
+import kyta.composter.world.getCollidingEntities
+import net.kyori.adventure.text.Component
 
 class VanillaPacketHandler(
     private val server: MinecraftServer,
