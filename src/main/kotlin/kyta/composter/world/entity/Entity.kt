@@ -18,6 +18,7 @@ open class Entity(
 ) : Tickable {
     val id = ENTITY_ID_COUNTER.getAndIncrement()
     val synchronizedData = SynchronizedEntityData()
+
     var tickCount: Int = 0
         private set
 
@@ -60,8 +61,8 @@ open class Entity(
         tickCount++
     }
 
-    private companion object {
-        val ENTITY_ID_COUNTER = AtomicInteger()
+    companion object {
+        private val ENTITY_ID_COUNTER = AtomicInteger()
     }
 }
 
@@ -82,11 +83,3 @@ val Entity.boundingBox: AABB
             pos.z + dimensions.first / 2.0,
         )
     }
-
-fun Entity.findCollidingEntities(): Sequence<Entity> {
-    return boundingBox.let { box ->
-        world.entities.asSequence()
-            .filterNot { it === this }
-            .filter { box.intersects(it.boundingBox) }
-    }
-}

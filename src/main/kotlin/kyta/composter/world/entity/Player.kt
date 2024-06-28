@@ -28,7 +28,6 @@ class Player(
 ) : Entity(world, EntityType.PLAYER) {
     override val dimensions = 0.6 to 1.8
     val stance = 67.240000009536743
-    var isCrouching = false
     var isOnGround = false
     var lastDigStartTime = 0L
 

@@ -10,6 +10,7 @@ import kyta.composter.protocol.packet.play.ClientboundTeleportEntityPacket
 import kyta.composter.world.entity.Entity
 import kotlin.math.abs
 import kotlin.math.max
+import kyta.composter.protocol.packet.play.ClientboundSetEntityDataPacket
 
 class TrackedEntity(
     val entity: Entity,
@@ -20,6 +21,8 @@ class TrackedEntity(
     private var lastYaw = entity.yaw
 
     override fun tick(currentTick: Long) {
+        listener.invoke(ClientboundSetEntityDataPacket(entity.id, entity.synchronizedData)) // todo; temporary
+
         val distanceMoved = distanceMoved(entity.pos)
         val headMoved = entity.pitch != lastPitch || entity.yaw != lastYaw
 

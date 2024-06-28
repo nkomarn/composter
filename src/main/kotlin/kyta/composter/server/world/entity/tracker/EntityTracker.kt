@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import kyta.composter.server.Tickable
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
+import kyta.composter.protocol.packet.play.ClientboundSetEntityDataPacket
 import org.slf4j.LoggerFactory
 import kyta.composter.world.entity.Entity
 import kyta.composter.world.entity.Player
@@ -44,12 +45,14 @@ class EntityTracker(private val player: Player) : Tickable {
                 iterator.remove()
                 continue
             }
+
             trackedEntity.tick(currentTick)
         }
     }
 
     private fun trackNewEntity(entity: Entity) {
         player.connection.sendPacket(entity.createAddEntityPacket())
+        player.connection.sendPacket(ClientboundSetEntityDataPacket(entity.id, entity.synchronizedData))
 
         val trackedEntity = TrackedEntity(entity) { player.connection.sendPacket(it) }
         trackedEntities.put(entity.id, trackedEntity)

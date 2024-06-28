@@ -20,6 +20,7 @@ import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ServerboundCloseMenuPacket
+import kyta.composter.protocol.packet.play.ServerboundEntityActionPacket
 import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
 import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
@@ -36,6 +37,7 @@ import kyta.composter.world.block.isAir
 import kyta.composter.world.breakBlock
 import kyta.composter.world.dimension.DimensionType
 import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.crouching
 import kyta.composter.world.entity.drop
 import kyta.composter.world.entity.heldItem
 import kyta.composter.world.entity.swingArm
@@ -98,6 +100,15 @@ class VanillaPacketHandler(
         if (packet.message.isBlank()) return
         connection.player.inventory.insert(ItemStack(Item(STONE.networkId), 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
+    }
+
+    override suspend fun handleEntityAction(packet: ServerboundEntityActionPacket) = withContext(server) {
+        when (packet.action) {
+            ServerboundEntityActionPacket.Action.START_CROUCHING -> player.crouching = true
+            ServerboundEntityActionPacket.Action.STOP_CROUCHING -> player.crouching = false
+
+            else -> throw UnsupportedOperationException()
+        }
     }
 
     override suspend fun handlePlayerFlyingStatus(packet: FlyingStatusPacket) {

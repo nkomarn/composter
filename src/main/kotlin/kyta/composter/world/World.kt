@@ -18,6 +18,7 @@ import kyta.composter.world.block.defaultState
 import kyta.composter.world.chunk.ChunkController
 import kyta.composter.world.dimension.DimensionType
 import kyta.composter.world.entity.Entity
+import kyta.composter.world.entity.Pig
 import kyta.composter.world.entity.Player
 import kyta.composter.world.entity.boundingBox
 import xyz.nkomarn.composter.world.ChunkIO
@@ -36,6 +37,11 @@ class World(
 
     init {
         createSpawnChunks()
+
+        Pig(this).let {
+            it.pos = Vec3d(properties.spawn)
+            addEntity(it)
+        }
     }
 
     /**

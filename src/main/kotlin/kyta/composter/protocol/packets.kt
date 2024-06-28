@@ -42,6 +42,8 @@ import kyta.composter.protocol.packet.play.ServerboundSetPlayerRotationPacket
 import kyta.composter.world.BlockPos
 import kotlin.reflect.KClass
 import kyta.composter.protocol.packet.play.ClientboundMenuTransactionPacket
+import kyta.composter.protocol.packet.play.ClientboundSetEntityDataPacket
+import kyta.composter.protocol.packet.play.ServerboundEntityActionPacket
 
 interface Packet
 interface PacketHandler {
@@ -50,6 +52,7 @@ interface PacketHandler {
     suspend fun handleLogin(packet: ServerboundLoginPacket)
 
     suspend fun handleChatMessage(packet: ServerboundChatMessagePacket)
+    suspend fun handleEntityAction(packet: ServerboundEntityActionPacket)
 
     suspend fun handlePlayerFlyingStatus(packet: FlyingStatusPacket)
     suspend fun handlePlayerPosition(packet: PositionPacket)
@@ -98,6 +101,7 @@ object Protocol {
         registerPacket(16, ServerboundSetHeldSlotPacket::class, ServerboundSetHeldSlotPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(18, GenericPlayerActionPacket::class, GenericPlayerActionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
+        registerPacket(19, ServerboundEntityActionPacket::class, ServerboundEntityActionPacket, FlowDirection.SERVERBOUND, ConnectionState.PLAY)
         registerPacket(20, ClientboundAddPlayerPacket::class, ClientboundAddPlayerPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(21, ClientboundAddDroppedItemPacket::class, ClientboundAddDroppedItemPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(22, ClientboundCollectDroppedItemPacket::class, ClientboundCollectDroppedItemPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
@@ -107,6 +111,7 @@ object Protocol {
         registerPacket(32, ClientboundSetEntityRotationPacket::class, ClientboundSetEntityRotationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(33, ClientboundAdjustEntityPositionRotationPacket::class, ClientboundAdjustEntityPositionRotationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(34, ClientboundTeleportEntityPacket::class, ClientboundTeleportEntityPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
+        registerPacket(40, ClientboundSetEntityDataPacket::class, ClientboundSetEntityDataPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(50, ClientboundChunkOperationPacket::class, ClientboundChunkOperationPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(51, ClientboundChunkDataPacket::class, ClientboundChunkDataPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
         registerPacket(53, ClientboundUpdateBlockPacket::class, ClientboundUpdateBlockPacket, FlowDirection.CLIENTBOUND, ConnectionState.PLAY)
