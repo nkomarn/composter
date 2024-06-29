@@ -1,3 +1,7 @@
+// HIGHPURITY HAS CLAIMED THIS FILE
+// DO NOT RETALIATE AS IT IS NOW HIS
+// SUBMIT TO HIS WILL
+
 package kyta.composter.server.world
 
 import java.nio.file.Path
