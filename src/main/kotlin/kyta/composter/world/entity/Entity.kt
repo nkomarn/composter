@@ -3,23 +3,19 @@ package kyta.composter.world.entity
 import java.util.concurrent.atomic.AtomicInteger
 import kyta.composter.math.AABB
 import kyta.composter.math.Vec3d
-import kyta.composter.math.intersects
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundAddEntityPacket
-import kyta.composter.server.Tickable
 import kyta.composter.server.world.entity.data.SynchronizedEntityData
 import kyta.composter.world.BlockPos
 import kyta.composter.world.GlobalPos
 import kyta.composter.world.World
 
-open class Entity(
-    val world: World,
-    val type: EntityType,
-) : Tickable {
+open class Entity(val type: EntityType) {
     val id = ENTITY_ID_COUNTER.getAndIncrement()
     val synchronizedData = SynchronizedEntityData()
+    lateinit var world: World
 
-    var tickCount: Int = 0
+    var ticksAlive: Long = 0
         private set
 
     open val dimensions = 0.0 to 0.0
@@ -38,14 +34,6 @@ open class Entity(
             field = value % 360F
         }
 
-    var pos: Vec3d
-        get() = Vec3d(x, y, z)
-        set(value) {
-            x = value.x
-            y = value.y
-            z = value.z
-        }
-
     var isRemoved: Boolean = false
         private set
 
@@ -57,8 +45,9 @@ open class Entity(
         return ClientboundAddEntityPacket(this)
     }
 
-    override fun tick(currentTick: Long) {
-        tickCount++
+    open fun tick(currentTick: Long, world: World) {
+        this.world = world
+        ticksAlive++
     }
 
     companion object {
@@ -82,4 +71,12 @@ val Entity.boundingBox: AABB
             pos.y + dimensions.second,
             pos.z + dimensions.first / 2.0,
         )
+    }
+
+var Entity.pos: Vec3d
+    get() = Vec3d(x, y, z)
+    set(value) {
+        x = value.x
+        y = value.y
+        z = value.z
     }

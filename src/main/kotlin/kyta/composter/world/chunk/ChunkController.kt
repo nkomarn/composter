@@ -71,6 +71,6 @@ class ChunkController(private val world: World): Tickable {
 
     private companion object {
         const val SIMULATION_DISTANCE = 8
-        const val MAX_CHUNK_ACTIONS_PER_TICK = 8
+        const val MAX_CHUNK_ACTIONS_PER_TICK = Int.MAX_VALUE // 8
     }
 }

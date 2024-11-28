@@ -13,19 +13,20 @@ class EntityTracker(private val player: Player) : Tickable {
     private val logger = LoggerFactory.getLogger("tracker")
     private val trackedEntities = Int2ObjectOpenHashMap<TrackedEntity>()
 
-    fun broadcast(packet: Packet) {
-        // todo; this should probably work in reverse
-        // where players that track THIS player receive packets
-        trackedEntities.values
-            .map { it.entity }
-            .filterIsInstance<Player>().forEach {
-            it.connection.sendPacket(packet)
-        }
+    fun isTracking(entity: Entity): Boolean {
+        return trackedEntities.containsKey(entity.id)
     }
 
-    fun broadcastIncludingSelf(packet: Packet) {
-        broadcast(packet)
-        player.connection.sendPacket(packet)
+    fun broadcast(packet: Packet, includeSelf: Boolean = false) {
+        for (viewer in player.world.server.playerList) {
+            if (viewer.entityTracker.isTracking(player)) {
+                viewer.connection.sendPacket(packet)
+            }
+        }
+
+        if (includeSelf) {
+            player.connection.sendPacket(packet)
+        }
     }
 
     override fun tick(currentTick: Long) {
@@ -40,7 +41,7 @@ class EntityTracker(private val player: Player) : Tickable {
         val iterator = trackedEntities.values.iterator()
         while (iterator.hasNext()) {
             val trackedEntity = iterator.next()
-            if (trackedEntity.entity.isRemoved) {
+            if (trackedEntity.entity.isRemoved || trackedEntity.entity.world != player.world) {
                 untrackEntity(trackedEntity.entity)
                 iterator.remove()
                 continue

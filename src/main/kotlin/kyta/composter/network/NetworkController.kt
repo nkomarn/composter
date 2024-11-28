@@ -23,7 +23,7 @@ class NetworkController(private val server: MinecraftServer) {
             .group(createGroup(3))
             .channel(channelClass().java)
             .childOption(ChannelOption.TCP_NODELAY, true)
-            .option(ChannelOption.TCP_FASTOPEN, 50)
+//             .option(ChannelOption.TCP_FASTOPEN, 50)
             .childHandler(InboundConnectionInitializer(server, logger))
             .bind(port)
             .sync()

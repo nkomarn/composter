@@ -4,15 +4,15 @@ import kyta.composter.server.world.entity.data.DataDescriptor
 import kyta.composter.server.world.entity.data.DataType
 import kyta.composter.world.World
 
-class Pig(world: World) : Entity(world, EntityType.PIG) {
-    override fun tick(currentTick: Long) {
-        super.tick(currentTick)
+class Pig : Entity(EntityType.PIG) {
+    override fun tick(currentTick: Long, world: World) {
+        super.tick(currentTick, world)
 
-        if (currentTick % 20 == 0L) {
+        if (ticksAlive % 20 == 0L) {
             setSaddle(!hasSaddle())
         }
 
-        val nearbyPlayer = world.server.playerList.onlinePlayers().firstOrNull()
+        val nearbyPlayer = world.server.playerList.firstOrNull()
             ?: return
 
         if (nearbyPlayer.blockPos.distanceSqRt(blockPos) > 30) {

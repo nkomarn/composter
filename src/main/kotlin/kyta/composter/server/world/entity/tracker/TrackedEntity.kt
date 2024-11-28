@@ -11,6 +11,7 @@ import kyta.composter.world.entity.Entity
 import kotlin.math.abs
 import kotlin.math.max
 import kyta.composter.protocol.packet.play.ClientboundSetEntityDataPacket
+import kyta.composter.world.entity.pos
 
 class TrackedEntity(
     val entity: Entity,

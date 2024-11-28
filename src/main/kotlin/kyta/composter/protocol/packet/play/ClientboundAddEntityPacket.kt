@@ -11,6 +11,7 @@ import kyta.composter.protocol.WriteBuffer
 import kyta.composter.world.entity.Entity
 import kyta.composter.world.entity.Player
 import kyta.composter.world.entity.getHotbarItem
+import kyta.composter.world.entity.pos
 
 interface AddEntityPacket : Packet {
     val id: Int
