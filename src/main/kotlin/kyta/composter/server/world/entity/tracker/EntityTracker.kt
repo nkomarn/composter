@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import kyta.composter.server.Tickable
 import kyta.composter.protocol.Packet
 import kyta.composter.protocol.packet.play.ClientboundRemoveEntityPacket
+import kyta.composter.protocol.packet.play.ClientboundSetEntityDataPacket
 import org.slf4j.LoggerFactory
 import kyta.composter.world.entity.Entity
 import kyta.composter.world.entity.Player
@@ -12,19 +13,20 @@ class EntityTracker(private val player: Player) : Tickable {
     private val logger = LoggerFactory.getLogger("tracker")
     private val trackedEntities = Int2ObjectOpenHashMap<TrackedEntity>()
 
-    fun broadcast(packet: Packet) {
-        // todo; this should probably work in reverse
-        // where players that track THIS player receive packets
-        trackedEntities.values
-            .map { it.entity }
-            .filterIsInstance<Player>().forEach {
-            it.connection.sendPacket(packet)
-        }
+    fun isTracking(entity: Entity): Boolean {
+        return trackedEntities.containsKey(entity.id)
     }
 
-    fun broadcastIncludingSelf(packet: Packet) {
-        broadcast(packet)
-        player.connection.sendPacket(packet)
+    fun broadcast(packet: Packet, includeSelf: Boolean = false) {
+        for (viewer in player.world.server.playerList) {
+            if (viewer.entityTracker.isTracking(player)) {
+                viewer.connection.sendPacket(packet)
+            }
+        }
+
+        if (includeSelf) {
+            player.connection.sendPacket(packet)
+        }
     }
 
     override fun tick(currentTick: Long) {
@@ -39,17 +41,19 @@ class EntityTracker(private val player: Player) : Tickable {
         val iterator = trackedEntities.values.iterator()
         while (iterator.hasNext()) {
             val trackedEntity = iterator.next()
-            if (trackedEntity.entity.isRemoved) {
+            if (trackedEntity.entity.isRemoved || trackedEntity.entity.world != player.world) {
                 untrackEntity(trackedEntity.entity)
                 iterator.remove()
                 continue
             }
+
             trackedEntity.tick(currentTick)
         }
     }
 
     private fun trackNewEntity(entity: Entity) {
         player.connection.sendPacket(entity.createAddEntityPacket())
+        player.connection.sendPacket(ClientboundSetEntityDataPacket(entity.id, entity.synchronizedData))
 
         val trackedEntity = TrackedEntity(entity) { player.connection.sendPacket(it) }
         trackedEntities.put(entity.id, trackedEntity)

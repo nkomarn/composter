@@ -14,12 +14,14 @@ import kyta.composter.protocol.packet.login.ClientboundLoginPacket
 import kyta.composter.protocol.packet.login.ServerboundLoginPacket
 import kyta.composter.protocol.packet.play.ClientboundMenuTransactionPacket
 import kyta.composter.protocol.packet.play.ClientboundSetAbsolutePlayerPositionPacket
+import kyta.composter.protocol.packet.play.ClientboundUpdateBlockPacket
 import kyta.composter.protocol.packet.play.FlyingStatusPacket
 import kyta.composter.protocol.packet.play.GenericPlayerActionPacket
 import kyta.composter.protocol.packet.play.PositionPacket
 import kyta.composter.protocol.packet.play.RotationPacket
 import kyta.composter.protocol.packet.play.ServerboundChatMessagePacket
 import kyta.composter.protocol.packet.play.ServerboundCloseMenuPacket
+import kyta.composter.protocol.packet.play.ServerboundEntityActionPacket
 import kyta.composter.protocol.packet.play.ServerboundMenuInteractionPacket
 import kyta.composter.protocol.packet.play.ServerboundPlaceBlockPacket
 import kyta.composter.protocol.packet.play.ServerboundPlayerDigPacket
@@ -34,10 +36,11 @@ import kyta.composter.world.block.BlockState
 import kyta.composter.world.block.STONE
 import kyta.composter.world.block.isAir
 import kyta.composter.world.breakBlock
-import kyta.composter.world.dimension.DimensionType
 import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.crouching
 import kyta.composter.world.entity.drop
 import kyta.composter.world.entity.heldItem
+import kyta.composter.world.entity.pos
 import kyta.composter.world.entity.swingArm
 import kyta.composter.world.getCollidingEntities
 import net.kyori.adventure.text.Component
@@ -71,11 +74,8 @@ class VanillaPacketHandler(
                 ?.connection
                 ?.disconnect("You logged in from another location")
 
-            player = Player(
-                server.worldManager.primaryWorld,
-                connection,
-                packet.username,
-            )
+            player = Player(connection, packet.username)
+            player.world = server.worldManager.primaryWorld
 
             /* acknowledge login, advance connection status */
             connection.sendPacket(
@@ -83,7 +83,7 @@ class VanillaPacketHandler(
                     player.id,
                     "composter",
                     player.world.properties.seed,
-                    DimensionType.OVERWORLD,
+                    player.world.properties.dimensionType,
                 )
             ).sync()
             connection.player = player
@@ -98,6 +98,15 @@ class VanillaPacketHandler(
         if (packet.message.isBlank()) return
         connection.player.inventory.insert(ItemStack(Item(STONE.networkId), 64, 0))
         server.playerList.broadcastMessage(Component.text("<${connection.player.username}> ${packet.message}"))
+    }
+
+    override suspend fun handleEntityAction(packet: ServerboundEntityActionPacket) = withContext(server) {
+        when (packet.action) {
+            ServerboundEntityActionPacket.Action.START_CROUCHING -> player.crouching = true
+            ServerboundEntityActionPacket.Action.STOP_CROUCHING -> player.crouching = false
+
+            else -> throw UnsupportedOperationException()
+        }
     }
 
     override suspend fun handlePlayerFlyingStatus(packet: FlyingStatusPacket) {
@@ -213,7 +222,9 @@ class VanillaPacketHandler(
          * Check world collisions to make sure there is not another
          * block or an entity within the bounding box of the target block.
          */
-        if (!player.world.getBlock(target).isAir() || player.world.getCollidingEntities(target.boundingBox).any()) {
+        val currentState = player.world.getBlock(target)
+        if (!currentState.isAir() || player.world.getCollidingEntities(target.boundingBox).any()) {
+            player.connection.sendPacket(ClientboundUpdateBlockPacket(target, currentState))
             return@withContext
         }
 

@@ -11,18 +11,15 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.slf4j.LoggerFactory
 import kyta.composter.world.entity.Player
+import kyta.composter.world.entity.pos
 import java.util.*
 
-class PlayerList(private val server: MinecraftServer) : Tickable {
+class PlayerList(private val server: MinecraftServer) : Tickable, Iterable<Player> {
     private val onlinePlayers = mutableMapOf<String, Player>()
     private val chatLogger = LoggerFactory.getLogger("chat")
 
     fun getPlayer(username: String): Player? {
         return onlinePlayers[username.lowercase(Locale.getDefault())]
-    }
-
-    fun onlinePlayers(): Collection<Player> {
-        return Collections.unmodifiableCollection(onlinePlayers.values)
     }
 
     fun broadcastMessage(message: Component) {
@@ -31,7 +28,7 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
     }
 
     fun broadcastPacket(packet: Packet) {
-        onlinePlayers().forEach { it.connection.sendPacket(packet) }
+        forEach { it.connection.sendPacket(packet) }
     }
 
     fun playerJoined(player: Player) {
@@ -45,7 +42,7 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
         player.updateVisibleChunks()
         player.menuSynchronizer.synchronize()
         player.connection.sendPacket(ClientboundSetSpawnPacket(worldSpawn))
-        player.world.addEntity(player)
+        player.world.entities.add(player)
 
         /* send the player's spawning position */
         player.connection.sendPacket(
@@ -67,6 +64,10 @@ class PlayerList(private val server: MinecraftServer) : Tickable {
         val username = player.username
         onlinePlayers.remove(username.lowercase())
         broadcastMessage(Component.text(player.username + " left the game.", NamedTextColor.YELLOW))
+    }
+
+    override fun iterator(): Iterator<Player> {
+        return onlinePlayers.values.iterator()
     }
 
     override fun tick(currentTick: Long) {

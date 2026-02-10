@@ -6,32 +6,25 @@ data class DataDescriptor<T>(
     val initialValue: T,
 )
 
-data class DataValue<T>(
-    val descriptor: DataDescriptor<T>,
-    var value: T = descriptor.initialValue,
-)
-
 class SynchronizedEntityData {
-    private val values = mutableMapOf<DataDescriptor<Any>, DataValue<Any>>()
+    internal val values = mutableMapOf<DataDescriptor<*>, Any>()
     internal var dirty = true
 
     fun <T> getValue(descriptor: DataDescriptor<T>): T {
-        return values[descriptor as DataDescriptor<Any>]!!.value as T
+        return values[descriptor]?.let { it as T }
+            ?: descriptor.initialValue
     }
 
     fun <T> setValue(descriptor: DataDescriptor<T>, value: T) {
-        values[descriptor as DataDescriptor<Any>]!!.value = value as Any
+        values[descriptor] = value as Any
         dirty = true
     }
 
-    fun register(descriptor: DataDescriptor<Any>) {
-        values[descriptor] = DataValue(descriptor)
+    fun register(descriptor: DataDescriptor<out Any>) {
+        values[descriptor] = descriptor.initialValue
     }
 }
 
-/*
-fun <T> ByteBuf.writeMetaData(data: DataValue<T>, value: T) {
-    val identifier = data.type.serialId shl 5 or (data.id and 31) and 0xFF
-
+inline fun <T> SynchronizedEntityData.updateValue(descriptor: DataDescriptor<T>, block: (T) -> T) {
+    setValue(descriptor, block.invoke(getValue(descriptor)))
 }
- */

@@ -22,13 +22,11 @@ import kyta.composter.world.getCollidingEntities
 import net.kyori.adventure.text.Component
 
 class Player(
-    world: World,
     val connection: Connection,
     val username: String,
-) : Entity(world, EntityType.PLAYER) {
+) : Entity(EntityType.PLAYER) {
     override val dimensions = 0.6 to 1.8
-    val stance = 67.240000009536743
-    var isCrouching = false
+    val stance = 67.24000000953674
     var isOnGround = false
     var lastDigStartTime = 0L
 
@@ -51,8 +49,9 @@ class Player(
         return ClientboundAddPlayerPacket(this)
     }
 
-    override fun tick(currentTick: Long) {
-        super.tick(currentTick)
+    override fun tick(currentTick: Long, world: World) {
+        super.tick(currentTick, world)
+
         entityTracker.tick(currentTick)
         menuSynchronizer.tick(currentTick)
 
@@ -115,7 +114,7 @@ class Player(
              * of the stored stack has been picked up.
              */
             if (entity.itemStack.isEmpty) {
-                entityTracker.broadcastIncludingSelf(ClientboundCollectDroppedItemPacket(entity.id, id))
+                entityTracker.broadcast(ClientboundCollectDroppedItemPacket(entity.id, id), includeSelf = true)
             }
         }
     }
@@ -140,13 +139,13 @@ fun Player.getHotbarItem(index: Int): ItemStack {
 }
 
 fun Player.drop(stack: ItemStack) {
-    val entity = ItemEntity(world).apply {
+    val entity = ItemEntity().apply {
         pos = this@drop.pos
         itemStack = stack
         pickUpDelay = ItemEntity.TICKS_PLAYER_PICK_UP_DELAY
     }
 
-    world.addEntity(entity)
+    world.entities.add(entity)
 }
 
 fun Player.swingArm() {

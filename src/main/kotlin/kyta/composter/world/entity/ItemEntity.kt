@@ -8,7 +8,7 @@ import kyta.composter.protocol.packet.play.ClientboundAddDroppedItemPacket
 import kyta.composter.world.World
 import kyta.composter.world.getCollidingEntities
 
-class ItemEntity(world: World) : Entity(world, EntityType.DROPPED_ITEM) {
+class ItemEntity : Entity(EntityType.DROPPED_ITEM) {
     override val dimensions = 0.25 to 0.25
     var itemStack = ItemStack.EMPTY
         set(value) {
@@ -29,8 +29,8 @@ class ItemEntity(world: World) : Entity(world, EntityType.DROPPED_ITEM) {
         return pickUpDelay == 0
     }
 
-    override fun tick(currentTick: Long) {
-        super.tick(currentTick)
+    override fun tick(currentTick: Long, world: World) {
+        super.tick(currentTick, world)
 
         if (pickUpDelay > 0) {
             pickUpDelay--
@@ -40,7 +40,7 @@ class ItemEntity(world: World) : Entity(world, EntityType.DROPPED_ITEM) {
          * Dropped items that have not been picked up in too long
          * are removed from the world.
          */
-        if (tickCount >= DESPAWN_TICKS) {
+        if (ticksAlive >= DESPAWN_TICKS) {
             return markRemoved()
         }
 
@@ -64,11 +64,11 @@ class ItemEntity(world: World) : Entity(world, EntityType.DROPPED_ITEM) {
          * - from another item entity into this one
          */
         for (entity in nearby) {
-            if (entity.tickCount < tickCount) {
+            if (entity.ticksAlive < ticksAlive) {
 
             }
 
-            val lowerTickCount = if (entity.tickCount < tickCount) entity else this
+            val lowerTickCount = if (entity.ticksAlive < ticksAlive) entity else this
             TODO()
         }
     }

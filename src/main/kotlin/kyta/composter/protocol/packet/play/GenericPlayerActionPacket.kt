@@ -22,18 +22,20 @@ data class GenericPlayerActionPacket(
             val id = buffer.readInt()
             val actionId = buffer.readByte().toInt()
             val action = Action.entries.find { it.networkId == actionId }
-                ?: throw UnsupportedOperationException()
+                ?: throw IllegalStateException()
 
             return GenericPlayerActionPacket(id, action)
         }
     }
 
-    enum class Action(val networkId: Int) {
+    enum class Action(internal val networkId: Int) {
         STOP_ANIMATION(0),
         SWING_ARM(1),
-        DAMAGE_ANIMATION(2),
+        TAKE_DAMAGE(2),
         LEAVE_BED(3),
+        @Deprecated("Unused in practice, see ServerboundEntityActionPacket.")
         START_CROUCHING(104),
+        @Deprecated("Unused in practice, see ServerboundEntityActionPacket.")
         STOP_CROUCHING(105),
     }
 }
